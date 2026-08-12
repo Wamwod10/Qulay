@@ -1,0 +1,28 @@
+.product-create-page {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+
+  max-width: 980px;
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  &__form-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .product-create-page {
+    &__actions {
+      .ui-button {
+        width: 100%;
+      }
+    }
+  }
+}

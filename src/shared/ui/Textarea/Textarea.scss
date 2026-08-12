@@ -1,0 +1,67 @@
+.ui-textarea {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  width: 100%;
+
+  &__label {
+    color: var(--color-text-secondary);
+
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__required {
+    margin-left: 4px;
+
+    color: var(--color-danger);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+
+    padding: 14px;
+
+    resize: vertical;
+
+    border: 0;
+    outline: 0;
+
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+
+    color: var(--color-text-primary);
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    box-shadow: var(--shadow-inset);
+
+    transition: box-shadow var(--transition-fast);
+
+    &:focus {
+      box-shadow: var(--shadow-focus);
+    }
+
+    &::placeholder {
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__hint,
+  &__error {
+    font-size: 12px;
+  }
+
+  &__hint {
+    color: var(--color-text-muted);
+  }
+
+  &__error {
+    color: var(--color-danger);
+  }
+}

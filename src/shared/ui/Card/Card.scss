@@ -1,0 +1,39 @@
+.ui-card {
+  border-radius: var(--radius-xl);
+
+  background: var(--color-surface);
+
+  &--raised {
+    box-shadow: var(--shadow-raised);
+  }
+
+  &--soft {
+    box-shadow: var(--shadow-raised-sm);
+  }
+
+  &--inset {
+    box-shadow: var(--shadow-inset);
+  }
+
+  &--flat {
+    border: 1px solid var(--color-border);
+
+    box-shadow: none;
+  }
+
+  &--padding-none {
+    padding: 0;
+  }
+
+  &--padding-sm {
+    padding: 16px;
+  }
+
+  &--padding-md {
+    padding: 24px;
+  }
+
+  &--padding-lg {
+    padding: 32px;
+  }
+}

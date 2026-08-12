@@ -1,0 +1,11 @@
+.purchase-create-page {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+
+  &__top {
+    display: flex;
+    align-items: center;
+  }
+}

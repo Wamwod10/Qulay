@@ -1,0 +1,98 @@
+.stock-movements {
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 18px;
+
+    margin-bottom: 20px;
+
+    h3 {
+      margin: 0;
+
+      color: var(--color-text-primary);
+
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 6px 0 0;
+
+      color: var(--color-text-muted);
+
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    > span {
+      color: var(--color-text-muted);
+
+      font-size: 11px;
+      font-weight: 600;
+
+      white-space: nowrap;
+    }
+  }
+
+  &__type {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+  }
+
+  &__type-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    flex: 0 0 30px;
+
+    border-radius: 9px;
+
+    color: var(--color-accent);
+
+    box-shadow: var(--shadow-inset);
+  }
+
+  &__product {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    strong {
+      color: var(--color-text-primary);
+
+      font-size: 12px;
+    }
+
+    span {
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+  }
+
+  &__quantity {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    strong {
+      font-size: 12px;
+    }
+
+    span {
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+  }
+}

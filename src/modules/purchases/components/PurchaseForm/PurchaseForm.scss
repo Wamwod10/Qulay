@@ -1,0 +1,285 @@
+.purchase-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+
+  &__section {
+    min-width: 0;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+
+    h3 {
+      margin: 0;
+
+      color: var(--color-text-primary);
+
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 5px 0 0;
+
+      color: var(--color-text-muted);
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+  }
+
+  &__grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  &__item {
+    display: grid;
+
+    grid-template-columns:
+      34px
+      minmax(240px, 2fr)
+      minmax(120px, 0.7fr)
+      minmax(150px, 0.9fr)
+      minmax(140px, 0.8fr)
+      40px;
+
+    align-items: end;
+
+    gap: 12px;
+
+    padding: 14px;
+
+    border-radius: var(--radius-lg);
+
+    box-shadow: var(--shadow-inset);
+  }
+
+  &__item-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    margin-bottom: 7px;
+
+    border-radius: 9px;
+
+    color: var(--color-text-secondary);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    box-shadow: var(--shadow-raised-sm);
+  }
+
+  &__item-total {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+
+    min-height: 46px;
+
+    padding-bottom: 2px;
+
+    span,
+    small {
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+
+    strong {
+      color: var(--color-text-primary);
+
+      font-size: 13px;
+      font-weight: 700;
+    }
+  }
+
+  &__bottom-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 20px;
+  }
+
+  &__payment {
+    display: flex;
+    flex-direction: column;
+
+    gap: 20px;
+  }
+
+  &__payment-summary {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+
+    padding: 16px;
+
+    border-radius: var(--radius-lg);
+
+    box-shadow: var(--shadow-inset);
+  }
+
+  &__summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    span {
+      color: var(--color-text-muted);
+
+      font-size: 11px;
+    }
+
+    strong {
+      color: var(--color-text-primary);
+
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    &--strong {
+      color: var(--color-accent) !important;
+
+      font-size: 15px !important;
+    }
+  }
+
+  &__error {
+    margin-top: 12px;
+
+    color: var(--color-danger);
+
+    font-size: 12px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding-top: 4px;
+  }
+}
+
+@media (max-width: 1150px) {
+  .purchase-form {
+    &__item {
+      grid-template-columns:
+        32px
+        minmax(200px, 2fr)
+        110px
+        140px
+        120px
+        36px;
+
+      overflow-x: auto;
+    }
+  }
+}
+
+@media (max-width: 800px) {
+  .purchase-form {
+    &__grid,
+    &__bottom-grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__item {
+      grid-template-columns: 1fr;
+
+      align-items: stretch;
+    }
+
+    &__item-number {
+      margin: 0;
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  .purchase-form {
+    &__section-header {
+      flex-direction: column;
+
+      .ui-button {
+        width: 100%;
+      }
+    }
+
+    &__actions {
+      flex-direction: column-reverse;
+
+      .ui-button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.purchase-form {
+  &__last-price {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    margin-top: 6px;
+
+    span {
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+
+      strong {
+        color: var(--color-text-secondary);
+
+        font-weight: 650;
+      }
+    }
+  }
+
+  &__last-price-diff {
+    color: var(--color-text-muted);
+
+    font-size: 10px;
+    font-weight: 600;
+
+    &--up {
+      color: var(--color-warning);
+    }
+
+    &--down {
+      color: var(--color-success);
+    }
+  }
+}

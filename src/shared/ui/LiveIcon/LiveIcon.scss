@@ -1,0 +1,245 @@
+.ui-live-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: fit-content;
+  height: fit-content;
+
+  line-height: 0;
+
+  transform-origin: center;
+  will-change: transform, opacity, filter;
+
+  svg {
+    display: block;
+  }
+
+  .ui-badge > &:first-child {
+    margin-right: 6px;
+  }
+
+  .ui-button__icon > & {
+    margin: 0;
+  }
+
+  &--spin-slow {
+    animation: ui-live-icon-spin-slow 4.4s linear infinite;
+  }
+
+  &--pulse-soft {
+    animation: ui-live-icon-pulse-soft 2.6s ease-in-out infinite;
+  }
+
+  &--warning-glow {
+    animation: ui-live-icon-warning-glow 2.9s ease-in-out infinite;
+  }
+
+  &--danger-breathe {
+    animation: ui-live-icon-danger-breathe 2.7s ease-in-out infinite;
+  }
+
+  &--success-pop {
+    animation: ui-live-icon-success-breathe 2.8s ease-in-out infinite;
+  }
+
+  &--success-pop.ui-live-icon--once {
+    animation: ui-live-icon-success-pop-once 720ms
+      cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  &--slide-x-soft {
+    animation: ui-live-icon-slide-x-soft 2.7s ease-in-out infinite;
+  }
+
+  &--trend-up-soft {
+    animation: ui-live-icon-trend-up-soft 2.4s ease-in-out infinite;
+  }
+
+  &--trend-down-soft {
+    animation: ui-live-icon-trend-down-soft 2.4s ease-in-out infinite;
+  }
+
+  &--stock-in-soft {
+    animation: ui-live-icon-stock-in-soft 2.4s ease-in-out infinite;
+  }
+
+  &--stock-out-soft {
+    animation: ui-live-icon-stock-out-soft 2.4s ease-in-out infinite;
+  }
+
+  &--stock-in-soft.ui-live-icon--once {
+    animation: ui-live-icon-stock-in-once 760ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      both;
+  }
+
+  &--stock-out-soft.ui-live-icon--once {
+    animation: ui-live-icon-stock-out-once 760ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      both;
+  }
+}
+
+@keyframes ui-live-icon-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ui-live-icon-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.76;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.025);
+  }
+}
+
+@keyframes ui-live-icon-warning-glow {
+  0%,
+  100% {
+    opacity: 0.86;
+    filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0));
+    transform: scale(0.99);
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.34));
+    transform: scale(1.025);
+  }
+}
+
+@keyframes ui-live-icon-danger-breathe {
+  0%,
+  100% {
+    opacity: 0.84;
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.32));
+    transform: scale(1.03);
+  }
+}
+
+@keyframes ui-live-icon-success-breathe {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes ui-live-icon-success-pop-once {
+  0% {
+    transform: scale(0.88);
+  }
+
+  55% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ui-live-icon-slide-x-soft {
+  0%,
+  100% {
+    transform: translateX(-1.5px);
+  }
+
+  50% {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes ui-live-icon-trend-up-soft {
+  0%,
+  100% {
+    transform: translateY(1px);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ui-live-icon-trend-down-soft {
+  0%,
+  100% {
+    transform: translateY(-1px);
+  }
+
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes ui-live-icon-stock-in-soft {
+  0%,
+  100% {
+    transform: translateY(1.5px);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ui-live-icon-stock-out-soft {
+  0%,
+  100% {
+    transform: translateY(-1.5px);
+  }
+
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes ui-live-icon-stock-in-once {
+  0% {
+    opacity: 0.7;
+    transform: translateY(-3px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ui-live-icon-stock-out-once {
+  0% {
+    opacity: 0.7;
+    transform: translateY(3px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-live-icon {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}

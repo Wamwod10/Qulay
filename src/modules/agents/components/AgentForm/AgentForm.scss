@@ -1,0 +1,60 @@
+.agent-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+
+  &__header {
+    margin-bottom: 20px;
+
+    h3 {
+      margin: 0;
+
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 5px 0 0;
+
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+  }
+
+  &__grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 17px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+  }
+
+  &__note {
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 700px) {
+  .agent-form {
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__actions {
+      flex-direction: column-reverse;
+
+      .ui-button {
+        width: 100%;
+      }
+    }
+  }
+}

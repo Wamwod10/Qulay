@@ -1,0 +1,95 @@
+.ui-input {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  width: 100%;
+
+  &__label {
+    color: var(--color-text-secondary);
+
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__required {
+    margin-left: 4px;
+
+    color: var(--color-danger);
+  }
+
+  &__control {
+    display: flex;
+    align-items: center;
+
+    min-height: 46px;
+
+    gap: 10px;
+
+    padding: 0 14px;
+
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+
+    box-shadow: var(--shadow-inset);
+
+    transition: box-shadow var(--transition-fast);
+
+    &:focus-within {
+      box-shadow: var(--shadow-focus);
+    }
+
+    input {
+      width: 100%;
+
+      border: 0;
+      outline: 0;
+
+      background: transparent;
+
+      color: var(--color-text-primary);
+
+      font-size: 14px;
+
+      &::placeholder {
+        color: var(--color-text-muted);
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+
+    color: var(--color-text-muted);
+  }
+
+  &__hint,
+  &__error {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  &__hint {
+    color: var(--color-text-muted);
+  }
+
+  &__error {
+    color: var(--color-danger);
+  }
+
+  &--error {
+    .ui-input__control {
+      box-shadow:
+        inset 4px 4px 9px rgba(168, 93, 97, 0.12),
+        inset -4px -4px 9px rgba(255, 255, 255, 0.7),
+        0 0 0 1px rgba(168, 93, 97, 0.25);
+    }
+  }
+}

@@ -1,0 +1,20 @@
+:root {
+  --sidebar-width: 264px;
+  --sidebar-collapsed-width: 84px;
+
+  --header-height: 72px;
+
+  --content-max-width: 1920px;
+
+  --transition-fast: 140ms ease;
+  --transition-base: 220ms ease;
+  --transition-slow: 320ms ease;
+
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-header: 400;
+  --z-overlay: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+}

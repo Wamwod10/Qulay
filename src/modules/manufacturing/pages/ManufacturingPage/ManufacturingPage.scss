@@ -1,0 +1,160 @@
+.manufacturing-page {
+  display: flex;
+  flex-direction: column;
+
+  gap: 22px;
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+  }
+
+  &__stats {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 18px;
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    min-height: 96px;
+
+    > div:last-child {
+      display: flex;
+      flex-direction: column;
+
+      gap: 5px;
+    }
+
+    span {
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+
+    strong {
+      color: var(--color-text-primary);
+
+      font-size: 19px;
+      font-weight: 700;
+    }
+  }
+
+  &__stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 45px;
+    height: 45px;
+
+    flex: 0 0 45px;
+
+    border-radius: 14px;
+
+    color: var(--color-accent);
+
+    background: var(--color-accent-soft);
+
+    box-shadow: var(--shadow-inset);
+
+    &--warning {
+      color: var(--color-warning);
+
+      background: var(--color-warning-soft);
+    }
+
+    &--success {
+      color: var(--color-success);
+
+      background: var(--color-success-soft);
+    }
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    margin-bottom: 18px;
+
+    h3 {
+      margin: 0;
+
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 5px 0 0;
+
+      color: var(--color-text-muted);
+
+      font-size: 10px;
+    }
+
+    &--orders {
+      align-items: center;
+    }
+  }
+
+  &__bom-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 16px;
+  }
+
+  &__filter {
+    width: 210px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .manufacturing-page {
+    &__stats,
+    &__bom-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  .manufacturing-page {
+    &__actions {
+      .ui-button {
+        flex: 1;
+      }
+    }
+
+    &__stats,
+    &__bom-grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__section-header {
+      flex-direction: column;
+
+      &--orders {
+        align-items: stretch;
+      }
+    }
+
+    &__filter {
+      width: 100%;
+    }
+  }
+}
