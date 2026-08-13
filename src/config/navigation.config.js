@@ -9,7 +9,7 @@ export const navigationItems = [
     {
         id: "sales",
         label: "Savdo",
-        path: "/sales",
+        path: "/sales/terminal",
         icon: "ShoppingCart",
         module: "sales",
     },

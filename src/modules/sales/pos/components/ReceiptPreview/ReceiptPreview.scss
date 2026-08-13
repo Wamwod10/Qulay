@@ -1,0 +1,127 @@
+.sales-receipt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+
+  &__paper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: var(--radius-md);
+    background: #fff;
+    color: #252b32;
+    box-shadow: var(--shadow-inset);
+
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed #b7bec7;
+      text-align: center;
+
+      strong {
+        font-size: 15px;
+      }
+
+      span {
+        font-size: 11px;
+      }
+    }
+  }
+
+  &__meta,
+  &__payments {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 10px 0;
+    border-top: 1px dashed #b7bec7;
+    border-bottom: 1px dashed #b7bec7;
+  }
+
+  &__item,
+  &__totals span,
+  &__totals strong {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__item {
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    strong,
+    b {
+      font-size: 12px;
+    }
+
+    span {
+      color: #66707c;
+      font-size: 10px;
+    }
+  }
+
+  &__totals {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 12px;
+
+    strong {
+      padding-top: 7px;
+      border-top: 1px dashed #b7bec7;
+      font-size: 14px;
+    }
+  }
+
+  &__note {
+    margin: 0;
+    color: #66707c;
+    font-size: 11px;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .sales-receipt,
+  .sales-receipt * {
+    visibility: visible;
+  }
+
+  .sales-receipt {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    padding: 0;
+  }
+
+  .sales-receipt__paper {
+    width: 80mm;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .sales-receipt .ui-button {
+    display: none;
+  }
+}

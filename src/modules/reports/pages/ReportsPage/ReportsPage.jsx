@@ -32,6 +32,13 @@ import {
 } from "../../../manufacturing/utils/manufacturingHelpers";
 
 import { buildManufacturingReport } from "../../utils/manufacturingReports";
+import { getStoredSales } from "../../../sales/utils/salesStorage";
+import { formatSaleMoney } from "../../../sales/utils/salesHelpers";
+import {
+  buildFinanceReport,
+  formatFinanceMoney,
+  getPaymentMethodLabel,
+} from "../../../finance/utils/financeSelectors";
 
 import "./ReportsPage.scss";
 
@@ -52,6 +59,7 @@ const STATUS_OPTIONS = [
 
 const ReportsPage = () => {
   const [orders] = useState(() => getStoredProductionOrders());
+  const [sales] = useState(() => getStoredSales());
   const [period, setPeriod] = useState("month");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -89,6 +97,71 @@ const ReportsPage = () => {
     [orders, period, from, to, productId, status],
   );
 
+  const salesReport = useMemo(() => {
+    const completedSales = sales.filter((sale) => sale.status !== "CANCELLED");
+    const productMap = new Map();
+    const agentMap = new Map();
+    const customerMap = new Map();
+
+    completedSales.forEach((sale) => {
+      (sale.items || []).forEach((item) => {
+        const current = productMap.get(item.productId) || {
+          id: item.productId,
+          name: item.productName,
+          quantity: 0,
+          revenue: 0,
+        };
+
+        current.quantity += Number(item.quantity || 0);
+        current.revenue += Number(item.subtotal || 0);
+        productMap.set(item.productId, current);
+      });
+
+      if (sale.agentId) {
+        const currentAgent = agentMap.get(sale.agentId) || {
+          id: sale.agentId,
+          name: sale.agentName || sale.agentId,
+          total: 0,
+        };
+        currentAgent.total += Number(sale.netTotal ?? sale.total ?? 0);
+        agentMap.set(sale.agentId, currentAgent);
+      }
+
+      if (sale.customerId) {
+        const currentCustomer = customerMap.get(sale.customerId) || {
+          id: sale.customerId,
+          name: sale.customerName || sale.customerId,
+          total: 0,
+          debt: 0,
+        };
+        currentCustomer.total += Number(sale.netTotal ?? sale.total ?? 0);
+        currentCustomer.debt += Number(sale.debtAmount || 0);
+        customerMap.set(sale.customerId, currentCustomer);
+      }
+    });
+
+    return {
+      amount: completedSales.reduce(
+        (total, sale) => total + Number(sale.netTotal ?? sale.total ?? 0),
+        0,
+      ),
+      paid: completedSales.reduce((total, sale) => total + Number(sale.paidAmount || 0), 0),
+      debt: completedSales.reduce((total, sale) => total + Number(sale.debtAmount || 0), 0),
+      count: completedSales.length,
+      topProducts: [...productMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
+      agentSales: [...agentMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
+      customerSales: [...customerMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
+    };
+  }, [sales]);
+
+  const financeReport = useMemo(
+    () =>
+      buildFinanceReport({
+        ...getReportRange(period, from, to),
+      }),
+    [period, from, to],
+  );
+
   const topProductMax = Math.max(
     ...report.topProducts.map((product) => product.producedQuantity),
     0,
@@ -100,6 +173,66 @@ const ReportsPage = () => {
       description="Manufacturing natijalari, tannarx va ishlab chiqarish samaradorligi."
     >
       <div className="reports-page">
+        <ReportSection
+          title="Sales Report"
+          description="Sales modulidagi real completed savdolar, payment va debt summary."
+        >
+          <div className="reports-page__summary-grid">
+            <SummaryValue label="Sale count" value={salesReport.count} />
+            <SummaryValue label="Sales amount" value={`${formatSaleMoney(salesReport.amount)} so'm`} />
+            <SummaryValue label="Paid" value={`${formatSaleMoney(salesReport.paid)} so'm`} />
+            <SummaryValue label="Debt" value={`${formatSaleMoney(salesReport.debt)} so'm`} />
+          </div>
+
+          <div className="reports-page__sales-grid">
+            <MiniReportList title="Top products" rows={salesReport.topProducts} valueKey="revenue" />
+            <MiniReportList title="Agent sales" rows={salesReport.agentSales} valueKey="total" />
+            <MiniReportList title="Customer sales" rows={salesReport.customerSales} valueKey="total" />
+          </div>
+        </ReportSection>
+
+        <ReportSection
+          title="Finance Report"
+          description="Income, expenses, debt va agent collections Finance selectorlari asosida."
+        >
+          <div className="reports-page__summary-grid">
+            <SummaryValue label="Income" value={`${formatFinanceMoney(financeReport.summary.income)} so'm`} />
+            <SummaryValue label="Expenses" value={`${formatFinanceMoney(financeReport.summary.expense)} so'm`} />
+            <SummaryValue label="Net Cashflow" value={`${formatFinanceMoney(financeReport.summary.netCashflow)} so'm`} />
+            <SummaryValue label="Customer Debt" value={`${formatFinanceMoney(financeReport.summary.customerDebt)} so'm`} />
+            <SummaryValue label="Supplier Debt" value={`${formatFinanceMoney(financeReport.summary.supplierDebt)} so'm`} />
+            <SummaryValue label="Agent Collections" value={`${formatFinanceMoney(financeReport.summary.agentBalance)} so'm`} />
+          </div>
+
+          <div className="reports-page__sales-grid">
+            <MiniReportList
+              title="Payment methods"
+              rows={financeReport.paymentMethods.map((row) => ({
+                ...row,
+                name: getPaymentMethodLabel(row.name),
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+            <MiniReportList
+              title="Expenses by category"
+              rows={financeReport.expensesByCategory}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+            <MiniReportList
+              title="Agent balances"
+              rows={financeReport.agentCollections.slice(0, 5).map((row) => ({
+                id: row.agentId,
+                name: row.agentName,
+                amount: row.balance,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+          </div>
+        </ReportSection>
+
         <Card padding="lg" className="reports-page__filters">
           <Select
             label="Period"
@@ -483,6 +616,44 @@ const SummaryValue = ({ label, value }) => (
     <strong>{value}</strong>
   </div>
 );
+
+const MiniReportList = ({ title, rows, valueKey, formatter = formatSaleMoney }) => (
+  <div className="reports-page__mini-report">
+    <h4>{title}</h4>
+    {rows.length ? (
+      rows.map((row) => (
+        <span key={row.id}>
+          <b>{row.name}</b>
+          <strong>{formatter(row[valueKey])} so'm</strong>
+        </span>
+      ))
+    ) : (
+      <p>Ma'lumot yo'q.</p>
+    )}
+  </div>
+);
+
+const getReportRange = (period, from, to) => {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const start = new Date(now);
+
+  if (period === "today") {
+    return { from: today, to: today };
+  }
+
+  if (period === "week") {
+    start.setDate(now.getDate() - 6);
+  } else if (period === "month") {
+    start.setMonth(now.getMonth() - 1);
+  } else if (period === "year") {
+    start.setFullYear(now.getFullYear() - 1);
+  } else {
+    return { from, to };
+  }
+
+  return { from: start.toISOString().slice(0, 10), to: today };
+};
 
 const ProductionStatusIcon = ({ status }) => {
   if (status === "IN_PROGRESS") {

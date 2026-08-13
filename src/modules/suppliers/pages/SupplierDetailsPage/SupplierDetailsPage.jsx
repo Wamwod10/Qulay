@@ -31,6 +31,13 @@ import { getSupplierById } from "../../utils/suppliersStorage";
 import { getStoredPurchases } from "../../../purchases/utils/purchasesStorage";
 
 import { getStoredProducts } from "../../../products/utils/productsStorage";
+import {
+  formatFinanceDate,
+  formatFinanceMoney,
+  getFinanceTransactions,
+  getPaymentMethodLabel,
+  getSupplierDebt as getFinanceSupplierDebt,
+} from "../../../finance/utils/financeSelectors";
 
 import {
   AlertTriangle,
@@ -99,20 +106,14 @@ const SupplierDetailsPage = () => {
     );
   }
 
-  const totalPurchases = supplierPurchases.reduce(
-    (total, purchase) => total + Number(purchase.total || 0),
-    0,
+  const financeDebt = getFinanceSupplierDebt(supplier.id);
+  const supplierPayments = getFinanceTransactions({ supplierId: supplier.id }).filter(
+    (transaction) =>
+      ["PURCHASE_PAYMENT", "SUPPLIER_PAYMENT"].includes(transaction.sourceType),
   );
-
-  const totalPaid = supplierPurchases.reduce(
-    (total, purchase) => total + Number(purchase.paidAmount || 0),
-    0,
-  );
-
-  const totalDebt = supplierPurchases.reduce(
-    (total, purchase) => total + Number(purchase.debtAmount || 0),
-    0,
-  );
+  const totalPurchases = financeDebt.purchasesTotal;
+  const totalPaid = financeDebt.paid;
+  const totalDebt = financeDebt.debt;
 
   const lastPurchase = [...supplierPurchases].sort((a, b) =>
     String(b.orderDate || "").localeCompare(String(a.orderDate || "")),
@@ -556,6 +557,30 @@ const SupplierDetailsPage = () => {
               description="Ushbu yetkazib beruvchidan hali xarid qilinmagan."
             />
           )}
+        </Card>
+
+        <Card>
+          <SectionTitle
+            title="Payment history"
+            description="Purchases paidAmount va Finance supplier paymentlari birlashtirilgan."
+          />
+
+          <Table
+            columns={[
+              { key: "date", title: "Date", render: formatFinanceDate },
+              { key: "source", title: "Source" },
+              { key: "paymentMethod", title: "Method", render: getPaymentMethodLabel },
+              {
+                key: "amount",
+                title: "Amount",
+                render: (value) => `${formatFinanceMoney(value)} so'm`,
+              },
+              { key: "note", title: "Note", render: (value) => value || "-" },
+            ]}
+            data={supplierPayments}
+            rowKey="id"
+            emptyText="Supplier payment mavjud emas."
+          />
         </Card>
 
         {supplier.note && (

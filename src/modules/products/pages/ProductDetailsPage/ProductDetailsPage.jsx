@@ -36,8 +36,9 @@ import {
 import {
   PRODUCT_MANUFACTURING_HISTORY,
   PRODUCT_PURCHASE_HISTORY,
-  PRODUCT_SALES_HISTORY,
 } from "../../constants/productHistoryMock";
+import { getStoredSales } from "../../../sales/utils/salesStorage";
+import { formatSaleDate } from "../../../sales/utils/salesHelpers";
 
 import "./ProductDetailsPage.scss";
 
@@ -415,6 +416,24 @@ const WarehouseTab = ({ product, history }) => {
 };
 
 const SalesPurchasesTab = ({ product }) => {
+  const salesRows = getStoredSales()
+    .filter((sale) => sale.status !== "CANCELLED")
+    .flatMap((sale) =>
+      (sale.items || [])
+        .filter((item) => item.productId === product.id)
+        .map((item) => ({
+          id: `${sale.id}-${item.id}`,
+          date: formatSaleDate(sale.completedAt || sale.createdAt),
+          document: sale.number,
+          customer: sale.customerName || "Mijozsiz",
+          quantity: item.quantity,
+          price: item.price,
+          total: item.subtotal,
+        })),
+    );
+  const soldQuantity = salesRows.reduce((total, row) => total + Number(row.quantity || 0), 0);
+  const revenue = salesRows.reduce((total, row) => total + Number(row.total || 0), 0);
+
   const salesColumns = [
     { key: "date", title: "Sana" },
     { key: "document", title: "Hujjat" },
@@ -443,15 +462,21 @@ const SalesPurchasesTab = ({ product }) => {
 
   return (
     <div className="product-details__tab-stack">
+      <div className="product-details__warehouse-summary">
+        <MetricCard label="Sotuvlar soni" value={`${salesRows.length} ta`} />
+        <MetricCard label="Sotilgan miqdor" value={`${soldQuantity} ${product.unit}`} />
+        <MetricCard label="Revenue" value={`${formatProductPrice(revenue)} so'm`} />
+      </div>
+
       <Card>
         <SectionHeader
           title="Savdo tarixi"
-          description="Backend ulangunga qadar demo savdo harakatlari."
+          description="Sales modulidagi real yakunlangan savdolar."
         />
 
         <Table
           columns={salesColumns}
-          data={product.salePrice ? PRODUCT_SALES_HISTORY : []}
+          data={salesRows}
           emptyText="Bu mahsulot bo'yicha savdo mavjud emas."
         />
       </Card>

@@ -12,16 +12,26 @@ import WarehousePage from "../modules/warehouse/pages/WarehousePage/WarehousePag
 import PurchasesPage from "../modules/purchases/pages/PurchasesPage/PurchasesPage";
 import ProductsPage from "../modules/products/pages/ProductsPage/ProductsPage";
 import CustomersPage from "../modules/customers/pages/CustomersPage/CustomersPage";
+import CustomerDetailsPage from "../modules/customers/pages/CustomerDetailsPage/CustomerDetailsPage";
 import AgentsPage from "../modules/agents/pages/AgentsPage/AgentsPage";
 import AgentCreatePage from "../modules/agents/pages/AgentCreatePage/AgentCreatePage";
 import AgentDetailsPage from "../modules/agents/pages/AgentDetailsPage/AgentDetailsPage";
 import AgentEditPage from "../modules/agents/pages/AgentEditPage/AgentEditPage";
 import SuppliersPage from "../modules/suppliers/pages/SuppliersPage/SuppliersPage";
 import FinancePage from "../modules/finance/pages/FinancePage/FinancePage";
+import CashFlowPage from "../modules/finance/pages/CashFlowPage/CashFlowPage";
+import PaymentsPage from "../modules/finance/pages/PaymentsPage/PaymentsPage";
+import ExpensesPage from "../modules/finance/pages/ExpensesPage/ExpensesPage";
+import CustomerDebtsPage from "../modules/finance/pages/CustomerDebtsPage/CustomerDebtsPage";
+import CashAccountsPage from "../modules/finance/pages/CashAccountsPage/CashAccountsPage";
+import AgentCollectionsPage from "../modules/finance/pages/AgentCollectionsPage/AgentCollectionsPage";
 import EmployeesPage from "../modules/employees/pages/EmployeesPage/EmployeesPage";
 import ReportsPage from "../modules/reports/pages/ReportsPage/ReportsPage";
 import GeneralSettingsPage from "../modules/settings/pages/GeneralSettingsPage/GeneralSettingsPage";
-import SalesPage from "../modules/sales/pages/SalesPage/SalesPage";
+import SalesLayout from "../modules/sales/pages/SalesLayout/SalesLayout";
+import SalesHistoryPage from "../modules/sales/pages/SalesHistoryPage/SalesHistoryPage";
+import SaleDetailsPage from "../modules/sales/pages/SaleDetailsPage/SaleDetailsPage";
+import POSTerminalPage from "../modules/sales/pos/pages/POSTerminalPage/POSTerminalPage";
 import ProductDetailsPage from "../modules/products/pages/ProductDetailsPage/ProductDetailsPage";
 import ProductCreatePage from "../modules/products/pages/ProductCreatePage/ProductCreatePage";
 import ProductEditPage from "../modules/products/pages/ProductEditPage/ProductEditPage";
@@ -100,7 +110,12 @@ const AppRouter = () => {
             />
 
             <Route element={<ModuleGuard module="sales" />}>
-              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/sales" element={<SalesLayout />}>
+                <Route index element={<Navigate to="/sales/terminal" replace />} />
+                <Route path="terminal" element={<POSTerminalPage />} />
+                <Route path="history" element={<SalesHistoryPage />} />
+                <Route path="history/:saleId" element={<SaleDetailsPage />} />
+              </Route>
             </Route>
 
             <Route element={<ModuleGuard module="products" />}>
@@ -121,6 +136,7 @@ const AppRouter = () => {
 
             <Route element={<ModuleGuard module="customers" />}>
               <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/customers/:customerId" element={<CustomerDetailsPage />} />
             </Route>
 
             <Route element={<ModuleGuard module="agents" />}>
@@ -154,6 +170,12 @@ const AppRouter = () => {
 
             <Route element={<PermissionGuard permission="finance.view" />}>
               <Route path="/finance" element={<FinancePage />} />
+              <Route path="/finance/cashflow" element={<CashFlowPage />} />
+              <Route path="/finance/payments" element={<PaymentsPage />} />
+              <Route path="/finance/expenses" element={<ExpensesPage />} />
+              <Route path="/finance/debts" element={<CustomerDebtsPage />} />
+              <Route path="/finance/cashboxes" element={<CashAccountsPage />} />
+              <Route path="/finance/agents" element={<AgentCollectionsPage />} />
             </Route>
 
             <Route element={<ModuleGuard module="employees" />}>

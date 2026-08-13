@@ -4,6 +4,7 @@ import {
 } from "../../customers/utils/customersStorage";
 import { getStoredPayments } from "../../finance/utils/paymentsStorage";
 import { getStoredOrders } from "../../sales/utils/ordersStorage";
+import { getStoredSales } from "../../sales/utils/salesStorage";
 
 import {
   getAgentById,
@@ -116,20 +117,47 @@ export const unassignCustomerFromAgent = (customerId) => {
 export const getAgentOrders = (agentId) => {
   const agent = getAgentById(agentId);
   const compatibilityIds = new Set(agent?.orderIds || []);
+  const salesOrders = getStoredSales()
+    .filter((sale) => sale.agentId === agentId)
+    .map((sale) => ({
+      ...sale,
+      orderNumber: sale.number,
+      totalAmount: sale.netTotal ?? sale.total,
+      total: sale.netTotal ?? sale.total,
+      createdAt: sale.completedAt || sale.createdAt,
+      orderDate: sale.orderDate || sale.completedAt || sale.createdAt,
+    }));
 
-  return getStoredOrders().filter(
+  const legacyOrders = getStoredOrders().filter(
     (order) => order.agentId === agentId || (!order.agentId && compatibilityIds.has(order.id)),
   );
+
+  return [...salesOrders, ...legacyOrders];
 };
 
 export const getAgentPayments = (agentId) => {
   const agent = getAgentById(agentId);
   const compatibilityIds = new Set(agent?.paymentIds || []);
+  const salePayments = getStoredSales()
+    .filter((sale) => sale.agentId === agentId && sale.status !== "CANCELLED")
+    .flatMap((sale) =>
+      (sale.payments || []).map((payment) => ({
+        ...payment,
+        id: `${sale.id}-${payment.id}`,
+        orderId: sale.id,
+        saleId: sale.id,
+        agentId: sale.agentId,
+        customerId: sale.customerId,
+        createdAt: sale.completedAt || sale.createdAt,
+      })),
+    );
 
-  return getStoredPayments().filter(
+  const legacyPayments = getStoredPayments().filter(
     (payment) =>
       payment.agentId === agentId || (!payment.agentId && compatibilityIds.has(payment.id)),
   );
+
+  return [...salePayments, ...legacyPayments];
 };
 
 export const getAgentSalesTotal = (agentId) => {

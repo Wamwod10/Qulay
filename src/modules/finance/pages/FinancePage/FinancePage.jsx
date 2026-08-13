@@ -1,12 +1,7 @@
-import PageContainer from "../../../../components/PageContainer/PageContainer";
+import FinanceWorkspace from "../../components/FinanceWorkspace/FinanceWorkspace";
 
 const FinancePage = () => {
-  return (
-    <PageContainer
-      title="Moliya"
-      description="Daromad, xarajat, qarzdorlik va moliyaviy operatsiyalar."
-    />
-  );
+  return <FinanceWorkspace view="overview" />;
 };
 
 export default FinancePage;

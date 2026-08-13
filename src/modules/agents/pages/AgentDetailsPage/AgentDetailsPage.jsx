@@ -41,6 +41,7 @@ import {
   getAgentPayments,
   getCustomersCatalog,
 } from "../../utils/agentIntegration";
+import { getAgentBalance } from "../../../finance/utils/financeSelectors";
 
 import "./AgentDetailsPage.scss";
 
@@ -60,16 +61,20 @@ const AgentDetailsPage = () => {
         allCustomers: [],
         collectedAmount: 0,
         debtAmount: 0,
+        financeBalance: null,
       };
     }
+
+    const financeBalance = getAgentBalance(agent.id);
 
     return {
       customers: getAgentCustomers(agent.id),
       orders: getAgentOrders(agent.id),
-      payments: getAgentPayments(agent.id),
+      payments: financeBalance.history.length ? financeBalance.history : getAgentPayments(agent.id),
       allCustomers: getCustomersCatalog(),
-      collectedAmount: getAgentCollectedAmount(agent.id),
+      collectedAmount: financeBalance.collected || getAgentCollectedAmount(agent.id),
       debtAmount: getAgentDebt(agent.id),
+      financeBalance,
     };
   }, [agent, refreshKey]);
 
@@ -87,11 +92,10 @@ const AgentDetailsPage = () => {
   }
 
   const target = Number(agent.targetAmount || 0);
-  const cashBalance = Number(agent.cashBalance || 0);
+  const cashBalance = Number(integrationData.financeBalance?.balance ?? agent.cashBalance ?? 0);
   const commission = Number(agent.commissionPercent || 0);
-  const submittedAmount = integrationData.payments.length
-    ? Math.max(integrationData.collectedAmount - cashBalance, 0)
-    : 0;
+  const submittedAmount = Number(integrationData.financeBalance?.handedOver || 0);
+  const commissionAmount = Number(integrationData.financeBalance?.commission || 0);
 
   const performance = calculateAgentPerformance({
     agent,
@@ -155,7 +159,7 @@ const AgentDetailsPage = () => {
 
           <AgentMetric
             icon={<Wallet size={20} />}
-            label="Agentdagi pul (manual)"
+            label="Agentdagi pul"
             value={`${formatAgentMoney(cashBalance)} so'm`}
           />
         </section>
@@ -187,12 +191,12 @@ const AgentDetailsPage = () => {
                 value={`${formatAgentMoney(integrationData.collectedAmount)} so'm`}
               />
               <InfoItem
-                label="Agentdagi pul (manual)"
+                label="Agentdagi pul"
                 value={`${formatAgentMoney(cashBalance)} so'm`}
               />
               <InfoItem
-                label="Mijozlar qarzi"
-                value={`${formatAgentMoney(integrationData.debtAmount)} so'm`}
+                label="Komissiya"
+                value={`${formatAgentMoney(commissionAmount)} so'm`}
               />
               <InfoItem
                 label="Topshirilgan pul"
