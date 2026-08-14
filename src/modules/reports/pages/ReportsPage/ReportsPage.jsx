@@ -7,6 +7,8 @@ import {
   Factory,
   LoaderCircle,
   PackageCheck,
+  UserCheck,
+  Users,
   WalletCards,
 } from "lucide-react";
 
@@ -16,6 +18,7 @@ import {
   Badge,
   Card,
   DatePicker,
+  Input,
   LiveIcon,
   Select,
   Table,
@@ -39,6 +42,8 @@ import {
   formatFinanceMoney,
   getPaymentMethodLabel,
 } from "../../../finance/utils/financeSelectors";
+import { buildCustomerReport } from "../../../customers/utils/customerSelectors";
+import { buildHrReport, monthIso } from "../../../employees/utils/hrStorage";
 
 import "./ReportsPage.scss";
 
@@ -65,6 +70,7 @@ const ReportsPage = () => {
   const [to, setTo] = useState("");
   const [productId, setProductId] = useState("");
   const [status, setStatus] = useState("");
+  const [hrMonth, setHrMonth] = useState(monthIso());
 
   const productOptions = useMemo(() => {
     const map = new Map();
@@ -162,6 +168,9 @@ const ReportsPage = () => {
     [period, from, to],
   );
 
+  const customerReport = useMemo(() => buildCustomerReport(), []);
+  const hrReport = useMemo(() => buildHrReport(hrMonth), [hrMonth]);
+
   const topProductMax = Math.max(
     ...report.topProducts.map((product) => product.producedQuantity),
     0,
@@ -231,6 +240,127 @@ const ReportsPage = () => {
               formatter={formatFinanceMoney}
             />
           </div>
+        </ReportSection>
+
+        <ReportSection
+          title="CRM / Customer Report"
+          description="Customers, Sales, Finance va Agents selectorlari asosida real customer summary."
+        >
+          <div className="reports-page__summary-grid">
+            <SummaryValue label="Total customers" value={customerReport.totalCustomers} />
+            <SummaryValue label="New customers" value={customerReport.newCustomers} />
+            <SummaryValue label="Active customers" value={customerReport.activeCustomers} />
+            <SummaryValue label="Customer sales" value={`${formatFinanceMoney(customerReport.customerSales)} so'm`} />
+            <SummaryValue label="Customer debt" value={`${formatFinanceMoney(customerReport.customerDebt)} so'm`} />
+          </div>
+
+          <div className="reports-page__sales-grid">
+            <MiniReportList
+              title="Top customers"
+              rows={customerReport.topCustomers.map((row) => ({
+                id: row.id,
+                name: row.displayName,
+                amount: row.salesAmount,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+            <MiniReportList
+              title="Risky debt customers"
+              rows={customerReport.riskyDebtCustomers.map((row) => ({
+                id: row.id,
+                name: row.displayName,
+                amount: row.debtAmount,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+            <MiniReportList
+              title="Agent customer distribution"
+              rows={customerReport.agentDistribution.map((row) => ({
+                id: row.id,
+                name: `${row.name} / ${row.customers} ta`,
+                amount: row.sales,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+          </div>
+        </ReportSection>
+
+        <ReportSection
+          title="HR Report"
+          description="Xodim, davomat, payroll, qarz va bonus/jarima HR storage asosida."
+        >
+          <div className="reports-page__hr-filter">
+            <Input
+              label="Payroll month"
+              type="month"
+              value={hrMonth}
+              onChange={(event) => setHrMonth(event.target.value || monthIso())}
+            />
+          </div>
+
+          <div className="reports-page__summary-grid">
+            <SummaryValue label="Employee count" value={hrReport.summary.employeeCount} />
+            <SummaryValue label="Payroll total" value={`${formatFinanceMoney(hrReport.summary.payrollTotal)} so'm`} />
+            <SummaryValue label="Paid salary" value={`${formatFinanceMoney(hrReport.summary.paidSalary)} so'm`} />
+            <SummaryValue label="Salary debt" value={`${formatFinanceMoney(hrReport.summary.salaryDebt)} so'm`} />
+            <SummaryValue label="Advances" value={`${formatFinanceMoney(hrReport.summary.advances)} so'm`} />
+            <SummaryValue label="Bonuses" value={`${formatFinanceMoney(hrReport.summary.bonuses)} so'm`} />
+            <SummaryValue label="Penalties" value={`${formatFinanceMoney(hrReport.summary.penalties)} so'm`} />
+            <SummaryValue label="Attendance rate" value={`${hrReport.summary.attendanceRate}%`} />
+            <SummaryValue label="Late count" value={hrReport.summary.lateCount} />
+          </div>
+
+          <div className="reports-page__sales-grid">
+            <MiniReportList
+              title="Salary debt"
+              rows={hrReport.salaryDebt.slice(0, 5).map((row) => ({
+                id: row.id,
+                name: row.employeeName,
+                amount: row.debtAmount,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+            <MiniReportList
+              title="Late employees"
+              rows={hrReport.lateEmployees.slice(0, 5).map((row) => ({
+                id: row.id,
+                name: `${row.employeeName} / ${row.lateMinutes} min`,
+                amount: row.lateMinutes,
+              }))}
+              valueKey="amount"
+              formatter={(value) => String(value)}
+            />
+            <MiniReportList
+              title="Department payroll"
+              rows={hrReport.departmentPayroll.slice(0, 5).map((row) => ({
+                id: row.id,
+                name: row.name,
+                amount: row.payroll,
+              }))}
+              valueKey="amount"
+              formatter={formatFinanceMoney}
+            />
+          </div>
+
+          <Table
+            columns={[
+              { key: "employeeName", title: "Employee" },
+              { key: "baseAmount", title: "Base", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "bonuses", title: "Bonus", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "advances", title: "Advance", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "penalties", title: "Penalty", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "netAmount", title: "Net", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "paidAmount", title: "Paid", render: (value) => `${formatFinanceMoney(value)} so'm` },
+              { key: "debtAmount", title: "Debt", render: (value) => `${formatFinanceMoney(value)} so'm` },
+            ]}
+            data={hrReport.payrollByMonth}
+            rowKey="id"
+            emptyText="HR payroll ma'lumoti yo'q."
+          />
         </ReportSection>
 
         <Card padding="lg" className="reports-page__filters">
@@ -313,6 +443,17 @@ const ReportsPage = () => {
             icon={<CheckCircle2 size={20} />}
             label="Jami ishlab chiqarilgan"
             value={formatProductionQuantity(report.kpi.producedQuantity)}
+          />
+          <ReportKpi
+            icon={<Users size={20} />}
+            label="CRM mijozlar"
+            value={customerReport.totalCustomers}
+          />
+          <ReportKpi
+            icon={<UserCheck size={20} />}
+            label="Faol CRM mijozlar"
+            value={customerReport.activeCustomers}
+            variant="success"
           />
           <ReportKpi
             icon={<AlertTriangle size={20} />}

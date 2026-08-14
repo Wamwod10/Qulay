@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   AlertTriangle,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { getStoredAgents } from "../../../../agents/utils/agentsStorage";
+import { canCustomerUseDebt } from "../../../../customers/utils/customerSelectors";
 import { getStoredCustomers } from "../../../../customers/utils/customersStorage";
 import { getStoredProducts } from "../../../../products/utils/productsStorage";
 import { getStoredWarehouseStock } from "../../../../warehouse/utils/warehouseStorage";
@@ -53,6 +55,7 @@ const DECIMAL_UNITS = ["kg", "l", "litr", "metr"];
 const emptyPayment = () => ({ id: `${Date.now()}-${Math.random()}`, method: "CASH", amount: "" });
 
 const POSTerminalPage = () => {
+  const [searchParams] = useSearchParams();
   const searchRef = useRef(null);
   const completingRef = useRef(false);
 
@@ -89,6 +92,20 @@ const POSTerminalPage = () => {
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    const preselectedCustomerId = searchParams.get("customerId");
+
+    if (!preselectedCustomerId) {
+      return;
+    }
+
+    const customer = customers.find((item) => item.id === preselectedCustomerId);
+
+    if (customer) {
+      setCustomerId(customer.id);
+    }
+  }, [customers, searchParams]);
 
   useEffect(() => {
     const refresh = () => {
@@ -381,6 +398,21 @@ const POSTerminalPage = () => {
 
       if (totals.total - paymentTotal > 0 && !selectedCustomer) {
         throw new Error("Qarz qolsa mijoz tanlanishi shart.");
+      }
+
+      const debtAmount = roundMoney(Math.max(totals.total - paymentTotal, 0));
+
+      if (debtAmount > 0 && selectedCustomer) {
+        const credit = canCustomerUseDebt({
+          customerId: selectedCustomer.id,
+          additionalDebt: debtAmount,
+        });
+
+        if (!credit.allowed) {
+          throw new Error(
+            `Credit limit oshadi. Limit: ${formatSaleMoney(credit.creditLimit)} so'm, mavjud: ${formatSaleMoney(credit.availableCredit)} so'm.`,
+          );
+        }
       }
 
       const sale = completeSale(buildSalePayload(payments));

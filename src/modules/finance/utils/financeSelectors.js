@@ -3,6 +3,7 @@ import { getStoredCustomers } from "../../customers/utils/customersStorage";
 import { getStoredPurchases } from "../../purchases/utils/purchasesStorage";
 import { getStoredSales } from "../../sales/utils/salesStorage";
 import { getStoredSuppliers } from "../../suppliers/utils/suppliersStorage";
+import { getStoredEmployees } from "../../employees/utils/hrStorage";
 
 import {
   getDefaultCashboxId,
@@ -72,6 +73,7 @@ const getNameMaps = () => ({
   customers: new Map(getStoredCustomers().map((customer) => [customer.id, customer])),
   suppliers: new Map(getStoredSuppliers().map((supplier) => [supplier.id, supplier])),
   agents: new Map(getStoredAgents().map((agent) => [agent.id, agent])),
+  employees: new Map(getStoredEmployees().map((employee) => [employee.id, employee])),
   cashboxes: new Map(getStoredCashboxes().map((cashbox) => [cashbox.id, cashbox])),
 });
 
@@ -226,6 +228,7 @@ export const getFinanceTransactions = (filters = {}) => {
       const customer = transaction.customerId ? maps.customers.get(transaction.customerId) : null;
       const supplier = transaction.supplierId ? maps.suppliers.get(transaction.supplierId) : null;
       const agent = transaction.agentId ? maps.agents.get(transaction.agentId) : null;
+      const employee = transaction.employeeId ? maps.employees.get(transaction.employeeId) : null;
       const cashbox = transaction.cashboxId ? maps.cashboxes.get(transaction.cashboxId) : null;
 
       return {
@@ -240,11 +243,13 @@ export const getFinanceTransactions = (filters = {}) => {
           customer?.name ||
           supplier?.name ||
           agent?.name ||
+          employee?.fullName ||
           transaction.counterparty ||
           "-",
         customerName: customer?.name || "",
         supplierName: supplier?.name || "",
         agentName: agent?.name || "",
+        employeeName: employee?.fullName || "",
         cashboxName: cashbox?.name || "-",
       };
     })
@@ -311,6 +316,7 @@ export const filterTransaction = (transaction, filters = {}) => {
     transaction.customerName,
     transaction.supplierName,
     transaction.agentName,
+    transaction.employeeName,
   ]
     .filter(Boolean)
     .join(" ")

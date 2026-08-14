@@ -72,7 +72,7 @@ export const navigationItems = [
     {
         id: "employees",
         label: "Xodimlar",
-        path: "/employees",
+        path: "/hr",
         icon: "UserRoundCog",
         module: "employees",
     },

@@ -1,0 +1,329 @@
+.hr-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  &__nav,
+  &__quick-actions,
+  &__toolbar,
+  &__row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__nav {
+    a {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: var(--shadow-raised);
+      transition: var(--transition-fast);
+
+      &.active {
+        color: var(--color-accent);
+        box-shadow: var(--shadow-inset);
+      }
+    }
+  }
+
+  &__kpis {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  &__kpi {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 86px;
+    min-width: 0;
+
+    span {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    strong {
+      overflow: hidden;
+      color: var(--color-text-primary);
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: var(--radius-md);
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+    box-shadow: var(--shadow-inset);
+
+    &--success {
+      color: var(--color-success);
+      background: var(--color-success-soft);
+    }
+
+    &--warning {
+      color: var(--color-warning);
+      background: var(--color-warning-soft);
+    }
+
+    &--danger {
+      color: var(--color-danger);
+      background: var(--color-danger-soft);
+    }
+  }
+
+  &__dashboard-grid,
+  &__detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  &__detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  &__panel,
+  &__detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h3 {
+      color: var(--color-text-primary);
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    p {
+      color: var(--color-text-muted);
+      font-size: 12px;
+    }
+  }
+
+  &__signals,
+  &__detail-section > div {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-inset);
+    }
+
+    b,
+    small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    b {
+      color: var(--color-text-primary);
+      font-size: 12px;
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+  }
+
+  &__filters,
+  &__form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+
+  &__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    .ui-textarea,
+    .hr-workspace__error,
+    .hr-workspace__form-actions {
+      grid-column: 1 / -1;
+    }
+
+    &--single {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  &__error {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  &__create-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: var(--radius-md);
+    color: var(--color-accent);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: var(--shadow-raised-sm);
+  }
+
+  &__name-link {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    color: var(--color-text-primary);
+    font-weight: 750;
+    text-decoration: none;
+
+    small {
+      color: var(--color-text-muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+  }
+
+  &__row-actions {
+    flex-wrap: nowrap;
+
+    a,
+    button,
+    .hr-workspace__icon-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-raised-sm);
+      cursor: pointer;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+    }
+  }
+
+  &__identity {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    align-items: center;
+    gap: 16px;
+
+    h2 {
+      margin: 0 0 5px;
+      color: var(--color-text-primary);
+      font-size: 22px;
+      font-weight: 780;
+    }
+
+    span,
+    strong {
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+
+    b {
+      color: var(--color-text-primary);
+      font-size: 17px;
+    }
+  }
+
+  &__quick-actions,
+  &__toolbar {
+    justify-content: flex-end;
+  }
+
+  &__split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .hr-workspace {
+    &__kpis {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    &__filters,
+    &__detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__split {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  .hr-workspace {
+    &__kpis,
+    &__dashboard-grid,
+    &__detail-grid,
+    &__filters,
+    &__form,
+    &__identity {
+      grid-template-columns: 1fr;
+    }
+
+    &__quick-actions,
+    &__toolbar,
+    &__form-actions {
+      justify-content: flex-start;
+    }
+  }
+}

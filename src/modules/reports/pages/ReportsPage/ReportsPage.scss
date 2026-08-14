@@ -151,6 +151,10 @@
     gap: 14px;
   }
 
+  &__hr-filter {
+    max-width: 260px;
+  }
+
   &__mini-report {
     display: flex;
     flex-direction: column;

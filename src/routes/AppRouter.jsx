@@ -12,7 +12,9 @@ import WarehousePage from "../modules/warehouse/pages/WarehousePage/WarehousePag
 import PurchasesPage from "../modules/purchases/pages/PurchasesPage/PurchasesPage";
 import ProductsPage from "../modules/products/pages/ProductsPage/ProductsPage";
 import CustomersPage from "../modules/customers/pages/CustomersPage/CustomersPage";
+import CustomerCreatePage from "../modules/customers/pages/CustomerCreatePage/CustomerCreatePage";
 import CustomerDetailsPage from "../modules/customers/pages/CustomerDetailsPage/CustomerDetailsPage";
+import CustomerEditPage from "../modules/customers/pages/CustomerEditPage/CustomerEditPage";
 import AgentsPage from "../modules/agents/pages/AgentsPage/AgentsPage";
 import AgentCreatePage from "../modules/agents/pages/AgentCreatePage/AgentCreatePage";
 import AgentDetailsPage from "../modules/agents/pages/AgentDetailsPage/AgentDetailsPage";
@@ -26,6 +28,13 @@ import CustomerDebtsPage from "../modules/finance/pages/CustomerDebtsPage/Custom
 import CashAccountsPage from "../modules/finance/pages/CashAccountsPage/CashAccountsPage";
 import AgentCollectionsPage from "../modules/finance/pages/AgentCollectionsPage/AgentCollectionsPage";
 import EmployeesPage from "../modules/employees/pages/EmployeesPage/EmployeesPage";
+import EmployeeCreatePage from "../modules/employees/pages/EmployeeCreatePage/EmployeeCreatePage";
+import EmployeeDetailsPage from "../modules/employees/pages/EmployeeDetailsPage/EmployeeDetailsPage";
+import EmployeeEditPage from "../modules/employees/pages/EmployeeEditPage/EmployeeEditPage";
+import AttendancePage from "../modules/employees/pages/AttendancePage/AttendancePage";
+import ShiftsPage from "../modules/employees/pages/ShiftsPage/ShiftsPage";
+import PayrollPage from "../modules/employees/pages/PayrollPage/PayrollPage";
+import LeavePage from "../modules/employees/pages/LeavePage/LeavePage";
 import ReportsPage from "../modules/reports/pages/ReportsPage/ReportsPage";
 import GeneralSettingsPage from "../modules/settings/pages/GeneralSettingsPage/GeneralSettingsPage";
 import SalesLayout from "../modules/sales/pages/SalesLayout/SalesLayout";
@@ -136,6 +145,8 @@ const AppRouter = () => {
 
             <Route element={<ModuleGuard module="customers" />}>
               <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/customers/create" element={<CustomerCreatePage />} />
+              <Route path="/customers/:customerId/edit" element={<CustomerEditPage />} />
               <Route path="/customers/:customerId" element={<CustomerDetailsPage />} />
             </Route>
 
@@ -179,7 +190,16 @@ const AppRouter = () => {
             </Route>
 
             <Route element={<ModuleGuard module="employees" />}>
-              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/employees" element={<Navigate to="/hr/employees" replace />} />
+              <Route path="/hr" element={<EmployeesPage view="overview" />} />
+              <Route path="/hr/employees" element={<EmployeesPage />} />
+              <Route path="/hr/employees/create" element={<EmployeeCreatePage />} />
+              <Route path="/hr/employees/:employeeId/edit" element={<EmployeeEditPage />} />
+              <Route path="/hr/employees/:employeeId" element={<EmployeeDetailsPage />} />
+              <Route path="/hr/attendance" element={<AttendancePage />} />
+              <Route path="/hr/shifts" element={<ShiftsPage />} />
+              <Route path="/hr/payroll" element={<PayrollPage />} />
+              <Route path="/hr/leave" element={<LeavePage />} />
             </Route>
 
             <Route element={<ModuleGuard module="reports" />}>

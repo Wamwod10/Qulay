@@ -1,12 +1,5 @@
-import PageContainer from "../../../../components/PageContainer/PageContainer";
+import HrWorkspace from "../../components/HrWorkspace/HrWorkspace";
 
-const EmployeesPage = () => {
-  return (
-    <PageContainer
-      title="Xodimlar"
-      description="Xodimlar, davomat, ish haqi va boshqa HR jarayonlari."
-    />
-  );
-};
+const EmployeesPage = ({ view = "employees" }) => <HrWorkspace view={view} />;
 
 export default EmployeesPage;
