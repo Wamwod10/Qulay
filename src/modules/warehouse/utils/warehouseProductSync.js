@@ -39,7 +39,7 @@ export const syncWarehouseWithProducts = () => {
     );
 
     /*
-     * 1. Mavjud stock recordlar metadata'sini
+     * 1. Mavjud qoldiq yozuvlari metadata'sini
      * Products bilan yangilaymiz.
      *
      * Product butunlay o‘chirilgan bo‘lsa,

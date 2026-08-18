@@ -17,9 +17,9 @@ const AVATAR_MAX_SIZE = 1024 * 1024;
 const LOGO_MAX_SIZE = 2 * 1024 * 1024;
 
 const roleLabel = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MANAGER: "Manager",
+  OWNER: "Egasi",
+  ADMIN: "Administrator",
+  MANAGER: "Menejer",
   CASHIER: "Kassir",
   WAREHOUSE: "Ombor",
   ACCOUNTANT: "Buxgalter",
@@ -183,7 +183,7 @@ const ProfilePage = () => {
           {profile.avatar ? <img src={profile.avatar} alt="" /> : <span>{initials}</span>}
         </div>
         <div>
-          <span>{roleLabel[user?.role] || user?.role || "User"}</span>
+          <span>{roleLabel[user?.role] || user?.role || "Foydalanuvchi"}</span>
           <h1>{user?.fullName || user?.email}</h1>
           <p>{account?.businessName} / {joinedDate}</p>
         </div>
@@ -224,13 +224,13 @@ const ProfilePage = () => {
             required
           />
           <Input
-            label="Job title"
+            label="Lavozim"
             value={profile.jobTitle}
             autoComplete="organization-title"
             onChange={(event) => setProfile((current) => ({ ...current, jobTitle: event.target.value }))}
           />
           <label className="profile-card__file">
-            <span>Avatar</span>
+            <span>Avatar rasmi</span>
             <input
               type="file"
               accept="image/*"
@@ -248,7 +248,7 @@ const ProfilePage = () => {
             <h2>Kompaniya profili</h2>
           </div>
           <Input
-            label="Business name"
+            label="Biznes nomi"
             value={company.businessName}
             onChange={(event) => setCompanyForm((current) => ({ ...current, businessName: event.target.value }))}
             required
@@ -265,17 +265,17 @@ const ProfilePage = () => {
             onChange={(event) => setCompanyForm((current) => ({ ...current, email: event.target.value }))}
           />
           <Input
-            label="Address"
+            label="Manzil"
             value={company.address}
             onChange={(event) => setCompanyForm((current) => ({ ...current, address: event.target.value }))}
           />
           <Input
-            label="Country"
+            label="Mamlakat"
             value={company.country}
             onChange={(event) => setCompanyForm((current) => ({ ...current, country: event.target.value }))}
           />
           <label className="profile-card__select">
-            <span>Currency</span>
+            <span>Valyuta</span>
             <select
               value={company.currency}
               onChange={(event) => setCompanyForm((current) => ({ ...current, currency: event.target.value }))}
@@ -286,12 +286,12 @@ const ProfilePage = () => {
             </select>
           </label>
           <Input
-            label="Tax ID"
+            label="Soliq ID"
             value={company.taxId}
             onChange={(event) => setCompanyForm((current) => ({ ...current, taxId: event.target.value }))}
           />
           <label className="profile-card__file">
-            <span>Logo</span>
+            <span>Logotip</span>
             <input
               type="file"
               accept="image/*"
@@ -306,25 +306,25 @@ const ProfilePage = () => {
         <form className="profile-card" onSubmit={changePassword}>
           <div className="profile-card__title">
             <KeyRound size={19} />
-            <h2>Security</h2>
+            <h2>Xavfsizlik</h2>
           </div>
           <PasswordField
             id="current-password"
-            label="Current password"
+            label="Joriy parol"
             value={passwords.currentPassword}
             autoComplete="current-password"
             onChange={(event) => setPasswords((current) => ({ ...current, currentPassword: event.target.value }))}
           />
           <PasswordField
             id="new-password"
-            label="New password"
+            label="Yangi parol"
             value={passwords.newPassword}
             autoComplete="new-password"
             onChange={(event) => setPasswords((current) => ({ ...current, newPassword: event.target.value }))}
           />
           <PasswordField
             id="confirm-new-password"
-            label="Confirm password"
+            label="Parolni tasdiqlash"
             value={passwords.confirmPassword}
             autoComplete="new-password"
             onChange={(event) => setPasswords((current) => ({ ...current, confirmPassword: event.target.value }))}
@@ -337,19 +337,19 @@ const ProfilePage = () => {
         <section className="profile-card">
           <div className="profile-card__title">
             <LogOut size={19} />
-            <h2>Preferences</h2>
+            <h2>Afzalliklar</h2>
           </div>
           <dl className="profile-card__session">
             <div>
-              <dt>Session</dt>
-              <dd>{session?.rememberMe ? "Persistent" : "Temporary"}</dd>
+              <dt>Sessiya</dt>
+              <dd>{session?.rememberMe ? "Doimiy" : "Vaqtinchalik"}</dd>
             </div>
             <div>
-              <dt>Login vaqti</dt>
+              <dt>Kirish vaqti</dt>
               <dd>{session?.loginAt ? new Intl.DateTimeFormat("uz-UZ", { dateStyle: "medium", timeStyle: "short" }).format(new Date(session.loginAt)) : "-"}</dd>
             </div>
             <div>
-              <dt>Account ID</dt>
+              <dt>Hisob ID</dt>
               <dd>{account?.id}</dd>
             </div>
           </dl>

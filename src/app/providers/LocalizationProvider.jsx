@@ -54,17 +54,55 @@ const LocalizationProvider = ({ children }) => {
       return undefined;
     }
 
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(() => localizeDom(document.body));
-    });
+    let frameId = null;
+    const pendingRoots = new Set();
+    const scheduleLocalization = (mutations) => {
+      mutations.forEach((mutation) => {
+        const target = mutation.target?.nodeType === Node.ELEMENT_NODE
+          ? mutation.target
+          : mutation.target?.parentElement;
+
+        if (target) {
+          pendingRoots.add(target);
+        }
+
+        mutation.addedNodes?.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            pendingRoots.add(node);
+          }
+        });
+      });
+
+      if (frameId !== null) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        const roots = [...pendingRoots];
+        pendingRoots.clear();
+
+        roots.forEach((root) => localizeDom(root));
+      });
+    };
+
+    const observer = new MutationObserver(scheduleLocalization);
 
     observer.observe(document.body, {
       attributes: true,
+      attributeFilter: ["aria-label", "placeholder", "title", "alt", "data-empty-text"],
       childList: true,
       subtree: true,
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      pendingRoots.clear();
+
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
   }, []);
 
   return children;

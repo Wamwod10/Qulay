@@ -28,7 +28,7 @@ const ReceiptPreview = ({ sale, settings = {}, onPrint }) => {
       >
         <header>
           <strong>{settings.receiptHeader || "UNIVERSAL ERP POS"}</strong>
-          <span>{translateText("Receipt / Chek")}</span>
+          <span>{translateText("Chek")}</span>
         </header>
 
         <div className="sales-receipt__meta">
@@ -95,7 +95,7 @@ const ReceiptPreview = ({ sale, settings = {}, onPrint }) => {
       </div>
 
       <Button leftIcon={<Printer size={17} />} onClick={onPrint}>
-        {translateText("Print")}
+        {translateText("Chop etish")}
       </Button>
     </div>
   );

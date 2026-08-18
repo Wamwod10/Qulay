@@ -15,8 +15,8 @@ import "./ProductCreatePage.scss";
 const ProductCreatePage = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = (product) => {
-    const createdProduct = createStoredProduct(product);
+  const handleSubmit = async (product) => {
+    const createdProduct = await createStoredProduct(product);
 
     navigate(`/products/${createdProduct.id}`);
   };

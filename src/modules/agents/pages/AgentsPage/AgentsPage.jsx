@@ -52,19 +52,19 @@ const AgentsPage = () => {
       hasSalesData: ordersCount > 0
     };
   }, [agents]);
-  const handleToggleStatus = agent => {
-    toggleAgentStatus(agent.id);
+  const handleToggleStatus = async agent => {
+    await toggleAgentStatus(agent.id);
     refreshAgents();
   };
   const deleteSafety = deleteTarget ? getAgentDeleteSafety(deleteTarget.id) : null;
   const deleteBlocked = deleteSafety && !deleteSafety.canDelete;
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteTarget) {
       return;
     }
     if (deleteBlocked) {
       if (deleteTarget.status === "ACTIVE") {
-        updateAgent({
+        await updateAgent({
           ...deleteTarget,
           status: "INACTIVE"
         });
@@ -73,7 +73,7 @@ const AgentsPage = () => {
       refreshAgents();
       return;
     }
-    deleteAgent(deleteTarget.id);
+    await deleteAgent(deleteTarget.id);
     setDeleteTarget(null);
     refreshAgents();
   };

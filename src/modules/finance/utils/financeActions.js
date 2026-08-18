@@ -30,7 +30,7 @@ const assertNoOverpayment = ({ amount, debt, label }) => {
   }
 };
 
-export const addCustomerPayment = ({
+export const addCustomerPayment = async ({
   customerId,
   saleId = null,
   amount,
@@ -50,7 +50,7 @@ export const addCustomerPayment = ({
 
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId("cust-pay"),
     type: "IN",
     category: "Mijoz to'lovi",
@@ -66,7 +66,7 @@ export const addCustomerPayment = ({
   });
 };
 
-export const addSupplierPayment = ({
+export const addSupplierPayment = async ({
   supplierId,
   purchaseId = null,
   amount,
@@ -81,12 +81,12 @@ export const addSupplierPayment = ({
   assertNoOverpayment({
     amount: safeAmount,
     debt: debt.debt,
-    label: "Supplier qarzi",
+    label: "Yetkazib beruvchi qarzi",
   });
 
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId("sup-pay"),
     type: "OUT",
     category: "Yetkazib beruvchi to'lovi",
@@ -102,7 +102,7 @@ export const addSupplierPayment = ({
   });
 };
 
-export const addExpense = ({
+export const addExpense = async ({
   category,
   amount,
   paymentMethod = "CASH",
@@ -115,7 +115,7 @@ export const addExpense = ({
   const safeAmount = assertPositiveAmount(amount);
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId("expense"),
     type: "OUT",
     category: category || "Boshqa",
@@ -131,7 +131,7 @@ export const addExpense = ({
   });
 };
 
-export const addCashMovement = ({
+export const addCashMovement = async ({
   type,
   amount,
   cashboxId,
@@ -143,7 +143,7 @@ export const addCashMovement = ({
   const safeType = type === "OUT" ? "OUT" : "IN";
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId(safeType === "IN" ? "cash-in" : "cash-out"),
     type: safeType,
     category: safeType === "IN" ? "Kassa kirimi" : "Kassa chiqimi",
@@ -157,7 +157,7 @@ export const addCashMovement = ({
   });
 };
 
-export const addCashTransfer = ({
+export const addCashTransfer = async ({
   fromCashboxId,
   toCashboxId,
   amount,
@@ -173,7 +173,7 @@ export const addCashTransfer = ({
   const transferId = createFinanceId("transfer");
   const transferDate = normalizeDate(date);
 
-  const outTransaction = addFinanceTransaction({
+  const outTransaction = await addFinanceTransaction({
     id: `${transferId}-out`,
     type: "OUT",
     category: "Kassa o'tkazmasi",
@@ -187,7 +187,7 @@ export const addCashTransfer = ({
     internal: true,
   });
 
-  const inTransaction = addFinanceTransaction({
+  const inTransaction = await addFinanceTransaction({
     id: `${transferId}-in`,
     type: "IN",
     category: "Kassa o'tkazmasi",
@@ -204,7 +204,7 @@ export const addCashTransfer = ({
   return [outTransaction, inTransaction];
 };
 
-export const addAgentCollection = ({
+export const addAgentCollection = async ({
   agentId,
   customerId = null,
   saleId = null,
@@ -227,7 +227,7 @@ export const addAgentCollection = ({
 
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId("agent-col"),
     type: "IN",
     category: "Agent tushumi",
@@ -245,7 +245,7 @@ export const addAgentCollection = ({
   });
 };
 
-export const addAgentHandover = ({
+export const addAgentHandover = async ({
   agentId,
   amount,
   paymentMethod = "CASH",
@@ -262,7 +262,7 @@ export const addAgentHandover = ({
 
   const method = normalizePaymentMethod(paymentMethod);
 
-  return addFinanceTransaction({
+  return await addFinanceTransaction({
     id: createFinanceId("agent-hand"),
     type: "IN",
     category: "Agent topshirimi",

@@ -1,6 +1,6 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY =
     "warehouse_stock";
@@ -9,7 +9,7 @@ const MOVEMENTS_KEY =
     "warehouse_movements";
 
 export const getStoredWarehouseStock = () => {
-    const remoteStock = unwrapList(syncApiRequest("/inventory/stock"), ["stock"]);
+    const remoteStock = unwrapList(getCachedApiResponse("/inventory/stock"), ["stock"]);
 
     if (Array.isArray(remoteStock)) {
         tenantSet(STORAGE_KEY, remoteStock);
@@ -53,7 +53,7 @@ export const saveWarehouseStock = (
 
 export const getWarehouseMovements =
     () => {
-        const remoteMovements = unwrapList(syncApiRequest("/inventory/movements"), ["movements"]);
+        const remoteMovements = unwrapList(getCachedApiResponse("/inventory/movements"), ["movements"]);
 
         if (Array.isArray(remoteMovements)) {
             tenantSet(MOVEMENTS_KEY, remoteMovements);
@@ -95,7 +95,7 @@ export const addWarehouseMovement = (
     return newMovement;
 };
 
-export const stockIn = ({
+export const stockIn = async ({
     warehouseId,
     productId,
     quantity,
@@ -103,7 +103,7 @@ export const stockIn = ({
     source,
     note,
 }) => {
-    const remoteResult = syncApiRequest("/inventory/stock/in", {
+    const remoteResult = await apiRequest("/inventory/stock/in", {
         method: "POST",
         idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}`,
         body: { warehouseId, productId, quantity, cost, source, note, idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}` },
@@ -202,14 +202,14 @@ export const stockIn = ({
     return updatedItem;
 };
 
-export const stockOut = ({
+export const stockOut = async ({
     warehouseId,
     productId,
     quantity,
     reason,
     note,
 }) => {
-    const remoteResult = syncApiRequest("/inventory/stock/out", {
+    const remoteResult = await apiRequest("/inventory/stock/out", {
         method: "POST",
         idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}`,
         body: { warehouseId, productId, quantity, reason, note, idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}` },
@@ -311,14 +311,14 @@ export const stockOut = ({
 
     return updatedItem;
 };
-export const transferStock = ({
+export const transferStock = async ({
     fromWarehouseId,
     toWarehouseId,
     productId,
     quantity,
     note,
 }) => {
-    const remoteResult = syncApiRequest("/inventory/stock/transfer", {
+    const remoteResult = await apiRequest("/inventory/stock/transfer", {
         method: "POST",
         idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}`,
         body: { fromWarehouseId, toWarehouseId, productId, quantity, note, idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}` },
@@ -491,14 +491,14 @@ export const transferStock = ({
     return updatedStock;
 };
 
-export const inventoryAdjustStock = ({
+export const inventoryAdjustStock = async ({
     warehouseId,
     productId,
     countedQuantity,
     reason,
     note,
 }) => {
-    const remoteProduct = syncApiRequest(`/products/${productId}/stock`, {
+    const remoteProduct = await apiRequest(`/products/${productId}/stock`, {
         method: "PATCH",
         body: { warehouseId, newStock: countedQuantity, reason, note },
     });

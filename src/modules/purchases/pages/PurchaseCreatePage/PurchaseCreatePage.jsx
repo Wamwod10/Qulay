@@ -41,8 +41,8 @@ const PurchaseCreatePage = () => {
   const [useDraft, setUseDraft] = useState(false);
 
 
-  const handleSubmit = (values) => {
-    const purchase = createPurchase(values);
+  const handleSubmit = async (values) => {
+    const purchase = await createPurchase(values);
 
     clearPurchaseDraft();
 

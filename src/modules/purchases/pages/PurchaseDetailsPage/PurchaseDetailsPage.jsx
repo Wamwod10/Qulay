@@ -90,9 +90,9 @@ const PurchaseDetailsPage = () => {
 
   const canUpdatePayment = purchase.status !== "CANCELLED";
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     try {
-      const updatedPurchase = cancelPurchase(purchase.id);
+      const updatedPurchase = await cancelPurchase(purchase.id);
 
       setPurchase(updatedPurchase);
 
@@ -102,9 +102,9 @@ const PurchaseDetailsPage = () => {
     }
   };
 
-  const handlePaymentUpdate = (values) => {
+  const handlePaymentUpdate = async (values) => {
     try {
-      const updatedPurchase = updatePurchasePayment(values);
+      const updatedPurchase = await updatePurchasePayment(values);
 
       setPurchase(updatedPurchase);
 
@@ -165,9 +165,9 @@ const PurchaseDetailsPage = () => {
   }];
 
 
-  const handleReceive = (receivedItems) => {
+  const handleReceive = async (receivedItems) => {
     try {
-      receivePurchaseIntoWarehouse({
+      await receivePurchaseIntoWarehouse({
         purchase,
         receivedItems
       });
@@ -339,7 +339,7 @@ const PurchaseDetailsPage = () => {
               
 
               <InfoItem
-                label={translateText("Status")}
+                label={translateText("Holat")}
                 value={getPurchaseStatusLabel(purchase.status)} />
               
             </div>

@@ -19,11 +19,41 @@ import {
   formatMoneyWithSettings,
   formatTimeWithSettings,
 } from "../../settings/utils/formatSettingsHelpers";
-import { loadPlatformSettings } from "../../settings/utils/settingsStorage";
+import { getPlatformSettings } from "../../settings/utils/settingsStorage";
+
+const SELECTOR_CACHE_TTL_MS = 5000;
+const selectorCache = new Map();
+
+const clearSelectorCache = () => selectorCache.clear();
+
+if (typeof window !== "undefined") {
+  [
+    "storage",
+    "finance:changed",
+    "sales:changed",
+    "purchases:changed",
+    "customers:changed",
+    "suppliers:changed",
+    "agents:changed",
+    "hr:changed",
+  ].forEach((eventName) => window.addEventListener(eventName, clearSelectorCache));
+}
+
+const getCachedSelector = (key, factory) => {
+  const cached = selectorCache.get(key);
+
+  if (cached && Date.now() - cached.createdAt < SELECTOR_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const value = factory();
+  selectorCache.set(key, { createdAt: Date.now(), value });
+  return value;
+};
 
 const getFormats = () => {
   try {
-    return loadPlatformSettings().formats || {};
+    return getPlatformSettings().formats || {};
   } catch {
     return {};
   }
@@ -139,7 +169,7 @@ export const getSalePaymentTransactions = () =>
           amount: item.refundAmount,
           paymentMethod: sale.paymentMethod || "CASH",
           date: item.createdAt || sale.completedAt || sale.createdAt,
-          note: item.reason || `Refund ${sale.number || sale.id}`,
+          note: item.reason || `Qaytarish ${sale.number || sale.id}`,
           createdAt: item.createdAt || sale.updatedAt || sale.createdAt,
         }),
       );
@@ -221,53 +251,57 @@ export const getPurchasePaymentTransactions = () =>
     );
 
 export const getFinanceTransactions = (filters = {}) => {
-  const manualTransactions = getStoredFinanceTransactions().filter(
-    (transaction) => !transaction.reversed,
-  );
-  const transactions = uniqById([
-    ...manualTransactions,
-    ...getSalePaymentTransactions(),
-    ...getPurchasePaymentTransactions(),
-  ]);
-  const maps = getNameMaps();
+  const cacheKey = `finance-transactions:${JSON.stringify(filters)}`;
 
-  return sortByDateDesc(transactions)
-    .map((transaction) => {
-      const sale = transaction.saleId
-        ? getStoredSales().find((item) => item.id === transaction.saleId)
-        : null;
-      const purchase = transaction.purchaseId
-        ? getStoredPurchases().find((item) => item.id === transaction.purchaseId)
-        : null;
-      const customer = transaction.customerId ? maps.customers.get(transaction.customerId) : null;
-      const supplier = transaction.supplierId ? maps.suppliers.get(transaction.supplierId) : null;
-      const agent = transaction.agentId ? maps.agents.get(transaction.agentId) : null;
-      const employee = transaction.employeeId ? maps.employees.get(transaction.employeeId) : null;
-      const cashbox = transaction.cashboxId ? maps.cashboxes.get(transaction.cashboxId) : null;
+  return getCachedSelector(cacheKey, () => {
+    const manualTransactions = getStoredFinanceTransactions().filter(
+      (transaction) => !transaction.reversed,
+    );
+    const transactions = uniqById([
+      ...manualTransactions,
+      ...getSalePaymentTransactions(),
+      ...getPurchasePaymentTransactions(),
+    ]);
+    const maps = getNameMaps();
 
-      return {
-        ...transaction,
-        source:
-          sale?.number ||
-          purchase?.number ||
-          transaction.sourceId ||
-          transaction.sourceType ||
-          "-",
-        counterparty:
-          customer?.name ||
-          supplier?.name ||
-          agent?.name ||
-          employee?.fullName ||
-          transaction.counterparty ||
-          "-",
-        customerName: customer?.name || "",
-        supplierName: supplier?.name || "",
-        agentName: agent?.name || "",
-        employeeName: employee?.fullName || "",
-        cashboxName: cashbox?.name || "-",
-      };
-    })
-    .filter((transaction) => filterTransaction(transaction, filters));
+    return sortByDateDesc(transactions)
+      .map((transaction) => {
+        const sale = transaction.saleId
+          ? getStoredSales().find((item) => item.id === transaction.saleId)
+          : null;
+        const purchase = transaction.purchaseId
+          ? getStoredPurchases().find((item) => item.id === transaction.purchaseId)
+          : null;
+        const customer = transaction.customerId ? maps.customers.get(transaction.customerId) : null;
+        const supplier = transaction.supplierId ? maps.suppliers.get(transaction.supplierId) : null;
+        const agent = transaction.agentId ? maps.agents.get(transaction.agentId) : null;
+        const employee = transaction.employeeId ? maps.employees.get(transaction.employeeId) : null;
+        const cashbox = transaction.cashboxId ? maps.cashboxes.get(transaction.cashboxId) : null;
+
+        return {
+          ...transaction,
+          source:
+            sale?.number ||
+            purchase?.number ||
+            transaction.sourceId ||
+            transaction.sourceType ||
+            "-",
+          counterparty:
+            customer?.name ||
+            supplier?.name ||
+            agent?.name ||
+            employee?.fullName ||
+            transaction.counterparty ||
+            "-",
+          customerName: customer?.name || "",
+          supplierName: supplier?.name || "",
+          agentName: agent?.name || "",
+          employeeName: employee?.fullName || "",
+          cashboxName: cashbox?.name || "-",
+        };
+      })
+      .filter((transaction) => filterTransaction(transaction, filters));
+  });
 };
 
 export const filterTransaction = (transaction, filters = {}) => {
@@ -384,19 +418,21 @@ export const getCustomerDebt = (customerId) => {
 };
 
 export const getCustomerDebts = () => {
-  const ids = new Set();
+  return getCachedSelector("customer-debts", () => {
+    const ids = new Set();
 
-  getStoredCustomers().forEach((customer) => ids.add(customer.id));
-  getStoredSales().forEach((sale) => {
-    if (sale.customerId && !isCancelled(sale.status)) {
-      ids.add(sale.customerId);
-    }
+    getStoredCustomers().forEach((customer) => ids.add(customer.id));
+    getStoredSales().forEach((sale) => {
+      if (sale.customerId && !isCancelled(sale.status)) {
+        ids.add(sale.customerId);
+      }
+    });
+
+    return [...ids]
+      .map(getCustomerDebt)
+      .filter((row) => row.salesTotal > 0 || row.paid > 0 || row.debt > 0)
+      .sort((a, b) => b.debt - a.debt);
   });
-
-  return [...ids]
-    .map(getCustomerDebt)
-    .filter((row) => row.salesTotal > 0 || row.paid > 0 || row.debt > 0)
-    .sort((a, b) => b.debt - a.debt);
 };
 
 export const getSupplierDebt = (supplierId) => {
@@ -440,19 +476,21 @@ export const getSupplierDebt = (supplierId) => {
 };
 
 export const getSupplierDebts = () => {
-  const ids = new Set();
+  return getCachedSelector("supplier-debts", () => {
+    const ids = new Set();
 
-  getStoredSuppliers().forEach((supplier) => ids.add(supplier.id));
-  getStoredPurchases().forEach((purchase) => {
-    if (purchase.supplierId && !isCancelled(purchase.status)) {
-      ids.add(purchase.supplierId);
-    }
+    getStoredSuppliers().forEach((supplier) => ids.add(supplier.id));
+    getStoredPurchases().forEach((purchase) => {
+      if (purchase.supplierId && !isCancelled(purchase.status)) {
+        ids.add(purchase.supplierId);
+      }
+    });
+
+    return [...ids]
+      .map(getSupplierDebt)
+      .filter((row) => row.purchasesTotal > 0 || row.paid > 0 || row.debt > 0)
+      .sort((a, b) => b.debt - a.debt);
   });
-
-  return [...ids]
-    .map(getSupplierDebt)
-    .filter((row) => row.purchasesTotal > 0 || row.paid > 0 || row.debt > 0)
-    .sort((a, b) => b.debt - a.debt);
 };
 
 export const getAgentBalance = (agentId) => {

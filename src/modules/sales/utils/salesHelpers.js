@@ -3,12 +3,12 @@ import {
   formatMoneyWithSettings,
   formatTimeWithSettings,
 } from "../../settings/utils/formatSettingsHelpers";
-import { loadPlatformSettings } from "../../settings/utils/settingsStorage";
+import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 import { translateText } from "../../../localization/i18n";
 
 const getFormats = () => {
   try {
-    return loadPlatformSettings().formats || {};
+    return getPlatformSettings().formats || {};
   } catch {
     return {};
   }

@@ -265,6 +265,8 @@ const AppRouter = () => {
             <Route path="/superadmin" element={<SuperAdminLayout />}>
               <Route index element={<SuperAdminDashboard />} />
 
+              <Route path="dashboard" element={<SuperAdminDashboard />} />
+
               <Route path="users" element={<UsersPage />} />
 
               <Route path="companies" element={<CompaniesPage />} />

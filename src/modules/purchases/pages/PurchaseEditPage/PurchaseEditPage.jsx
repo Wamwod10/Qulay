@@ -48,8 +48,8 @@ const PurchaseEditPage = () => {
 
   }
 
-  const handleSubmit = (values) => {
-    const updated = updatePurchase({
+  const handleSubmit = async (values) => {
+    const updated = await updatePurchase({
       ...purchase,
       ...values,
 

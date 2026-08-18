@@ -156,7 +156,7 @@ const ProductActionsMenu = ({
           </button>
 
             <button type="button" onClick={() => execute(onBarcode)}>
-              <Barcode size={16} />{translateText("Barcode / QR")}
+              <Barcode size={16} />{translateText("Shtrix-kod / QR")}
 
           </button>
 

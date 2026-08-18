@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button, Card, LiveIcon, Switch } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import {
   getGlobalModules,
@@ -21,7 +22,7 @@ const PLATFORM_MODULES = [
   {
     key: "dashboard",
     name: "Bosh sahifa",
-    description: "Platformaning asosiy dashboard sahifasi.",
+    description: "Platformaning asosiy bosh sahifasi.",
     locked: true,
   },
   {
@@ -47,12 +48,12 @@ const PLATFORM_MODULES = [
   {
     key: "suppliers",
     name: "Yetkazib beruvchilar",
-    description: "Supplier ma’lumotlari va xarid aloqalari.",
+    description: "Yetkazib beruvchi ma'lumotlari va xarid aloqalari.",
   },
   {
     key: "customers",
     name: "Mijozlar / CRM",
-    description: "Mijozlar, qarz va follow-up boshqaruvi.",
+    description: "Mijozlar, qarz va keyingi aloqalarni boshqaradi.",
   },
   {
     key: "agents",
@@ -62,7 +63,7 @@ const PLATFORM_MODULES = [
   {
     key: "manufacturing",
     name: "Ishlab chiqarish",
-    description: "BOM, production order va tannarx.",
+    description: "BOM, ishlab chiqarish buyurtmasi va tannarx.",
   },
   {
     key: "finance",
@@ -72,7 +73,7 @@ const PLATFORM_MODULES = [
   {
     key: "employees",
     name: "Xodimlar",
-    description: "HR, attendance, payroll va smenalar.",
+    description: "HR, davomat, ish haqi va smenalar.",
   },
   {
     key: "reports",
@@ -246,9 +247,9 @@ const ModulesPage = () => {
                     </div>
 
                     <div>
-                      <strong>{module.name}</strong>
+                      <strong>{translateText(module.name)}</strong>
 
-                      <span>{module.description}</span>
+                      <span>{translateText(module.description)}</span>
 
                       <small>{module.key}</small>
                     </div>

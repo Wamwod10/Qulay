@@ -138,7 +138,7 @@ const DashboardPage = () => {
   if (!dashboard) {
     return (
       <PageContainer title="Bosh sahifa">
-        <EmptyState title="Dashboard yuklanmadi" description="LocalStorage mavjud emas." />
+        <EmptyState title="Bosh sahifa yuklanmadi" description="Mahalliy xotira mavjud emas." />
       </PageContainer>
     );
   }
@@ -195,7 +195,7 @@ const DashboardPage = () => {
             <KpiCard
               key={kpi.id}
               kpi={kpi}
-              periodLabel={kpi.id === "stock" ? translateText("Live") : periodLabel}
+              periodLabel={kpi.id === "stock" ? translateText("Jonli") : periodLabel}
               onClick={() => navigate(kpi.path)}
             />
           ))}
@@ -336,13 +336,13 @@ const SalesFinancePanel = ({ sales, finance, periodLabel, onSales, onFinance }) 
     <button type="button" className="dashboard-page__cashflow" onClick={onFinance}>
       <span>
         <LiveIcon icon={ArrowUpRight} motion="trend-up-soft" active={finance.inAmount > 0} />
-        {translateText("IN")} {formatMoney(finance.inAmount)}
+        {translateText("Kirim")} {formatMoney(finance.inAmount)}
       </span>
       <span>
         <LiveIcon icon={ArrowDownRight} motion="trend-down-soft" active={finance.outAmount > 0} />
-        {translateText("OUT")} {formatMoney(finance.outAmount)}
+        {translateText("Chiqim")} {formatMoney(finance.outAmount)}
       </span>
-      <strong>{translateText("Net")} {formatMoney(finance.netCashflow)}</strong>
+      <strong>{translateText("Sof oqim")} {formatMoney(finance.netCashflow)}</strong>
     </button>
   </Card>
 );
@@ -380,7 +380,7 @@ const WarehousePanel = ({ warehouse, onClick }) => (
         ))}
       </div>
     ) : (
-      <EmptyState title="Muammo aniqlanmadi" description="Low stock yoki tugagan mahsulot yo'q." />
+      <EmptyState title="Muammo aniqlanmadi" description="Qoldig'i kam yoki tugagan mahsulot yo'q." />
     )}
   </Card>
 );
@@ -426,7 +426,7 @@ const ManufacturingPanel = ({ manufacturing, periodLabel, onClick, onOrder }) =>
         ))}
       </div>
     ) : (
-      <EmptyState title="Jarayondagi buyurtma yo'q" description="Reja yoki faol order topilmadi." />
+      <EmptyState title="Jarayondagi buyurtma yo'q" description="Reja yoki faol buyurtma topilmadi." />
     )}
   </Card>
 );
@@ -458,7 +458,7 @@ const PurchasesPanel = ({ purchases, onClick, onPurchase }) => (
           >
             <span>
               <strong>{purchase.number || purchase.id}</strong>
-              <small>{purchase.supplierName || translateText("Supplier")} · {formatMoney(purchase.total)}</small>
+              <small>{purchase.supplierName || translateText("Yetkazib beruvchi")} · {formatMoney(purchase.total)}</small>
             </span>
             <Badge variant={statusVariant(purchase.signal)} size="sm">
               {purchase.signal === "late"
@@ -481,7 +481,7 @@ const AgentPanel = ({ agents, onClick }) => (
     <PanelHeader
       icon={<Users size={18} />}
       title="Agentlar"
-      meta="Top 3 performance"
+      meta="Top 3 natija"
       actionLabel="Agentlar"
       onClick={onClick}
     />
@@ -496,7 +496,7 @@ const AgentPanel = ({ agents, onClick }) => (
               <span>
                 <strong>{agent.name}</strong>
                 <small>
-                  {formatMoney(agent.salesAmount)} · {formatNumber(agent.ordersCount)} {translateText("order")}
+                  {formatMoney(agent.salesAmount)} · {formatNumber(agent.ordersCount)} {translateText("buyurtma")}
                 </small>
               </span>
               <span className="dashboard-page__progress" aria-label={`${formatNumber(agent.targetPercent)}%`}>
@@ -520,7 +520,7 @@ const SignalsPanel = ({ debts, crm, hr, onCustomers, onHr, onDebts }) => (
     <PanelHeader
       icon={<Activity size={18} />}
       title="CRM / HR signallar"
-      meta="Risk, follow-up va davomat"
+      meta="Xavf, keyingi aloqa va davomat"
       actionLabel="Qarzlar"
       onClick={onDebts}
     />
@@ -528,12 +528,12 @@ const SignalsPanel = ({ debts, crm, hr, onCustomers, onHr, onDebts }) => (
     <div className="dashboard-page__signals">
       <button type="button" onClick={onCustomers}>
         <LiveIcon icon={Clock} motion="warning-glow" active={crm.overdueFollowUpCount > 0} />
-        <span>{translateText("Overdue follow-up")}</span>
+        <span>{translateText("Muddati o'tgan aloqa")}</span>
         <strong>{formatNumber(crm.overdueFollowUpCount)}</strong>
       </button>
       <button type="button" onClick={onCustomers}>
         <Users size={18} />
-        <span>{translateText("Risk mijozlar")}</span>
+        <span>{translateText("Xavf guruhidagi mijozlar")}</span>
         <strong>{formatNumber(crm.riskyCustomerCount || debts.riskyCustomerCount)}</strong>
       </button>
       <button type="button" onClick={onCustomers}>
@@ -543,7 +543,7 @@ const SignalsPanel = ({ debts, crm, hr, onCustomers, onHr, onDebts }) => (
       </button>
       <button type="button" onClick={onHr}>
         <CheckCircle size={18} />
-        <span>{translateText("Bugun present")}</span>
+        <span>{translateText("Bugun ishda")}</span>
         <strong>{formatNumber(hr.present)}</strong>
       </button>
       <button type="button" onClick={onHr}>
@@ -553,7 +553,7 @@ const SignalsPanel = ({ debts, crm, hr, onCustomers, onHr, onDebts }) => (
       </button>
       <button type="button" onClick={onHr}>
         <Receipt size={18} />
-        <span>{translateText("Payroll qarzi")}</span>
+        <span>{translateText("Ish haqi qarzi")}</span>
         <strong>{formatNumber(hr.unpaidPayrollCount)}</strong>
       </button>
     </div>
@@ -565,7 +565,7 @@ const RecentActivityPanel = ({ items, onOpen }) => (
     <PanelHeader
       icon={<Activity size={18} />}
       title="So'nggi harakatlar"
-      meta="Savdo, finance, xarid, ishlab chiqarish va ombor"
+      meta="Savdo, moliya, xarid, ishlab chiqarish va ombor"
     />
 
     {items.length ? (
@@ -600,7 +600,7 @@ const RecentActivityPanel = ({ items, onOpen }) => (
         })}
       </div>
     ) : (
-      <EmptyState title="Hali harakat yo'q" description="Tanlangan davrda activity topilmadi." />
+      <EmptyState title="Hali harakat yo'q" description="Tanlangan davrda faoliyat topilmadi." />
     )}
   </Card>
 );

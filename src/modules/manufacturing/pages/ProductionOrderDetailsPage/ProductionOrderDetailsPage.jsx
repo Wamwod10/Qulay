@@ -136,9 +136,9 @@ const ProductionOrderDetailsPage = () => {
 
   const costDifference = actualProductionCost - plannedMaterialCost;
 
-  const handleStart = () => {
+  const handleStart = async () => {
     try {
-      const startedOrder = startProductionOrder(order.id);
+      const startedOrder = await startProductionOrder(order.id);
 
       setOrder(startedOrder);
       setShortages([]);

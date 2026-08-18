@@ -465,7 +465,7 @@ const SupplierDetailsPage = () => {
             ) : (
               <EmptyState
                 title="Narx tarixi yetarli emas"
-                description="Narx trendini ko‘rsatish uchun ushbu supplierdan xaridlar bo‘lishi kerak."
+                description="Narx trendini ko'rsatish uchun ushbu yetkazib beruvchidan xaridlar bo'lishi kerak."
               />
             )}
           </Card>

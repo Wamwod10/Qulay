@@ -10,19 +10,19 @@ const ForgotPasswordPage = () => (
   <AuthLayout
     title={translateText("Parolni tiklash")}
     subtitle={translateText("Hisobingiz xavfsizligi uchun parolni tiklash faqat tasdiqlangan token yoki OTP orqali amalga oshiriladi.")}
-    footer={<Link to="/login">{translateText("Login sahifasiga qaytish")}</Link>}
+    footer={<Link to="/login">{translateText("Kirish sahifasiga qaytish")}</Link>}
   >
     <div className="auth-form">
       <div className="auth-form__notice" role="status">
         <ShieldAlert size={22} aria-hidden="true" />
         <div>
           <strong>{translateText("Parolni tiklash hozircha mavjud emas")}</strong>
-          <p>{translateText("Tasdiqlangan email yoki SMS provider ulanmaguncha direct parol almashtirish bloklangan. Administratorga murojaat qiling.")}</p>
+          <p>{translateText("Tasdiqlangan email yoki SMS xizmati ulanmaguncha to'g'ridan-to'g'ri parol almashtirish bloklangan. Tizim boshqaruvchisiga murojaat qiling.")}</p>
         </div>
       </div>
 
       <Link className="auth-form__link" to="/login">
-        {translateText("Login sahifasiga qaytish")}
+        {translateText("Kirish sahifasiga qaytish")}
       </Link>
     </div>
   </AuthLayout>

@@ -278,7 +278,7 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
-  const submitModal = () => {
+  const submitModal = async () => {
     if (isSubmitting) {
       return;
     }
@@ -286,19 +286,19 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     setIsSubmitting(true);
     try {
       if (modal === "customer-payment") {
-        addCustomerPayment(form);
+        await addCustomerPayment(form);
       } else if (modal === "supplier-payment") {
-        addSupplierPayment(form);
+        await addSupplierPayment(form);
       } else if (modal === "expense") {
-        addExpense(form);
+        await addExpense(form);
       } else if (modal === "cash-movement") {
-        addCashMovement(form);
+        await addCashMovement(form);
       } else if (modal === "cash-transfer") {
-        addCashTransfer(form);
+        await addCashTransfer(form);
       } else if (modal === "agent-collection") {
-        addAgentCollection(form);
+        await addAgentCollection(form);
       } else if (modal === "agent-handover") {
-        addAgentHandover(form);
+        await addAgentHandover(form);
       }
 
       closeModal();

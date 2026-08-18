@@ -54,13 +54,13 @@ const SuppliersPage = () => {
     setSuppliers(getStoredSuppliers());
   };
 
-  const handleToggleStatus = (supplier) => {
-    toggleSupplierStatus(supplier.id);
+  const handleToggleStatus = async (supplier) => {
+    await toggleSupplierStatus(supplier.id);
 
     refreshSuppliers();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteSupplierItem) {
       return;
     }
@@ -95,7 +95,7 @@ const SuppliersPage = () => {
       return;
     }
 
-    deleteSupplier(deleteSupplierItem.id);
+    await deleteSupplier(deleteSupplierItem.id);
 
     setDeleteSupplierItem(null);
 

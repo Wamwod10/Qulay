@@ -27,8 +27,8 @@ const SupplierEditPage = () => {
     );
   }
 
-  const handleSubmit = (values) => {
-    updateSupplier({
+  const handleSubmit = async (values) => {
+    await updateSupplier({
       ...supplier,
       ...values,
 

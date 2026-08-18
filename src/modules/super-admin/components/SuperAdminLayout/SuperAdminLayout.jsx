@@ -9,41 +9,31 @@ import {
 } from "lucide-react";
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { translateText } from "../../../../localization/i18n";
+import authService from "../../../auth/services/authService";
+import { logout } from "../../../../store/slices/authSlice";
+import { SUPER_ADMIN_ROLE } from "../../../../constants/auth";
 
 import "./SuperAdminLayout.scss";
 
 const NAVIGATION = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/superadmin",
-    end: true,
-  },
-  {
-    label: "Userlar",
-    icon: Users,
-    path: "/superadmin/users",
-  },
-  {
-    label: "Kompaniyalar",
-    icon: Building2,
-    path: "/superadmin/companies",
-  },
-  {
-    label: "Bo‘limlar",
-    icon: Settings2,
-    path: "/superadmin/modules",
-  },
-  {
-    label: "Audit",
-    icon: Activity,
-    path: "/superadmin/audit-logs",
-  },
+  { label: "Bosh sahifa", icon: LayoutDashboard, path: "/superadmin", end: true },
+  { label: "Foydalanuvchilar", icon: Users, path: "/superadmin/users" },
+  { label: "Kompaniyalar", icon: Building2, path: "/superadmin/companies" },
+  { label: "Bo'limlar", icon: Settings2, path: "/superadmin/modules" },
+  { label: "Audit", icon: Activity, path: "/superadmin/audit-logs" },
 ];
 
 const SuperAdminLayout = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    authService.logout();
+    dispatch(logout());
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="super-admin-layout">
@@ -54,7 +44,7 @@ const SuperAdminLayout = () => {
           </div>
 
           <div>
-            <strong>{translateText("Super Admin")}</strong>
+            <strong>{translateText("Platforma boshqaruvchisi")}</strong>
             <span>{translateText("Platforma boshqaruvi")}</span>
           </div>
         </div>
@@ -85,9 +75,9 @@ const SuperAdminLayout = () => {
         </nav>
 
         <div className="super-admin-layout__bottom">
-          <button type="button" onClick={() => navigate("/")}>
+          <button type="button" onClick={handleLogout}>
             <LogOut size={17} />
-            {translateText("Platformaga qaytish")}
+            {translateText("Chiqish")}
           </button>
         </div>
       </aside>
@@ -95,7 +85,7 @@ const SuperAdminLayout = () => {
       <main className="super-admin-layout__main">
         <header className="super-admin-layout__header">
           <div>
-            <span>{translateText("Super Admin")}</span>
+            <span>{translateText("Platforma boshqaruvchisi")}</span>
             <strong>{translateText("Platforma nazorati")}</strong>
           </div>
 
@@ -103,8 +93,8 @@ const SuperAdminLayout = () => {
             <div>SA</div>
 
             <span>
-              <strong>{translateText("Super Admin")}</strong>
-              <small>SUPER_ADMIN</small>
+              <strong>{translateText("Platforma boshqaruvchisi")}</strong>
+              <small>{SUPER_ADMIN_ROLE}</small>
             </span>
           </div>
         </header>

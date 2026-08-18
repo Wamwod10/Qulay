@@ -86,7 +86,7 @@ const ProductTable = ({
 
           <div className="product-table__product-info">
             <strong>{product.name}</strong>
-            <span>{product.barcode || "Barcode yo'q"}</span>
+            <span>{product.barcode || translateText("Shtrix-kod yo'q")}</span>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { ArrowLeft, Ban, CheckCircle2, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
+import { translateText } from "../../../../localization/i18n";
 
 import { Badge, Button, Card, EmptyState } from "../../../../shared/ui";
 
@@ -49,14 +50,14 @@ const UserDetailsPage = () => {
   }, [userId]);
 
   if (loading) {
-    return <div className="sa-user-details__loading">User yuklanmoqda...</div>;
+    return <div className="sa-user-details__loading">{translateText("Foydalanuvchi yuklanmoqda...")}</div>;
   }
 
   if (error || !user) {
     return (
       <EmptyState
-        title="User topilmadi"
-        description={error || "Bu user mavjud emas."}
+        title={translateText("Foydalanuvchi topilmadi")}
+        description={error || translateText("Bu foydalanuvchi mavjud emas.")}
       />
     );
   }
@@ -86,7 +87,7 @@ const UserDetailsPage = () => {
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      "Bu user akkauntini butunlay o‘chirishni tasdiqlaysizmi?",
+      translateText("Bu foydalanuvchi akkauntini butunlay o'chirishni tasdiqlaysizmi?"),
     );
 
     if (!confirmed) {
@@ -118,7 +119,7 @@ const UserDetailsPage = () => {
             leftIcon={<ArrowLeft size={16} />}
             onClick={() => navigate("/superadmin/users")}
           >
-            Userlarga qaytish
+            {translateText("Foydalanuvchilarga qaytish")}
           </Button>
 
           <div className="sa-user-details__title">
@@ -184,7 +185,7 @@ const UserDetailsPage = () => {
         <div className="sa-user-details__section-title">
           <h3>Akkaunt ma’lumotlari</h3>
 
-          <p>User va biznes haqidagi asosiy ma’lumotlar.</p>
+          <p>{translateText("Foydalanuvchi va biznes haqidagi asosiy ma'lumotlar.")}</p>
         </div>
 
         <div className="sa-user-details__info-grid">
@@ -199,10 +200,10 @@ const UserDetailsPage = () => {
             value={user.companyName || user.businessName}
           />
 
-          <InfoItem label="User ID" value={user.id} />
+          <InfoItem label={translateText("Foydalanuvchi ID")} value={user.id} />
 
           <InfoItem
-            label="Company ID"
+            label={translateText("Kompaniya ID")}
             value={user.companyId || user.businessId}
           />
         </div>
@@ -230,7 +231,7 @@ const InfoItem = ({ label, value }) => (
 );
 
 const getUserName = (user) =>
-  user.name || user.fullName || user.email || user.phone || "Nomsiz user";
+  user.name || user.fullName || user.email || user.phone || "Nomsiz foydalanuvchi";
 
 const normalizeStatus = (status) => {
   const value = String(status || "ACTIVE").toUpperCase();

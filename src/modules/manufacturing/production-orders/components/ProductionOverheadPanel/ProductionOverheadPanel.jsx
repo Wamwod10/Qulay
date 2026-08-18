@@ -107,7 +107,7 @@ const ProductionOverheadPanel = ({ order, readOnly = false, onChange }) => {
               />
 
               <Textarea
-                label="Note"
+                label="Izoh"
                 value={item.note}
                 disabled={readOnly}
                 placeholder="Qo'shimcha izoh..."

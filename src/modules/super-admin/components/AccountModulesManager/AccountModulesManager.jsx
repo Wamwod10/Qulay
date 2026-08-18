@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
 
 import { Card, LiveIcon, Switch } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import {
   getSuperAdminUserModules,
@@ -69,11 +70,17 @@ const AccountModulesManager = ({ user }) => {
 
   const [updating, setUpdating] = useState("");
 
-  const accountId = user.businessId || user.companyId || user.id;
+  const accountId = user.businessId || user.companyId || null;
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+
+      if (!accountId) {
+        setModules({});
+        setLoading(false);
+        return;
+      }
 
       try {
         const result = await getSuperAdminUserModules(accountId);
@@ -90,6 +97,10 @@ const AccountModulesManager = ({ user }) => {
   }, [accountId]);
 
   const handleToggle = async (moduleKey, checked) => {
+    if (!accountId) {
+      return;
+    }
+
     const previous = modules[moduleKey];
 
     setModules((current) => ({
@@ -107,7 +118,7 @@ const AccountModulesManager = ({ user }) => {
         [moduleKey]: previous,
       }));
 
-      window.alert(error.message || "Bo‘lim holatini o‘zgartirib bo‘lmadi.");
+      window.alert(error.message || translateText("Bo'lim holatini o'zgartirib bo'lmadi."));
     } finally {
       setUpdating("");
     }
@@ -117,18 +128,17 @@ const AccountModulesManager = ({ user }) => {
     <Card padding="lg" className="account-modules-manager">
       <div className="account-modules-manager__header">
         <div>
-          <h3>Akkaunt bo‘limlari</h3>
+          <h3>{translateText("Akkaunt bo'limlari")}</h3>
 
           <p>
-            Aynan shu akkaunt uchun platforma bo‘limlarini yoqing yoki
-            yashiring.
+            {translateText("Aynan shu akkaunt uchun platforma bo'limlarini yoqing yoki yashiring.")}
           </p>
         </div>
 
         {!loading && (
           <span>
             <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} />
-            Saqlanadi
+            {translateText("Saqlanadi")}
           </span>
         )}
       </div>
@@ -136,7 +146,7 @@ const AccountModulesManager = ({ user }) => {
       {loading ? (
         <div className="account-modules-manager__loading">
           <LiveIcon icon={LoaderCircle} motion="spin-slow" />
-          Bo‘limlar yuklanmoqda...
+          {translateText("Bo'limlar yuklanmoqda...")}
         </div>
       ) : (
         <div className="account-modules-manager__list">
@@ -162,7 +172,7 @@ const AccountModulesManager = ({ user }) => {
 
                   <Switch
                     checked={enabled}
-                    disabled={updating === module.key}
+                    disabled={!accountId || updating === module.key}
                     onChange={(event) =>
                       handleToggle(module.key, event.target.checked)
                     }

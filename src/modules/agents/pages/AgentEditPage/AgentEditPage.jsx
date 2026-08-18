@@ -17,8 +17,8 @@ const AgentEditPage = () => {
         <Button variant="secondary" onClick={() => navigate("/agents")}>{translateText("Agentlarga qaytish")}</Button>
       </PageContainer>;
   }
-  const handleSubmit = values => {
-    const updated = updateAgent({
+  const handleSubmit = async values => {
+    const updated = await updateAgent({
       ...agent,
       ...values,
       id: agent.id

@@ -8,8 +8,8 @@ import "./AgentCreatePage.scss";
 import { translateText } from "../../../../localization/i18n";
 const AgentCreatePage = () => {
   const navigate = useNavigate();
-  const handleSubmit = values => {
-    const agent = createAgent(values);
+  const handleSubmit = async values => {
+    const agent = await createAgent(values);
     navigate(`/agents/${agent.id}`);
   };
   return <PageContainer title={translateText("Yangi agent")} description={translateText("Savdo agenti ma'lumotlarini kiriting.")}>

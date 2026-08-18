@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "products";
 const HISTORY_KEY = "product_history";
@@ -113,7 +113,7 @@ export const generateUniqueSku = (excludedProductId = null) => {
 };
 
 export const getStoredProducts = () => {
-  const remoteProducts = unwrapList(syncApiRequest("/products"), ["products"]);
+  const remoteProducts = unwrapList(getCachedApiResponse("/products"), ["products"]);
 
   if (Array.isArray(remoteProducts)) {
     writeJson(STORAGE_KEY, remoteProducts);
@@ -176,8 +176,8 @@ export const addProductHistory = (productId, data) => {
   return safeHistory[productId][0];
 };
 
-export const createStoredProduct = (product) => {
-  const remoteProduct = syncApiRequest("/products", {
+export const createStoredProduct = async (product) => {
+  const remoteProduct = await apiRequest("/products", {
     method: "POST",
     body: product,
   });
@@ -210,9 +210,9 @@ export const createStoredProduct = (product) => {
   return normalizedProduct;
 };
 
-export const updateStoredProduct = (updatedProduct) => {
+export const updateStoredProduct = async (updatedProduct) => {
   const remoteProduct = updatedProduct?.id
-    ? syncApiRequest(`/products/${updatedProduct.id}`, {
+    ? await apiRequest(`/products/${updatedProduct.id}`, {
         method: "PATCH",
         body: updatedProduct,
       })
@@ -260,8 +260,8 @@ export const updateStoredProduct = (updatedProduct) => {
   return mergedProduct;
 };
 
-export const deleteStoredProduct = (productId) => {
-  syncApiRequest(`/products/${productId}`, {
+export const deleteStoredProduct = async (productId) => {
+  await apiRequest(`/products/${productId}`, {
     method: "DELETE",
   });
 
@@ -273,7 +273,7 @@ export const deleteStoredProduct = (productId) => {
   return product || null;
 };
 
-export const toggleStoredProductStatus = (productId) => {
+export const toggleStoredProductStatus = async (productId) => {
   const products = getStoredProducts();
   let updatedProduct = null;
   let previousStatus = null;
@@ -296,7 +296,7 @@ export const toggleStoredProductStatus = (productId) => {
   saveProducts(updatedProducts);
 
   if (updatedProduct) {
-    syncApiRequest(`/products/${productId}/status`, {
+    await apiRequest(`/products/${productId}/status`, {
       method: "PATCH",
       body: { status: updatedProduct.status },
     });
@@ -320,8 +320,8 @@ export const toggleStoredProductStatus = (productId) => {
   return updatedProduct;
 };
 
-export const duplicateStoredProduct = (productId) => {
-  const remoteProduct = syncApiRequest(`/products/${productId}/duplicate`, {
+export const duplicateStoredProduct = async (productId) => {
+  const remoteProduct = await apiRequest(`/products/${productId}/duplicate`, {
     method: "POST",
     body: {},
   });
@@ -372,8 +372,8 @@ export const duplicateStoredProduct = (productId) => {
   return duplicatedProduct;
 };
 
-export const adjustStoredProductStock = ({ productId, newStock, reason }) => {
-  const remoteProduct = syncApiRequest(`/products/${productId}/stock`, {
+export const adjustStoredProductStock = async ({ productId, newStock, reason }) => {
+  const remoteProduct = await apiRequest(`/products/${productId}/stock`, {
     method: "PATCH",
     body: { newStock, reason },
   });
@@ -426,8 +426,8 @@ export const adjustStoredProductStock = ({ productId, newStock, reason }) => {
   return updatedProduct;
 };
 
-export const updateStoredProductPrices = ({ productId, cost, salePrice, reason }) => {
-  const remoteProduct = syncApiRequest(`/products/${productId}/prices`, {
+export const updateStoredProductPrices = async ({ productId, cost, salePrice, reason }) => {
+  const remoteProduct = await apiRequest(`/products/${productId}/prices`, {
     method: "PATCH",
     body: { cost, salePrice, reason },
   });
@@ -493,8 +493,8 @@ export const updateStoredProductPrices = ({ productId, cost, salePrice, reason }
   return updatedProduct;
 };
 
-export const archiveStoredProduct = (productId) => {
-  const remoteProduct = syncApiRequest(`/products/${productId}/status`, {
+export const archiveStoredProduct = async (productId) => {
+  const remoteProduct = await apiRequest(`/products/${productId}/status`, {
     method: "PATCH",
     body: { status: "ARCHIVED" },
   });
@@ -541,8 +541,8 @@ export const archiveStoredProduct = (productId) => {
   return archivedProduct;
 };
 
-export const restoreStoredProduct = (productId) => {
-  const remoteProduct = syncApiRequest(`/products/${productId}/status`, {
+export const restoreStoredProduct = async (productId) => {
+  const remoteProduct = await apiRequest(`/products/${productId}/status`, {
     method: "PATCH",
     body: { status: "ACTIVE" },
   });

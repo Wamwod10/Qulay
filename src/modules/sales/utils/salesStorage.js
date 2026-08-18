@@ -6,8 +6,8 @@ import {
 } from "../../warehouse/utils/warehouseStorage";
 import { getStoredWarehouses } from "../../warehouse/utils/warehouseManagementStorage";
 
-import { getTenantKey, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { tenantGet, tenantRemove, tenantSet } from "../../auth/utils/tenantStorage";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 import { calculateSaleTotals, roundMoney } from "./salesCalculations";
 import { getPaymentStatus } from "./salesHelpers";
@@ -153,12 +153,9 @@ const commitBatch = ({ sales, stock, movements }) => {
     return false;
   }
 
-  const salesKey = getTenantKey(STORAGE_KEY);
-  const stockKey = getTenantKey("warehouse_stock");
-  const movementsKey = getTenantKey(MOVEMENTS_KEY);
-  const previousSales = salesKey ? window.localStorage.getItem(salesKey) : null;
-  const previousStock = stockKey ? window.localStorage.getItem(stockKey) : null;
-  const previousMovements = movementsKey ? window.localStorage.getItem(movementsKey) : null;
+  const previousSales = tenantGet(STORAGE_KEY, null);
+  const previousStock = tenantGet("warehouse_stock", null);
+  const previousMovements = tenantGet(MOVEMENTS_KEY, null);
 
   try {
     saveWarehouseStock(stock);
@@ -170,23 +167,14 @@ const commitBatch = ({ sales, stock, movements }) => {
 
     return true;
   } catch (error) {
-    if (previousStock === null) {
-      if (stockKey) window.localStorage.removeItem(stockKey);
-    } else if (stockKey) {
-      window.localStorage.setItem(stockKey, previousStock);
-    }
+    if (previousStock === null) tenantRemove("warehouse_stock");
+    else tenantSet("warehouse_stock", previousStock);
 
-    if (previousMovements === null) {
-      if (movementsKey) window.localStorage.removeItem(movementsKey);
-    } else if (movementsKey) {
-      window.localStorage.setItem(movementsKey, previousMovements);
-    }
+    if (previousMovements === null) tenantRemove(MOVEMENTS_KEY);
+    else tenantSet(MOVEMENTS_KEY, previousMovements);
 
-    if (previousSales === null) {
-      if (salesKey) window.localStorage.removeItem(salesKey);
-    } else if (salesKey) {
-      window.localStorage.setItem(salesKey, previousSales);
-    }
+    if (previousSales === null) tenantRemove(STORAGE_KEY);
+    else tenantSet(STORAGE_KEY, previousSales);
 
     throw error;
   }
@@ -243,7 +231,7 @@ const validateSaleInput = (sale) => {
 };
 
 export const getStoredSales = () => {
-  const remoteSales = unwrapList(syncApiRequest("/sales"), ["sales"]);
+  const remoteSales = unwrapList(getCachedApiResponse("/sales"), ["sales"]);
 
   if (Array.isArray(remoteSales)) {
     writeSales(remoteSales);
@@ -281,8 +269,8 @@ export const saveSales = (sales) => {
 export const getSaleById = (saleId) =>
   getStoredSales().find((sale) => sale.id === saleId) || null;
 
-export const createSale = (values) => {
-  const remoteSale = syncApiRequest("/sales", {
+export const createSale = async (values) => {
+  const remoteSale = await apiRequest("/sales", {
     method: "POST",
     body: values,
   });
@@ -309,9 +297,9 @@ export const createSale = (values) => {
   return sale;
 };
 
-export const updateSale = (updatedSale) => {
+export const updateSale = async (updatedSale) => {
   const remoteSale = updatedSale?.status === "DRAFT"
-    ? syncApiRequest("/sales", {
+    ? await apiRequest("/sales", {
         method: "POST",
         body: updatedSale,
       })
@@ -345,8 +333,8 @@ export const updateSale = (updatedSale) => {
   return result;
 };
 
-export const holdSale = (values) => {
-  const remoteSale = syncApiRequest("/sales", {
+export const holdSale = async (values) => {
+  const remoteSale = await apiRequest("/sales", {
     method: "POST",
     body: values,
   });
@@ -380,9 +368,9 @@ export const holdSale = (values) => {
   return draft;
 };
 
-export const completeSale = (values) => {
+export const completeSale = async (values) => {
   const idempotencyKey = values.id || `sale-complete-${Date.now()}`;
-  const remoteSale = syncApiRequest("/sales/complete", {
+  const remoteSale = await apiRequest("/sales/complete", {
     method: "POST",
     idempotencyKey,
     body: { ...values, idempotencyKey },
@@ -505,8 +493,8 @@ export const completeSale = (values) => {
   return sale;
 };
 
-export const cancelSale = ({ saleId, reason = "" }) => {
-  const remoteSale = syncApiRequest(`/sales/${saleId}/cancel`, {
+export const cancelSale = async ({ saleId, reason = "" }) => {
+  const remoteSale = await apiRequest(`/sales/${saleId}/cancel`, {
     method: "POST",
     body: { reason },
   });
@@ -607,8 +595,8 @@ export const cancelSale = ({ saleId, reason = "" }) => {
   return cancelledSale;
 };
 
-export const returnSaleItems = ({ saleId, items = [], reason = "" }) => {
-  const remoteSale = syncApiRequest(`/sales/${saleId}/return`, {
+export const returnSaleItems = async ({ saleId, items = [], reason = "" }) => {
+  const remoteSale = await apiRequest(`/sales/${saleId}/return`, {
     method: "POST",
     body: { items, reason },
   });

@@ -91,7 +91,48 @@ const TAJIK_SAFE_TEXT_MAP = {
   "tugagan": "тамомшуда",
 };
 
-const isMojibake = (value) => /Р[ђђ-ӿ]Р|С[Ѓ-ӿ]|вЂ|\?{2,}/.test(String(value));
+const isMojibake = (value) =>
+  /\u0420[\u0400-\u04ff]\u0420|\u0421[\u0400-\u04ff]|\u0432\u0402|\?{2,}/.test(
+    String(value),
+  );
+
+const WINDOWS_1251_EXTENDED =
+  "ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—�™љ›њќћџ ЎўЈ¤Ґ¦§Ё©Є«¬­®Ї°±Ііґµ¶·ё№є»јЅѕїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя";
+
+const repairMojibake = (value) => {
+  const source = String(value ?? "");
+
+  if (!isMojibake(source) || typeof TextDecoder === "undefined") {
+    return source;
+  }
+
+  const bytes = [];
+
+  for (const character of source) {
+    const code = character.charCodeAt(0);
+    const extendedIndex = WINDOWS_1251_EXTENDED.indexOf(character);
+    const byte =
+      code <= 0x7f
+        ? code
+        : extendedIndex >= 0
+          ? extendedIndex + 0x80
+          : null;
+
+    if (byte === null) {
+      return source;
+    }
+
+    bytes.push(byte);
+  }
+
+  try {
+    const repaired = new TextDecoder().decode(Uint8Array.from(bytes));
+
+    return isMojibake(repaired) ? source : repaired;
+  } catch {
+    return source;
+  }
+};
 
 const TEXT_ATTRIBUTES = [
   "aria-label",
@@ -110,9 +151,8 @@ const KEY_PATTERN = /^[a-z][a-z0-9]*(\.[a-z0-9_-]+)+$/;
 
 const normalizeVisibleText = (value) =>
   String(value ?? "")
-    .replace(/MaвЂ™lumot/g, "Ma'lumot")
-    .replace(/вЂ”/g, "—")
-    .replace(/В·/g, "•")
+    .replace(/\u0412\u00b7/g, "•")
+    .replace(/\u0432\u0402\u201d/g, "—")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -174,7 +214,7 @@ export const t = (key, options = {}) => {
     resolvePath(structuredTranslations.uz, key) ??
     key;
 
-  return interpolate(translated, options.values);
+  return interpolate(repairMojibake(translated), options.values);
 };
 
 export const tTerm = (key, options = {}) => {
@@ -182,13 +222,13 @@ export const tTerm = (key, options = {}) => {
   const custom = options.terminology?.[key] ?? currentTerminology[key];
 
   if (custom) {
-    return custom;
+    return repairMojibake(custom);
   }
 
-  return (
+  return repairMojibake(
     terminologyTranslations[language]?.[key] ||
     terminologyTranslations.uz?.[key] ||
-    key
+    key,
   );
 };
 
@@ -206,11 +246,11 @@ export const translateText = (value, options = {}) => {
     tajikPhraseMap[source];
 
   if (TAJIK_SAFE_TEXT_MAP[source]) {
-    return TAJIK_SAFE_TEXT_MAP[source];
+    return repairMojibake(TAJIK_SAFE_TEXT_MAP[source]);
   }
 
-  if (exact && !isMojibake(exact)) {
-    return exact;
+  if (exact) {
+    return repairMojibake(exact);
   }
 
   const dynamic = translateDynamicTajikText(source);
@@ -226,20 +266,20 @@ export const translateText = (value, options = {}) => {
   let translated = source;
 
   tajikWordReplacements.forEach(([uz, tj]) => {
-    translated = translated.replaceAll(uz, tj);
+    translated = translated.replaceAll(uz, repairMojibake(tj));
   });
 
   translated = translated
     .replace(/(\d+)\s+ta\b/g, "$1 адад")
     .replace(/(\d+)\s+та\b/g, "$1 адад")
     .replace(/\bso['‘]m\b/gi, "сум")
-    .replace(/\bLow stock\b/g, "Қолдиқи кам")
+    .replace(/\bLow stock\b/g, "Қолдиқ кам")
     .replace(/\bNo data\b/g, "Маълумот нест")
     .replace(/\bNothing found\b/g, "Ҳеҷ чиз ёфт нашуд")
     .replace(/\bCustomer created\b/g, "Мизоҷ сохта шуд")
     .replace(/\bSupplier qarzi\b/g, "Қарз ба таъминкунандагон");
 
-  return isMojibake(translated) ? source : translated;
+  return repairMojibake(translated);
 };
 
 const translateDynamicTajikText = (source) => {

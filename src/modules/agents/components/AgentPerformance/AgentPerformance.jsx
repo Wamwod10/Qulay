@@ -13,7 +13,7 @@ const AgentPerformance = ({
       <div className="agent-performance__header">
         <div>
           <h3>{translateText("Performance")}</h3>
-          <p>{translateText("Real sales orderlar asosida reja bajarilishi.")}</p>
+          <p>{translateText("Real savdo buyurtmalari asosida reja bajarilishi.")}</p>
         </div>
 
         <strong>{progress.toFixed(1)}%</strong>

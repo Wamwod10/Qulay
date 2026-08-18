@@ -135,10 +135,10 @@ const CustomerDetailsPage = () => {
   const deleteSafety = getCustomerDeleteSafety(customerId);
   const nextFollowUpOverdue = isFollowUpOverdue(analytics.nextFollowUp);
   const refresh = () => setVersion(current => current + 1);
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setError("");
     try {
-      addCustomerPayment({
+      await addCustomerPayment({
         customerId,
         amount: Number(paymentForm.amount || 0),
         paymentMethod: paymentForm.paymentMethod,
@@ -177,25 +177,25 @@ const CustomerDetailsPage = () => {
     });
     refresh();
   };
-  const handleAgentChange = () => {
-    updateCustomer({
+  const handleAgentChange = async () => {
+    await updateCustomer({
       ...customer,
       agentId: selectedAgentId || null
     });
     setAgentOpen(false);
     refresh();
   };
-  const handleDeactivate = () => {
+  const handleDeactivate = async () => {
     if (!customer) {
       return;
     }
     if (customer.status === "INACTIVE") {
-      updateCustomer({
+      await updateCustomer({
         ...customer,
         status: "ACTIVE"
       });
     } else {
-      deactivateCustomer(customer.id);
+      await deactivateCustomer(customer.id);
     }
     refresh();
   };
@@ -226,7 +226,7 @@ const CustomerDetailsPage = () => {
                 </Badge>
               </div>
               <p>{customer?.companyName || customer?.fullName || customer?.phone || "-"}</p>
-              <span>{translateText("Segment:")}<b>{translateText(customer?.segment || "-")}</b>
+              <span>{translateText("Toifa:")}<b>{translateText(customer?.segment || "-")}</b>
                 {suggestedSegment !== customer?.segment && ` / ${translateText("tavsiya")}: ${translateText(suggestedSegment)}`}
               </span>
             </div>
@@ -241,7 +241,7 @@ const CustomerDetailsPage = () => {
         {(analytics.overdue || analytics.credit.exceeded || nextFollowUpOverdue) && <Card padding="md" className="customer-details__warning">
             <LiveIcon icon={AlertTriangle} motion="warning-glow" size={17} />
             <span>
-              {analytics.credit.exceeded && translateText("Credit limit oshgan. ")}
+              {analytics.credit.exceeded && translateText("Kredit limiti oshgan. ")}
               {analytics.overdue && translateText("Qarz muddati xavfli. ")}
               {nextFollowUpOverdue && translateText("Keyingi aloqa muddati o'tgan.")}
             </span>
@@ -270,8 +270,8 @@ const CustomerDetailsPage = () => {
           </Card>
 
           <Card padding="lg" className="customer-details__section">
-            <SectionTitle title={translateText("Sodiqlik / bonus")} />
-            <InfoGrid items={[["Sodiqlik ballari", customer?.loyaltyPoints || 0], ["Bonus qoldig'i", `${formatFinanceMoney(customer?.bonusBalance || 0)} ${translateText("so'm")}`], ["Rejim", translateText("Faqat o'qish uchun")], ["Tug'ilgan sana", customer?.birthday || "-"]]} />
+            <SectionTitle title={translateText("Sodiqlik / mukofot")} />
+            <InfoGrid items={[["Sodiqlik ballari", customer?.loyaltyPoints || 0], ["Mukofot qoldig'i", `${formatFinanceMoney(customer?.bonusBalance || 0)} ${translateText("so'm")}`], ["Rejim", translateText("Faqat o'qish uchun")], ["Tug'ilgan sana", customer?.birthday || "-"]]} />
           </Card>
         </section>
 

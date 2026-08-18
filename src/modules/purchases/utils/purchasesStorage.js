@@ -1,11 +1,11 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY =
     "purchases";
 
 export const getStoredPurchases = () => {
-    const remotePurchases = unwrapList(syncApiRequest("/purchases"), ["purchases"]);
+    const remotePurchases = unwrapList(getCachedApiResponse("/purchases"), ["purchases"]);
 
     if (Array.isArray(remotePurchases)) {
         tenantSet(STORAGE_KEY, remotePurchases);
@@ -68,10 +68,10 @@ export const getPurchaseById = (
     );
 };
 
-export const createPurchase = (
+export const createPurchase = async (
     purchase,
 ) => {
-    const remotePurchase = syncApiRequest("/purchases", {
+    const remotePurchase = await apiRequest("/purchases", {
         method: "POST",
         body: purchase,
     });
@@ -113,10 +113,10 @@ export const createPurchase = (
     return newPurchase;
 };
 
-export const updatePurchase = (
+export const updatePurchase = async (
     updatedPurchase,
 ) => {
-    const remotePurchase = syncApiRequest(`/purchases/${updatedPurchase.id}`, {
+    const remotePurchase = await apiRequest(`/purchases/${updatedPurchase.id}`, {
         method: "PATCH",
         body: updatedPurchase,
     });
@@ -147,10 +147,10 @@ export const updatePurchase = (
     return updatedPurchase;
 };
 
-export const markPurchaseReceived = (
+export const markPurchaseReceived = async (
     purchaseId,
 ) => {
-    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/receive`, {
+    const remotePurchase = await apiRequest(`/purchases/${purchaseId}/receive`, {
         method: "POST",
         idempotencyKey: `purchase-receive:${purchaseId}`,
         body: { idempotencyKey: `purchase-receive:${purchaseId}` },
@@ -208,10 +208,10 @@ export const markPurchaseReceived = (
 
     return updatedPurchase;
 };
-export const cancelPurchase = (
+export const cancelPurchase = async (
     purchaseId,
 ) => {
-    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/cancel`, {
+    const remotePurchase = await apiRequest(`/purchases/${purchaseId}/cancel`, {
         method: "POST",
         body: {},
     });
@@ -272,14 +272,14 @@ export const cancelPurchase = (
     return updatedPurchase;
 };
 
-export const updatePurchasePayment = ({
+export const updatePurchasePayment = async ({
     purchaseId,
     paidAmount,
 }) => {
     const currentPurchase = getStoredPurchases().find((purchase) => purchase.id === purchaseId);
     const currentPaid = Number(currentPurchase?.paidAmount || 0);
     const nextPaid = Number(paidAmount || 0);
-    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/payment`, {
+    const remotePurchase = await apiRequest(`/purchases/${purchaseId}/payment`, {
         method: "POST",
         idempotencyKey: `purchase-payment:${purchaseId}:${Math.max(nextPaid - currentPaid, 0)}`,
         body: {

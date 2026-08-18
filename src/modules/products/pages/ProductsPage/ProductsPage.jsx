@@ -146,13 +146,13 @@ const ProductsPage = () => {
     setStockFilter("");
   };
 
-  const handleToggleStatus = (product) => {
-    toggleStoredProductStatus(product.id);
+  const handleToggleStatus = async (product) => {
+    await toggleStoredProductStatus(product.id);
     refreshProducts();
   };
 
-  const handleDuplicate = (product) => {
-    const duplicatedProduct = duplicateStoredProduct(product.id);
+  const handleDuplicate = async (product) => {
+    const duplicatedProduct = await duplicateStoredProduct(product.id);
 
     refreshProducts();
 
@@ -161,8 +161,8 @@ const ProductsPage = () => {
     }
   };
 
-  const handleStockAdjustment = (values) => {
-    const updatedProduct = adjustStoredProductStock(values);
+  const handleStockAdjustment = async (values) => {
+    const updatedProduct = await adjustStoredProductStock(values);
 
     if (updatedProduct) {
       setStockProduct(null);
@@ -170,8 +170,8 @@ const ProductsPage = () => {
     }
   };
 
-  const handlePriceChange = (values) => {
-    const updatedProduct = updateStoredProductPrices(values);
+  const handlePriceChange = async (values) => {
+    const updatedProduct = await updateStoredProductPrices(values);
 
     if (updatedProduct) {
       setPriceProduct(null);
@@ -179,27 +179,27 @@ const ProductsPage = () => {
     }
   };
 
-  const handleArchiveOrRestore = () => {
+  const handleArchiveOrRestore = async () => {
     if (!archiveProduct) {
       return;
     }
 
     if (archiveProduct.status === "ARCHIVED") {
-      restoreStoredProduct(archiveProduct.id);
+      await restoreStoredProduct(archiveProduct.id);
     } else {
-      archiveStoredProduct(archiveProduct.id);
+      await archiveStoredProduct(archiveProduct.id);
     }
 
     setArchiveProduct(null);
     refreshProducts();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteProduct) {
       return;
     }
 
-    deleteStoredProduct(deleteProduct.id);
+    await deleteStoredProduct(deleteProduct.id);
     setDeleteProduct(null);
     refreshProducts();
   };
@@ -274,7 +274,7 @@ const ProductsPage = () => {
           <TableToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder={translateText("Nomi, SKU yoki barcode bo'yicha qidirish...")}
+            searchPlaceholder={translateText("Nomi, SKU yoki shtrix-kod bo'yicha qidirish...")}
             actionLabel={`${translateText("Yangi")} ${tTerm("product").toLowerCase()}`}
             actionIcon={<Plus size={17} strokeWidth={1.9} />}
             onAction={() => navigate("/products/create")} />

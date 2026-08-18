@@ -425,7 +425,7 @@ const POSTerminalPage = () => {
     setPaymentOpen(true);
   };
 
-  const completeCurrentSale = () => {
+  const completeCurrentSale = async () => {
     if (completingRef.current) {
       return;
     }
@@ -471,7 +471,7 @@ const POSTerminalPage = () => {
         }
       }
 
-      const sale = completeSale(buildSalePayload(payments));
+      const sale = await completeSale(buildSalePayload(payments));
 
       setReceiptSale(sale);
       setCart([]);
@@ -493,16 +493,16 @@ const POSTerminalPage = () => {
     }
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     setError("");
 
     if (!cart.length) {
-      setError("Hold uchun savatcha bo'sh bo'lmasin.");
+      setError("Saqlash uchun savatcha bo'sh bo'lmasin.");
       return;
     }
 
     try {
-      holdSale(buildSalePayload([]));
+      await holdSale(buildSalePayload([]));
       setCart([]);
       setDiscountType("AMOUNT");
       setDiscountValue("");
@@ -608,7 +608,7 @@ const POSTerminalPage = () => {
               value={query}
               leftIcon={<Search size={17} />}
               rightIcon={<Barcode size={17} />}
-              placeholder={translateText("Mahsulot nomi, SKU yoki barcode...")}
+              placeholder={translateText("Mahsulot nomi, SKU yoki shtrix-kod...")}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleSearchKeyDown}
             />
@@ -657,7 +657,7 @@ const POSTerminalPage = () => {
                     {available <= 0 && notifications.outOfStockWarning ? (
                       <Badge variant="danger">
                         <LiveIcon icon={Ban} motion="danger-breathe" size={13} />
-                        {translateText("OUT OF STOCK")}
+                        {translateText("Qoldiq tugagan")}
                       </Badge>
                     ) : lowStock && notifications.lowStockWarning ? (
                       <Badge variant="warning">
@@ -742,7 +742,7 @@ const POSTerminalPage = () => {
       <Modal
         open={holdOpen}
         title={translateText("Kutilayotgan savdolar")}
-        description={translateText("Hold qilingan savdolar stockni kamaytirmaydi.")}
+        description={translateText("Saqlangan savdolar qoldiqni kamaytirmaydi.")}
         size="md"
         onClose={() => setHoldOpen(false)}
       >
@@ -766,7 +766,7 @@ const POSTerminalPage = () => {
       <Modal
         open={Boolean(receiptSale)}
         title={translateText("Savdo yakunlandi")}
-        description={translateText("Receipt tayyor. Print qilish mumkin.")}
+        description={translateText("Chek tayyor. Uni chop etish mumkin.")}
         size="sm"
         onClose={() => setReceiptSale(null)}
       >
@@ -843,7 +843,7 @@ const CartPanel = ({
         <div className="pos-terminal__empty-cart">
           <ReceiptText size={28} />
           <strong>{translateText("Savatcha bo'sh")}</strong>
-          <span>{translateText("Mahsulot kartasini bosing yoki barcode/SKU kiriting.")}</span>
+          <span>{translateText("Mahsulot kartasini bosing yoki shtrix-kod/SKU kiriting.")}</span>
         </div>
       )}
     </div>
@@ -897,7 +897,7 @@ const CartPanel = ({
 
     <div className="pos-terminal__cart-actions">
       <Button variant="secondary" leftIcon={<PauseCircle size={17} />} onClick={onHold} disabled={!cart.length}>
-        {translateText("Hold")}
+        {translateText("Saqlash")}
       </Button>
       <Button variant="secondary" leftIcon={<Warehouse size={17} />} onClick={onOpenHold}>
         {translateText("Resume")}
@@ -906,7 +906,7 @@ const CartPanel = ({
         {translateText("Clear")}
       </Button>
       <Button leftIcon={<ReceiptText size={17} />} onClick={onPayment} disabled={!cart.length}>
-        {translateText("Payment")}
+        {translateText("To'lov")}
       </Button>
     </div>
   </Card>
@@ -942,7 +942,7 @@ const PaymentModal = ({
     <Modal
       open={open}
       title={translateText("To'lov")}
-      description={translateText("Split payment qo'llab-quvvatlanadi. Qarz qolsa customer tanlangan bo'lishi shart.")}
+      description={translateText("Bo'lib to'lash qo'llab-quvvatlanadi. Qarz qolsa mijoz tanlangan bo'lishi shart.")}
       size="md"
       onClose={onClose}
       footer={

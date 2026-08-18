@@ -12,15 +12,15 @@ const SuperAdminDashboard = () => {
   useEffect(() => {
     getSuperAdminDashboard()
       .then(setData)
-      .catch((err) => setError(err.message || "Dashboard yuklanmadi."));
+      .catch((err) => setError(err.message || "Bosh sahifa yuklanmadi."));
   }, []);
 
   if (error) {
-    return <EmptyState title="Dashboard yuklanmadi" description={error} />;
+    return <EmptyState title={translateText("Bosh sahifa yuklanmadi")} description={error} />;
   }
 
   if (!data) {
-    return <div>{translateText("Dashboard yuklanmoqda...")}</div>;
+    return <div>{translateText("Bosh sahifa yuklanmoqda...")}</div>;
   }
 
   const stats = data.stats || {};
@@ -29,26 +29,26 @@ const SuperAdminDashboard = () => {
     <div className="sa-dashboard">
       <header className="sa-users__header">
         <div>
-          <h1>Platforma dashboard</h1>
-          <p>Real DB registratsiyalar, kompaniyalar va platforma activity.</p>
+          <h1>{translateText("Platforma bosh sahifasi")}</h1>
+          <p>{translateText("Real DB ro'yxatlari, kompaniyalar va platforma faoliyati.")}</p>
         </div>
       </header>
 
       <section className="sa-users__stats">
-        <Stat icon={<Users />} label="Jami user" value={stats.totalUsers || 0} />
-        <Stat icon={<ShieldCheck />} label="Faol user" value={stats.activeUsers || 0} />
-        <Stat icon={<Building2 />} label="Kompaniyalar" value={stats.totalCompanies || 0} />
-        <Stat icon={<Activity />} label="Bugun yangi" value={stats.newUsersToday || 0} />
+        <Stat icon={<Users />} label={translateText("Jami foydalanuvchi")} value={stats.totalUsers || 0} />
+        <Stat icon={<ShieldCheck />} label={translateText("Faol foydalanuvchi")} value={stats.activeUsers || 0} />
+        <Stat icon={<Building2 />} label={translateText("Kompaniyalar")} value={stats.totalCompanies || 0} />
+        <Stat icon={<Activity />} label={translateText("Bugun yangi")} value={stats.newUsersToday || 0} />
       </section>
 
       <Card padding="md" className="sa-users__workspace">
-        <h3>Oxirgi registratsiyalar</h3>
+        <h3>{translateText("Oxirgi ro'yxatdan o'tganlar")}</h3>
         <div className="sa-modules__list">
           {(data.recentRegistrations || []).map((user) => (
             <div key={user.id} className="sa-modules__row">
               <div>
                 <strong>{user.name || user.fullName || user.email}</strong>
-                <span>{user.companyName || user.businessName || "Platform"}</span>
+                <span>{user.companyName || user.businessName || translateText("Platforma")}</span>
               </div>
               <Badge variant={user.status === "BLOCKED" ? "danger" : "success"}>{user.status}</Badge>
             </div>
@@ -57,7 +57,7 @@ const SuperAdminDashboard = () => {
       </Card>
 
       <Card padding="md" className="sa-users__workspace">
-        <h3>{translateText("Recent platform activity")}</h3>
+        <h3>{translateText("Oxirgi platforma faoliyati")}</h3>
         <div className="sa-modules__list">
           {(data.recentActivity || []).map((log) => (
             <div key={log.id} className="sa-modules__row">

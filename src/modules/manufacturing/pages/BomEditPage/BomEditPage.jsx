@@ -27,8 +27,8 @@ const BomEditPage = () => {
     );
   }
 
-  const handleSubmit = (values) => {
-    const updated = updateBom({
+  const handleSubmit = async (values) => {
+    const updated = await updateBom({
       ...bom,
       ...values,
 

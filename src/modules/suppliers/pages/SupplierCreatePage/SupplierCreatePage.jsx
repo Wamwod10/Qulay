@@ -13,8 +13,8 @@ import { createSupplier } from "../../utils/suppliersStorage";
 const SupplierCreatePage = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = (values) => {
-    const supplier = createSupplier(values);
+  const handleSubmit = async (values) => {
+    const supplier = await createSupplier(values);
 
     navigate(`/suppliers/${supplier.id}`);
   };

@@ -33,8 +33,8 @@ const ProductEditPage = () => {
 
   }
 
-  const handleSubmit = (updatedProduct) => {
-    const savedProduct = updateStoredProduct(updatedProduct);
+  const handleSubmit = async (updatedProduct) => {
+    const savedProduct = await updateStoredProduct(updatedProduct);
 
     if (savedProduct) {
       navigate(`/products/${savedProduct.id}`);

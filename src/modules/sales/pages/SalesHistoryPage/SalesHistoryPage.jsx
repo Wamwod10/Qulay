@@ -116,7 +116,7 @@ const SalesHistoryPage = () => {
   const totalPages = Math.max(Math.ceil(filteredSales.length / PAGE_SIZE), 1);
   const pagedSales = filteredSales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleCancel = (sale) => {
+  const handleCancel = async (sale) => {
     const reason = window.prompt(translateText("Bekor qilish sababi:"));
 
     if (reason === null) {
@@ -124,7 +124,7 @@ const SalesHistoryPage = () => {
     }
 
     try {
-      cancelSale({
+      await cancelSale({
         saleId: sale.id,
         reason,
       });

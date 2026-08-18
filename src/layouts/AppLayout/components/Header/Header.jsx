@@ -357,6 +357,7 @@ const Header = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   const [refreshKey, setRefreshKey] = useState(0);
+  const [notificationItems, setNotificationItems] = useState([]);
 
   const userName = user?.fullName || user?.name || "Foydalanuvchi";
   const companyName = company?.businessName || company?.name || "Kompaniya";
@@ -369,10 +370,6 @@ const Header = () => {
     (appearance.theme === "system" &&
       window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
-  const notificationItems = useMemo(
-    () => getNotificationItems(notifications),
-    [notifications, refreshKey],
-  );
   const notificationCount = notificationItems.length;
 
   const searchResults = useMemo(
@@ -381,6 +378,36 @@ const Header = () => {
   );
 
   const showSearchPanel = searchQuery.trim().length >= 2;
+
+  useEffect(() => {
+    let disposed = false;
+    let timeoutId = null;
+    let idleId = null;
+
+    const loadNotifications = () => {
+      if (!disposed) {
+        setNotificationItems(getNotificationItems(notifications));
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(loadNotifications, { timeout: 800 });
+    } else {
+      timeoutId = window.setTimeout(loadNotifications, 0);
+    }
+
+    return () => {
+      disposed = true;
+
+      if (idleId !== null) {
+        window.cancelIdleCallback?.(idleId);
+      }
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [notifications, refreshKey]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {

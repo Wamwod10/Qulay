@@ -557,7 +557,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
           </div>
 
           <Select
-            label={translateText("Status")}
+            label={translateText("Holat")}
             value={status}
             options={[
             {

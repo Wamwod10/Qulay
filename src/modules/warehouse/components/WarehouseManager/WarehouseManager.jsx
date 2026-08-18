@@ -79,7 +79,7 @@ const WarehouseManager = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  title={translateText("Statusni o‘zgartirish")}
+                  title={translateText("Holatni o‘zgartirish")}
                   onClick={() => onToggleStatus?.(warehouse)}
                 >
                   <Power size={15} />

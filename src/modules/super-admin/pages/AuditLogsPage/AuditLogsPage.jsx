@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Badge, Card, EmptyState, Table } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 import { getSuperAdminAuditLogs } from "../../services/superAdminApi";
 
 const AuditLogsPage = () => {
@@ -10,18 +11,18 @@ const AuditLogsPage = () => {
   useEffect(() => {
     getSuperAdminAuditLogs()
       .then((data) => setLogs(data.logs || data.auditLogs || []))
-      .catch((err) => setError(err.message || "Audit log yuklanmadi."));
+      .catch((err) => setError(err.message || "Audit jurnali yuklanmadi."));
   }, []);
 
   if (error) {
-    return <EmptyState title="Audit log yuklanmadi" description={error} />;
+    return <EmptyState title={translateText("Audit jurnali yuklanmadi")} description={error} />;
   }
 
   const columns = [
-    { key: "action", title: "Action", render: (value) => <Badge>{value}</Badge> },
-    { key: "targetType", title: "Target" },
-    { key: "targetId", title: "Target ID" },
-    { key: "actorUserId", title: "Actor", render: (value) => value || "-" },
+    { key: "action", title: translateText("Amal"), render: (value) => <Badge>{value}</Badge> },
+    { key: "targetType", title: translateText("Nishon") },
+    { key: "targetId", title: translateText("Nishon ID") },
+    { key: "actorUserId", title: translateText("Bajaruvchi"), render: (value) => value || "-" },
     { key: "createdAt", title: "Vaqt", render: (value) => new Date(value).toLocaleString("uz-UZ") },
   ];
 
@@ -29,8 +30,8 @@ const AuditLogsPage = () => {
     <div className="sa-users">
       <header className="sa-users__header">
         <div>
-          <h1>Audit log</h1>
-          <p>Critical Super Admin va tenant activity yozuvlari.</p>
+          <h1>{translateText("Audit jurnali")}</h1>
+          <p>{translateText("Muhim platforma boshqaruvi va kompaniya faoliyati yozuvlari.")}</p>
         </div>
       </header>
 

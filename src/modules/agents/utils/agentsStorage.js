@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "agents";
 
@@ -88,7 +88,7 @@ export const normalizeAgent = (agent = {}) => {
 };
 
 const readAgents = () => {
-  const remoteAgents = unwrapList(syncApiRequest("/agents"), ["agents"]);
+  const remoteAgents = unwrapList(getCachedApiResponse("/agents"), ["agents"]);
   if (Array.isArray(remoteAgents)) {
     tenantSet(STORAGE_KEY, remoteAgents);
     return remoteAgents.map(normalizeAgent);
@@ -139,8 +139,8 @@ export const getAgentById = (agentId) => {
   return getStoredAgents().find((agent) => agent.id === agentId) || null;
 };
 
-export const createAgent = (values) => {
-  const remoteAgent = syncApiRequest("/agents", {
+export const createAgent = async (values) => {
+  const remoteAgent = await apiRequest("/agents", {
     method: "POST",
     body: values,
   });
@@ -164,8 +164,8 @@ export const createAgent = (values) => {
   return agent;
 };
 
-export const updateAgent = (updatedAgent) => {
-  const remoteAgent = updatedAgent?.id ? syncApiRequest(`/agents/${updatedAgent.id}`, {
+export const updateAgent = async (updatedAgent) => {
+  const remoteAgent = updatedAgent?.id ? await apiRequest(`/agents/${updatedAgent.id}`, {
     method: "PATCH",
     body: updatedAgent,
   }) : null;
@@ -198,7 +198,7 @@ export const updateAgent = (updatedAgent) => {
   return savedAgent;
 };
 
-export const toggleAgentStatus = (agentId) => {
+export const toggleAgentStatus = async (agentId) => {
   const agent = getAgentById(agentId);
 
   if (!agent) {
@@ -211,8 +211,8 @@ export const toggleAgentStatus = (agentId) => {
   });
 };
 
-export const deleteAgent = (agentId) => {
-  syncApiRequest(`/agents/${agentId}`, {
+export const deleteAgent = async (agentId) => {
+  await apiRequest(`/agents/${agentId}`, {
     method: "DELETE",
   });
   const agents = getStoredAgents();

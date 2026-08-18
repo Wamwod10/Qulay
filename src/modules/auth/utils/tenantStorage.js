@@ -1,6 +1,7 @@
 import { getStoredSession } from "./authStorage";
 
 const TENANT_PREFIX = "erp";
+const memoryStore = new Map();
 
 const CORE_BUSINESS_KEYS = new Set([
   "products",
@@ -54,13 +55,17 @@ export const getTenantKeyForAccount = (accountId, key) =>
   accountId ? `${TENANT_PREFIX}:${accountId}:${key}` : null;
 
 export const tenantGet = (key, fallback = null) => {
-  if (!canPersistKey(key)) {
+  const storageKey = getTenantKey(key);
+
+  if (!storageKey) {
     return fallback;
   }
 
-  const storageKey = getTenantKey(key);
+  if (memoryStore.has(storageKey)) {
+    return memoryStore.get(storageKey);
+  }
 
-  if (!storageKey || typeof window === "undefined") {
+  if (!canPersistKey(key) || typeof window === "undefined") {
     return fallback;
   }
 
@@ -73,14 +78,16 @@ export const tenantGet = (key, fallback = null) => {
 };
 
 export const tenantSet = (key, value) => {
-  if (!canPersistKey(key)) {
+  const storageKey = getTenantKey(key);
+
+  if (!storageKey) {
     return false;
   }
 
-  const storageKey = getTenantKey(key);
+  memoryStore.set(storageKey, value);
 
-  if (!storageKey || typeof window === "undefined") {
-    return false;
+  if (!canPersistKey(key) || typeof window === "undefined") {
+    return true;
   }
 
   window.localStorage.setItem(storageKey, JSON.stringify(value));
@@ -90,8 +97,14 @@ export const tenantSet = (key, value) => {
 export const tenantRemove = (key) => {
   const storageKey = getTenantKey(key);
 
-  if (!storageKey || typeof window === "undefined") {
+  if (!storageKey) {
     return false;
+  }
+
+  memoryStore.delete(storageKey);
+
+  if (typeof window === "undefined") {
+    return true;
   }
 
   window.localStorage.removeItem(storageKey);
@@ -99,13 +112,17 @@ export const tenantRemove = (key) => {
 };
 
 export const tenantGetForAccount = (accountId, key, fallback = null) => {
-  if (!canPersistKey(key)) {
+  const storageKey = getTenantKeyForAccount(accountId, key);
+
+  if (!storageKey) {
     return fallback;
   }
 
-  const storageKey = getTenantKeyForAccount(accountId, key);
+  if (memoryStore.has(storageKey)) {
+    return memoryStore.get(storageKey);
+  }
 
-  if (!storageKey || typeof window === "undefined") {
+  if (!canPersistKey(key) || typeof window === "undefined") {
     return fallback;
   }
 
@@ -118,14 +135,16 @@ export const tenantGetForAccount = (accountId, key, fallback = null) => {
 };
 
 export const tenantSetForAccount = (accountId, key, value) => {
-  if (!canPersistKey(key)) {
+  const storageKey = getTenantKeyForAccount(accountId, key);
+
+  if (!storageKey) {
     return false;
   }
 
-  const storageKey = getTenantKeyForAccount(accountId, key);
+  memoryStore.set(storageKey, value);
 
-  if (!storageKey || typeof window === "undefined") {
-    return false;
+  if (!canPersistKey(key) || typeof window === "undefined") {
+    return true;
   }
 
   window.localStorage.setItem(storageKey, JSON.stringify(value));

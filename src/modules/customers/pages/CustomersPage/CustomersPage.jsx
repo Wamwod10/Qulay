@@ -81,21 +81,21 @@ const CustomersPage = () => {
   const totalPages = Math.max(Math.ceil(filteredRows.length / pageSize), 1);
   const pagedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
   const refresh = () => setVersion(current => current + 1);
-  const handleDelete = customer => {
+  const handleDelete = async customer => {
     const safety = getCustomerDeleteSafety(customer.id);
     if (!safety.canDelete) {
       window.alert(`${translateText("Mijoz tarixi mavjud")}: ${safety.blockingReasons.join(", ")}. ${translateText("O'chirish o'rniga faol emas qilindi.")}`);
-      deactivateCustomer(customer.id);
+      await deactivateCustomer(customer.id);
       refresh();
       return;
     }
     if (window.confirm(`${customer.displayName} ${translateText("o'chirilsinmi?")}`)) {
-      deleteCustomer(customer.id);
+      await deleteCustomer(customer.id);
       refresh();
     }
   };
-  const handleStatusToggle = customer => {
-    updateCustomer({
+  const handleStatusToggle = async customer => {
+    await updateCustomer({
       ...customer,
       status: customer.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"
     });
@@ -135,7 +135,7 @@ const CustomersPage = () => {
     render: value => value ? formatSaleDate(value.completedAt || value.orderDate || value.createdAt) : "-"
   }, {
     key: "segment",
-    title: translateText("Segment"),
+    title: translateText("Toifa"),
     render: (value, row) => <Badge variant={row.score.variant}>{translateText(value)}</Badge>
   }, {
     key: "status",
@@ -191,9 +191,9 @@ const CustomersPage = () => {
           <TableToolbar searchValue={search} onSearchChange={setSearch} searchPlaceholder={translateText("Ism, kompaniya, telefon, email...")} actionLabel={translateText("Yangi mijoz")} actionIcon={<Plus size={17} />} onAction={() => navigate("/customers/create")} />
 
           <div className="customers-page__filters">
-            <Select value={statusFilter} placeholder={translateText("Barcha statuslar")} options={[{
+            <Select value={statusFilter} placeholder={translateText("Barcha holatlar")} options={[{
             value: "",
-            label: translateText("Barcha statuslar")
+            label: translateText("Barcha holatlar")
           }, {
             value: "ACTIVE",
             label: translateText("Faol")
@@ -218,9 +218,9 @@ const CustomersPage = () => {
             value: agent.id,
             label: agent.name || agent.phone || agent.id
           }))]} onChange={event => setAgentFilter(event.target.value)} />
-            <Select value={segmentFilter} placeholder={translateText("Barcha segmentlar")} options={[{
+            <Select value={segmentFilter} placeholder={translateText("Barcha toifalar")} options={[{
             value: "",
-            label: translateText("Barcha segmentlar")
+            label: translateText("Barcha toifalar")
           }, {
             value: "VIP",
             label: translateText("VIP")

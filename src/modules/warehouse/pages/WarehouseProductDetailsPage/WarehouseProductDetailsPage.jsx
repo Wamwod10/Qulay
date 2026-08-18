@@ -96,9 +96,9 @@ const WarehouseProductDetailsPage = () => {
     setMovements(getWarehouseMovements());
   };
 
-  const handleStockIn = (values) => {
+  const handleStockIn = async (values) => {
     try {
-      stockIn(values);
+      await stockIn(values);
 
       setStockInOpen(false);
 
@@ -108,9 +108,9 @@ const WarehouseProductDetailsPage = () => {
     }
   };
 
-  const handleStockOut = (values) => {
+  const handleStockOut = async (values) => {
     try {
-      stockOut(values);
+      await stockOut(values);
 
       setStockOutOpen(false);
 
@@ -120,9 +120,9 @@ const WarehouseProductDetailsPage = () => {
     }
   };
 
-  const handleTransfer = (values) => {
+  const handleTransfer = async (values) => {
     try {
-      transferStock(values);
+      await transferStock(values);
 
       setTransferOpen(false);
 
@@ -344,7 +344,7 @@ const WarehouseProductDetailsPage = () => {
               <InfoItem label={translateText("Filial")} value={warehouse?.branch} />
 
               <InfoItem
-                label={translateText("Stock holati")}
+                label={translateText("Qoldiq holati")}
                 value={getWarehouseStockStatusLabel(item)}
               />
 

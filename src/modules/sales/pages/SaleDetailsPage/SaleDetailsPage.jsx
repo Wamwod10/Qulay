@@ -77,12 +77,12 @@ const SaleDetailsPage = () => {
     },
     {
       key: "returned",
-      title: "Return",
+      title: "Qaytarilgan",
       render: (_, item) => `${getReturnedQuantityForItem(sale, item.productId)} ${item.unit}`,
     },
   ];
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     const reason = window.prompt("Bekor qilish sababi:");
 
     if (reason === null) {
@@ -90,7 +90,7 @@ const SaleDetailsPage = () => {
     }
 
     try {
-      cancelSale({
+      await cancelSale({
         saleId: sale.id,
         reason,
       });
@@ -100,7 +100,7 @@ const SaleDetailsPage = () => {
     }
   };
 
-  const submitReturn = () => {
+  const submitReturn = async () => {
     setError("");
 
     try {
@@ -111,7 +111,7 @@ const SaleDetailsPage = () => {
         reason: row.reason || returnReason,
       }));
 
-      returnSaleItems({
+      await returnSaleItems({
         saleId: sale.id,
         items,
         reason: returnReason,
@@ -142,7 +142,7 @@ const SaleDetailsPage = () => {
           Ortga
         </Button>
         <Button leftIcon={<ReceiptText size={17} />} onClick={() => setReceiptOpen(true)}>
-          Receipt
+          Chek
         </Button>
         <Button leftIcon={<Printer size={17} />} onClick={() => window.print()}>
           Print
@@ -156,7 +156,7 @@ const SaleDetailsPage = () => {
           Qaytarish
         </Button>
         <Button variant="danger" leftIcon={<Ban size={17} />} disabled={!canCancel} onClick={handleCancel}>
-          Cancel
+          Bekor qilish
         </Button>
       </div>
 
@@ -235,12 +235,12 @@ const SaleDetailsPage = () => {
 
       {(sale.returns || []).length > 0 && (
         <Card padding="lg" className="sale-details__section">
-          <SectionTitle title="Return history" />
+          <SectionTitle title="Qaytarish tarixi" />
           <Table
             columns={[
               { key: "productName", title: "Mahsulot" },
               { key: "quantity", title: "Miqdor", render: (value, row) => `${value} ${row.unit}` },
-              { key: "refundAmount", title: "Refund", render: (value) => `${formatSaleMoney(value)} so'm` },
+              { key: "refundAmount", title: "Qaytariladigan summa", render: (value) => `${formatSaleMoney(value)} so'm` },
               { key: "reason", title: "Sabab", render: (value) => value || "-" },
               { key: "createdAt", title: "Sana", render: formatSaleDate },
             ]}
@@ -250,14 +250,14 @@ const SaleDetailsPage = () => {
         </Card>
       )}
 
-      <Modal open={receiptOpen} title="Receipt" size="sm" onClose={() => setReceiptOpen(false)}>
+      <Modal open={receiptOpen} title="Chek" size="sm" onClose={() => setReceiptOpen(false)}>
         <ReceiptPreview sale={sale} onPrint={() => window.print()} />
       </Modal>
 
       <Modal
         open={returnOpen}
         title="Qaytarish"
-        description="Sotilgan miqdordan oshmagan partial return kiriting."
+        description="Sotilgan miqdordan oshmagan qisman qaytarish miqdorini kiriting."
         size="lg"
         onClose={() => setReturnOpen(false)}
         footer={
@@ -294,7 +294,7 @@ const SaleDetailsPage = () => {
                 <Input
                   value={row.refundAmount || ""}
                   inputMode="decimal"
-                  placeholder="Refund"
+                  placeholder="Qaytariladigan summa"
                   onChange={(event) => updateReturnRow(item.productId, { refundAmount: event.target.value })}
                 />
               </div>

@@ -4,21 +4,38 @@ import {
 
 import { getStoredProducts } from "../../../products/utils/productsStorage";
 
+const SOURCE_CACHE_TTL_MS = 5000;
+let sourceCache = null;
+
+const clearSourceCache = () => {
+    sourceCache = null;
+};
+
+if (typeof window !== "undefined") {
+    ["warehouse:changed", "products:changed", "storage"].forEach((eventName) => {
+        window.addEventListener(eventName, clearSourceCache);
+    });
+}
+
+const getSourceData = () => {
+    if (sourceCache && Date.now() - sourceCache.createdAt < SOURCE_CACHE_TTL_MS) {
+        return sourceCache;
+    }
+
+    sourceCache = {
+        createdAt: Date.now(),
+        stock: getStoredWarehouseStock(),
+        products: new Map(getStoredProducts().map((product) => [product.id, product])),
+    };
+
+    return sourceCache;
+};
+
 export const checkMaterialAvailability = ({
     warehouseId,
     requiredMaterials = [],
 }) => {
-    const stock =
-        getStoredWarehouseStock();
-
-    const products = new Map(
-        getStoredProducts().map(
-            (product) => [
-                product.id,
-                product,
-            ],
-        ),
-    );
+    const { stock, products } = getSourceData();
 
     return requiredMaterials.map(
         (material) => {

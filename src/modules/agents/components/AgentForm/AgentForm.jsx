@@ -94,7 +94,7 @@ const AgentForm = ({
 
           <Input label={translateText("Komissiya %")} type="number" min="0" step="0.1" value={form.commissionPercent} error={errors.commissionPercent} onChange={event => setField("commissionPercent", event.target.value)} />
 
-          <Input label={translateText("Agentdagi naqd pul (manual)")} type="number" min="0" value={form.cashBalance} hint={translateText("Finance ulanganda bu qiymat derived balancega almashtiriladi.")} onChange={event => setField("cashBalance", event.target.value)} />
+          <Input label={translateText("Agentdagi naqd pul (qo'lda)")} type="number" min="0" value={form.cashBalance} hint={translateText("Moliya bilan ulanganda bu qiymat hisoblangan qoldiqqa almashtiriladi.")} onChange={event => setField("cashBalance", event.target.value)} />
         </div>
       </Card>
 

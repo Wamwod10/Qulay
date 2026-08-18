@@ -13,8 +13,8 @@ import { createProductionOrder } from "../../../utils/manufacturingStorage";
 const ProductionOrderCreatePage = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = (values) => {
-    const order = createProductionOrder(values);
+  const handleSubmit = async (values) => {
+    const order = await createProductionOrder(values);
 
     navigate(`/manufacturing/orders/${order.id}`);
   };

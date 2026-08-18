@@ -9,7 +9,7 @@ import {
   toMoney,
 } from "../../finance/utils/financeStorage";
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const EMPLOYEES_KEY = "hr_employees";
 const ATTENDANCE_KEY = "hr_attendance";
@@ -221,7 +221,7 @@ export const normalizeEmployee = (employee = {}) => {
 };
 
 export const getStoredEmployees = () => {
-  const remoteEmployees = unwrapList(syncApiRequest("/employees"), ["employees"]);
+  const remoteEmployees = unwrapList(getCachedApiResponse("/employees"), ["employees"]);
   if (Array.isArray(remoteEmployees)) {
     writeJson(EMPLOYEES_KEY, remoteEmployees, { silent: true });
     return remoteEmployees.map(normalizeEmployee);
@@ -238,8 +238,8 @@ export const saveEmployees = (employees) =>
     ? writeJson(EMPLOYEES_KEY, employees.map(normalizeEmployee))
     : false;
 
-export const upsertEmployee = (payload) => {
-  const remoteEmployee = syncApiRequest(payload.id ? `/employees/${payload.id}` : "/employees", {
+export const upsertEmployee = async (payload) => {
+  const remoteEmployee = await apiRequest(payload.id ? `/employees/${payload.id}` : "/employees", {
     method: payload.id ? "PATCH" : "POST",
     body: payload,
   });
@@ -286,25 +286,26 @@ export const hasEmployeeHistory = (employeeId) =>
     getStoredPayrollPayments(),
   ].some((items) => items.some((item) => item.employeeId === employeeId));
 
-export const deleteEmployee = (employeeId) => {
-  syncApiRequest(`/employees/${employeeId}`, {
-    method: "DELETE",
-  });
+export const deleteEmployee = async (employeeId) => {
   if (hasEmployeeHistory(employeeId)) {
     throw new Error("Tarix mavjud. Xodimni o'chirish o'rniga inactive qiling.");
   }
 
+  await apiRequest(`/employees/${employeeId}`, {
+    method: "DELETE",
+  });
+
   saveEmployees(getStoredEmployees().filter((employee) => employee.id !== employeeId));
 };
 
-export const deactivateEmployee = (employeeId) => {
+export const deactivateEmployee = async (employeeId) => {
   const employee = getStoredEmployees().find((item) => item.id === employeeId);
 
   if (!employee) {
     throw new Error("Xodim topilmadi.");
   }
 
-  return upsertEmployee({ ...employee, status: "INACTIVE" });
+  return await upsertEmployee({ ...employee, status: "INACTIVE" });
 };
 
 export const normalizeShift = (shift = {}) => ({
@@ -478,7 +479,7 @@ export const getStoredAdvances = () =>
 
 export const saveAdvances = (records) => writeJson(ADVANCES_KEY, records);
 
-export const addAdvance = ({ paymentMethod = "CASH", cashboxId, ...payload }) => {
+export const addAdvance = async ({ paymentMethod = "CASH", cashboxId, ...payload }) => {
   const record = {
     ...normalizeAmountRecord(payload, "adv", "Avans"),
     status: payload.status || "POSTED",
@@ -496,7 +497,7 @@ export const addAdvance = ({ paymentMethod = "CASH", cashboxId, ...payload }) =>
   const method = normalizePaymentMethod(paymentMethod);
   const financeTransaction =
     existing ||
-    addFinanceTransaction({
+    await addFinanceTransaction({
       id: createFinanceId("emp-adv"),
       type: "OUT",
       category: "Oylik",
@@ -587,7 +588,7 @@ export const upsertLeave = (payload) => {
 };
 
 export const getStoredPayrolls = () =>
-  (unwrapList(syncApiRequest("/employees/payroll"), ["payrolls"]) || readJson(PAYROLLS_KEY, [])).map((record) => ({
+  (unwrapList(getCachedApiResponse("/employees/payroll"), ["payrolls"]) || readJson(PAYROLLS_KEY, [])).map((record) => ({
     id: String(record.id || createHrId("payroll")),
     employeeId: record.employeeId || null,
     month: String(record.month || monthIso()),
@@ -739,9 +740,9 @@ export const calculateEmployeePayroll = (employeeId, month = monthIso()) => {
   };
 };
 
-export const saveCalculatedPayroll = (employeeId, month = monthIso()) => {
+export const saveCalculatedPayroll = async (employeeId, month = monthIso()) => {
   const payroll = calculateEmployeePayroll(employeeId, month);
-  const remotePayroll = syncApiRequest("/employees/payroll", {
+  const remotePayroll = await apiRequest("/employees/payroll", {
     method: "POST",
     body: {
       ...payroll,
@@ -761,8 +762,8 @@ export const saveCalculatedPayroll = (employeeId, month = monthIso()) => {
   return payroll;
 };
 
-export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date, note = "" }) => {
-  const remotePayroll = syncApiRequest(`/employees/payroll/${payrollId}/pay`, {
+export const payPayroll = async ({ payrollId, amount, method = "CASH", cashboxId, date, note = "" }) => {
+  const remotePayroll = await apiRequest(`/employees/payroll/${payrollId}/pay`, {
     method: "POST",
     idempotencyKey: `payroll-payment:${payrollId}:${amount}`,
     body: { amount, method, cashboxId, date, note, idempotencyKey: `payroll-payment:${payrollId}:${amount}` },
@@ -777,7 +778,7 @@ export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date
   const payroll = payrolls.find((record) => record.id === payrollId);
 
   if (!payroll) {
-    throw new Error("Payroll topilmadi.");
+    throw new Error("Ish haqi topilmadi.");
   }
 
   const safeAmount = safeMoney(amount);
@@ -787,7 +788,7 @@ export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date
   }
 
   if (safeAmount > payroll.debtAmount) {
-    throw new Error("Payroll qarzidan ortiq to'lov mumkin emas.");
+    throw new Error("Ish haqi qarzidan ortiq to'lov mumkin emas.");
   }
 
   const payment = {
@@ -807,7 +808,7 @@ export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date
   );
   const financeTransaction =
     existingTransaction ||
-    addFinanceTransaction({
+    await addFinanceTransaction({
       id: createFinanceId("salary-pay"),
       type: "OUT",
       category: "Oylik",
@@ -818,7 +819,7 @@ export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date
       paymentMethod: payment.method,
       cashboxId: payment.cashboxId,
       date: normalizeFinanceDate(payment.date),
-      note: note || `Payroll ${payroll.month}`,
+      note: note || `Ish haqi ${payroll.month}`,
     });
   const nextPayment = { ...payment, financeTransactionId: financeTransaction.id };
   const paidAmount = roundMoney(payroll.paidAmount + payment.amount);

@@ -28,7 +28,7 @@ const SalesLayout = () => {
       description="POS terminal va backoffice savdo boshqaruvi real backend ma'lumotlari bilan ishlaydi."
     >
       <div className="sales-layout">
-        <nav className="sales-layout__switcher" aria-label="Sales mode">
+        <nav className="sales-layout__switcher" aria-label="Savdo rejimi">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}

@@ -6,7 +6,6 @@ import {
 } from "../../modules/settings/constants/settingsDefaults";
 
 import {
-  loadPlatformSettings,
   normalizeSettings,
 } from "../../modules/settings/utils/settingsStorage";
 
@@ -15,7 +14,7 @@ const resetSectionState = (section) => normalizeSettings()[section];
 const settingsSlice = createSlice({
   name: "settings",
 
-  initialState: loadPlatformSettings(),
+  initialState: normalizeSettings(),
 
   reducers: {
     updateSection: (state, action) => {

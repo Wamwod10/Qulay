@@ -12,7 +12,13 @@ import { setAuth } from "../../../../store/slices/authSlice";
 import { setCompany } from "../../../../store/slices/tenantSlice";
 import { setSettings } from "../../../../store/slices/settingsSlice";
 import { setEnabledModules } from "../../../../store/slices/modulesSlice";
-import { loadPlatformSettings } from "../../../settings/utils/settingsStorage";
+import {
+  loadPlatformSettings,
+  markSettingsHydrated,
+} from "../../../settings/utils/settingsStorage";
+import { SUPER_ADMIN_ROLE } from "../../../../constants/auth";
+import { resetTenant } from "../../../../store/slices/tenantSlice";
+import { preloadBusinessData } from "../../../../services/api/businessDataLoader";
 
 import "../authPages.scss";
 
@@ -47,14 +53,23 @@ const LoginPage = () => {
     try {
       const result = await authService.login(values);
       dispatch(setAuth(result));
-      if (result.account) {
+      const isSuperAdmin = result.user?.role === SUPER_ADMIN_ROLE;
+
+      if (isSuperAdmin) {
+        dispatch(resetTenant());
+      } else if (result.account) {
         dispatch(setCompany({ id: result.account.id, name: result.account.businessName, ...result.account }));
       }
       if (Array.isArray(result.modules)) {
         dispatch(setEnabledModules(result.modules));
       }
-      dispatch(setSettings(loadPlatformSettings()));
-      navigate(result.user?.role === "SUPER_ADMIN" ? "/superadmin" : "/dashboard", { replace: true });
+      if (!isSuperAdmin) {
+        await preloadBusinessData();
+        const settings = await loadPlatformSettings();
+        markSettingsHydrated();
+        dispatch(setSettings(settings));
+      }
+      navigate(isSuperAdmin ? "/superadmin" : "/dashboard", { replace: true });
     } catch (loginError) {
       setError(loginError.message || "Email yoki parol noto'g'ri.");
     } finally {
@@ -64,11 +79,11 @@ const LoginPage = () => {
 
   return (
     <AuthLayout
-      title="Accountga kirish"
-      subtitle="Email yoki telefon raqamingiz orqali kompaniya workspace'ingizni oching."
+      title="Hisobga kirish"
+      subtitle="Email yoki telefon raqamingiz orqali kompaniya ish muhitingizni oching."
       footer={
         <>
-          Yangi kompaniya ochasizmi? <Link to="/register">Register</Link>
+          Yangi kompaniya ochasizmi? <Link to="/register">Ro'yxatdan o'tish</Link>
         </>
       }
     >
@@ -100,7 +115,7 @@ const LoginPage = () => {
             checked={values.rememberMe}
             onChange={(event) => updateValue("rememberMe", event.target.checked)}
           />
-          <span>Remember me</span>
+          <span>Eslab qolish</span>
         </label>
 
         <Button
@@ -110,7 +125,7 @@ const LoginPage = () => {
           disabled={!isValid}
           leftIcon={<ShieldCheck size={18} />}
         >
-          Dashboard'ga kirish
+          Bosh sahifaga kirish
         </Button>
 
         <Link className="auth-form__link" to="/forgot-password">

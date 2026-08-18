@@ -206,7 +206,7 @@ export const getCustomerTimeline = customerId => {
     id: `customer-${customer.id}`,
     type: "CUSTOMER",
     date: customer.createdAt,
-    title: translateText("Customer created"),
+    title: translateText("Mijoz yaratildi"),
     note: getCustomerDisplayName(customer),
     meta: customer.status
   }] : [];

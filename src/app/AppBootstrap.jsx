@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { logout, setAuth } from "../store/slices/authSlice";
@@ -7,14 +7,27 @@ import { setCompany } from "../store/slices/tenantSlice";
 import { setSettings } from "../store/slices/settingsSlice";
 import { setEnabledModules } from "../store/slices/modulesSlice";
 import authService from "../modules/auth/services/authService";
-import { loadPlatformSettings } from "../modules/settings/utils/settingsStorage";
+import {
+  loadPlatformSettings,
+  markSettingsHydrated,
+} from "../modules/settings/utils/settingsStorage";
+import { SUPER_ADMIN_ROLE } from "../constants/auth";
+import { resetTenant } from "../store/slices/tenantSlice";
+import { preloadBusinessData } from "../services/api/businessDataLoader";
 
 const AppBootstrap = ({ children }) => {
   const dispatch = useDispatch();
+  const bootstrapStarted = useRef(false);
 
   const isAuthInitialized = useSelector((state) => state.auth.isInitialized);
 
   useEffect(() => {
+    if (isAuthInitialized || bootstrapStarted.current) {
+      return undefined;
+    }
+
+    bootstrapStarted.current = true;
+
     const bootstrap = async () => {
       try {
         dispatch(setGlobalLoading(true));
@@ -24,7 +37,9 @@ const AppBootstrap = ({ children }) => {
 
           if (result.isAuthenticated) {
             dispatch(setAuth(result));
-            if (result.account) {
+            if (result.user?.role === SUPER_ADMIN_ROLE) {
+              dispatch(resetTenant());
+            } else if (result.account) {
               dispatch(
                 setCompany({
                   id: result.account.id,
@@ -36,7 +51,12 @@ const AppBootstrap = ({ children }) => {
             if (Array.isArray(result.modules)) {
               dispatch(setEnabledModules(result.modules));
             }
-            dispatch(setSettings(loadPlatformSettings()));
+            if (result.user?.role !== SUPER_ADMIN_ROLE) {
+              await preloadBusinessData();
+              const settings = await loadPlatformSettings();
+              markSettingsHydrated();
+              dispatch(setSettings(settings));
+            }
           } else {
             dispatch(logout());
           }
@@ -49,6 +69,8 @@ const AppBootstrap = ({ children }) => {
     };
 
     bootstrap();
+
+    return undefined;
   }, [dispatch, isAuthInitialized]);
 
   return children;

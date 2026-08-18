@@ -216,7 +216,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
             step="any"
             value={produced}
             disabled
-            hint="Brak va Waste asosida avtomatik hisoblanadi."
+            hint="Brak va chiqindi asosida avtomatik hisoblanadi."
           />
 
           <Input
@@ -229,7 +229,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           />
 
           <Input
-            label="Yo‘qotish / Waste"
+            label="Yo‘qotish / chiqindi"
             type="number"
             min="0"
             step="any"

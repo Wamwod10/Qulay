@@ -38,7 +38,7 @@ const AgentTable = ({
     render: value => `${formatAgentMoney(value)} ${translateText("so'm")}`
   }, {
     key: "salesAmount",
-    title: translateText("Real sales"),
+    title: translateText("Real savdo"),
     render: (_, agent) => `${formatAgentMoney(getAgentSalesTotal(agent.id))} ${translateText("so'm")}`
   }, {
     key: "commissionPercent",

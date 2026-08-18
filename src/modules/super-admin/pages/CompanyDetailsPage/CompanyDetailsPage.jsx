@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Ban, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { translateText } from "../../../../localization/i18n";
 
 import { Badge, Button, Card, EmptyState } from "../../../../shared/ui";
 import AccountModulesManager from "../../components/AccountModulesManager/AccountModulesManager";
@@ -54,24 +55,24 @@ const CompanyDetailsPage = () => {
       </header>
 
       <section className="sa-user-details__summary">
-        <Summary label="Owner" value={company.owner?.fullName || company.owner?.email} />
-        <Summary label="Users" value={company.usersCount || 0} />
-        <Summary label="Products" value={company.usage?.products || 0} />
-        <Summary label="Sales" value={company.usage?.sales || 0} />
+        <Summary label={translateText("Egasi")} value={company.owner?.fullName || company.owner?.email} />
+        <Summary label={translateText("Foydalanuvchilar")} value={company.usersCount || 0} />
+        <Summary label={translateText("Mahsulotlar")} value={company.usage?.products || 0} />
+        <Summary label={translateText("Savdolar")} value={company.usage?.sales || 0} />
       </section>
 
       <Card padding="lg" className="sa-user-details__info">
         <div className="sa-user-details__section-title">
           <h3>Kompaniya ma'lumotlari</h3>
-          <p>Tenant identifikatori va registration metadata.</p>
+          <p>{translateText("Kompaniya identifikatori va ro'yxatdan o'tish ma'lumotlari.")}</p>
         </div>
         <div className="sa-user-details__info-grid">
-          <Info label="Company ID" value={company.id} />
-          <Info label="Business type" value={company.businessType} />
-          <Info label="Country" value={company.country} />
-          <Info label="Currency" value={company.currency} />
-          <Info label="Created" value={new Date(company.createdAt).toLocaleString("uz-UZ")} />
-          <Info label="Updated" value={new Date(company.updatedAt).toLocaleString("uz-UZ")} />
+          <Info label={translateText("Kompaniya ID")} value={company.id} />
+          <Info label={translateText("Biznes turi")} value={company.businessType} />
+          <Info label={translateText("Mamlakat")} value={company.country} />
+          <Info label={translateText("Valyuta")} value={company.currency} />
+          <Info label={translateText("Yaratilgan")} value={new Date(company.createdAt).toLocaleString("uz-UZ")} />
+          <Info label={translateText("Yangilangan")} value={new Date(company.updatedAt).toLocaleString("uz-UZ")} />
         </div>
       </Card>
 

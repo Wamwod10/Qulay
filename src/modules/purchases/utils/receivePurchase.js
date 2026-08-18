@@ -7,9 +7,9 @@ import {
 import {
     getStoredProducts,
 } from "../../products/utils/productsStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
-export const receivePurchaseIntoWarehouse = ({
+export const receivePurchaseIntoWarehouse = async ({
     purchase,
     receivedItems,
 }) => {
@@ -41,7 +41,7 @@ export const receivePurchaseIntoWarehouse = ({
         );
     }
 
-    const remotePurchase = syncApiRequest(`/purchases/${purchase.id}/receive`, {
+    const remotePurchase = await apiRequest(`/purchases/${purchase.id}/receive`, {
         method: "POST",
         body: {
             receivedItems: receivedItems.map((item) => ({
@@ -53,7 +53,7 @@ export const receivePurchaseIntoWarehouse = ({
     });
 
     if (remotePurchase?.id) {
-        const remoteStock = unwrapList(syncApiRequest("/inventory/stock"), ["stock"]);
+        const remoteStock = unwrapList(await apiRequest("/inventory/stock"), ["stock"]);
         if (Array.isArray(remoteStock)) {
             saveWarehouseStock(remoteStock);
             window.dispatchEvent(new Event("warehouse:changed"));

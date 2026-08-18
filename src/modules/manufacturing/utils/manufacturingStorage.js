@@ -4,7 +4,7 @@ import {
 } from "../production-orders/utils/materialAvailability";
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 import {
     calculateProductionMaterialCost,
@@ -92,7 +92,7 @@ const normalizeProductionOrder = (order) => {
 };
 
 export const getStoredBoms = () => {
-    const remoteBoms = unwrapList(syncApiRequest("/manufacturing/boms"), ["boms"]);
+    const remoteBoms = unwrapList(getCachedApiResponse("/manufacturing/boms"), ["boms"]);
     if (Array.isArray(remoteBoms)) {
         tenantSet(BOM_STORAGE_KEY, remoteBoms);
         return remoteBoms;
@@ -126,8 +126,8 @@ export const saveBoms = (boms) => {
     );
 };
 
-export const createBom = (bom) => {
-    const remoteBom = syncApiRequest("/manufacturing/boms", {
+export const createBom = async (bom) => {
+    const remoteBom = await apiRequest("/manufacturing/boms", {
         method: "POST",
         body: bom,
     });
@@ -163,10 +163,10 @@ export const createBom = (bom) => {
     return newBom;
 };
 
-export const updateBom = (
+export const updateBom = async (
     updatedBom,
 ) => {
-    const remoteBom = updatedBom?.id ? syncApiRequest(`/manufacturing/boms/${updatedBom.id}`, {
+    const remoteBom = updatedBom?.id ? await apiRequest(`/manufacturing/boms/${updatedBom.id}`, {
         method: "PATCH",
         body: updatedBom,
     }) : null;
@@ -194,7 +194,7 @@ export const updateBom = (
 
 export const getStoredProductionOrders =
     () => {
-        const remoteOrders = unwrapList(syncApiRequest("/manufacturing/orders"), ["orders", "productionOrders"]);
+        const remoteOrders = unwrapList(getCachedApiResponse("/manufacturing/orders"), ["orders", "productionOrders"]);
         if (Array.isArray(remoteOrders)) {
             tenantSet(PRODUCTION_STORAGE_KEY, remoteOrders);
             return remoteOrders.map(normalizeProductionOrder);
@@ -236,10 +236,10 @@ export const saveProductionOrders = (
     );
 };
 
-export const createProductionOrder = (
+export const createProductionOrder = async (
     order,
 ) => {
-    const remoteOrder = syncApiRequest("/manufacturing/orders", {
+    const remoteOrder = await apiRequest("/manufacturing/orders", {
         method: "POST",
         body: order,
     });
@@ -336,16 +336,16 @@ export const getProductionOrderById = (
     );
 };
 
-export const updateProductionOrder = (
+export const updateProductionOrder = async (
     updatedOrder,
 ) => {
     const remoteOrder = updatedOrder?.status === "IN_PROGRESS"
-        ? syncApiRequest(`/manufacturing/orders/${updatedOrder.id}/start`, {
+        ? await apiRequest(`/manufacturing/orders/${updatedOrder.id}/start`, {
             method: "POST",
             body: updatedOrder,
         })
         : updatedOrder?.status === "COMPLETED"
-            ? syncApiRequest(`/manufacturing/orders/${updatedOrder.id}/complete`, {
+            ? await apiRequest(`/manufacturing/orders/${updatedOrder.id}/complete`, {
                 method: "POST",
                 body: updatedOrder,
             })
@@ -374,10 +374,10 @@ export const updateProductionOrder = (
     return updatedOrder;
 };
 
-export const startProductionOrder = (
+export const startProductionOrder = async (
     orderId,
 ) => {
-    const remoteOrder = syncApiRequest(`/manufacturing/orders/${orderId}/start`, {
+    const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/start`, {
         method: "POST",
         body: {},
     });

@@ -139,7 +139,7 @@ const CustomerForm = ({
           <Input label={translateText("Email")} value={values.email} error={errors.email} onChange={event => patchValue("email", event.target.value)} />
           <Input label={translateText("Hudud")} value={values.region} onChange={event => patchValue("region", event.target.value)} />
           <Select label={translateText("Agent")} value={values.agentId || ""} options={agentOptions} onChange={event => patchValue("agentId", event.target.value || null)} />
-          <Select label={translateText("Segment")} value={values.segment} options={segmentOptions} onChange={event => patchValue("segment", event.target.value)} />
+          <Select label={translateText("Toifa")} value={values.segment} options={segmentOptions} onChange={event => patchValue("segment", event.target.value)} />
           <Select label={translateText("Manba")} value={values.source} options={sourceOptions} onChange={event => patchValue("source", event.target.value)} />
           <Input label={translateText("Kredit limiti")} type="number" min="0" value={values.creditLimit} error={errors.creditLimit} onChange={event => patchValue("creditLimit", event.target.value)} />
           <Input label={translateText("To'lov muddati (kun)")} type="number" min="0" value={values.paymentTermDays} error={errors.paymentTermDays} onChange={event => patchValue("paymentTermDays", event.target.value)} />

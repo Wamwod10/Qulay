@@ -12,7 +12,11 @@ import { setAuth } from "../../../../store/slices/authSlice";
 import { setCompany } from "../../../../store/slices/tenantSlice";
 import { setSettings } from "../../../../store/slices/settingsSlice";
 import { setEnabledModules } from "../../../../store/slices/modulesSlice";
-import { loadPlatformSettings } from "../../../settings/utils/settingsStorage";
+import {
+  loadPlatformSettings,
+  markSettingsHydrated,
+} from "../../../settings/utils/settingsStorage";
+import { preloadBusinessData } from "../../../../services/api/businessDataLoader";
 
 import "../authPages.scss";
 
@@ -24,7 +28,7 @@ const INITIAL_VALUES = {
   password: "",
   confirmPassword: "",
   businessType: "",
-  country: "Uzbekistan",
+  country: "O'zbekiston",
   currency: "UZS",
 };
 
@@ -89,10 +93,13 @@ const RegisterPage = () => {
       if (Array.isArray(result.modules)) {
         dispatch(setEnabledModules(result.modules));
       }
-      dispatch(setSettings(loadPlatformSettings()));
+      await preloadBusinessData();
+      const settings = await loadPlatformSettings();
+      markSettingsHydrated();
+      dispatch(setSettings(settings));
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      setServerError(error.message || "Register yakunlanmadi.");
+      setServerError(error.message || "Ro'yxatdan o'tish yakunlanmadi.");
     } finally {
       setLoading(false);
     }
@@ -100,11 +107,11 @@ const RegisterPage = () => {
 
   return (
     <AuthLayout
-      title="Yangi kompaniya workspace"
-      subtitle="Registerdan keyin account, owner user va toza ERP workspace avtomatik yaratiladi."
+      title="Yangi kompaniya ish muhiti"
+      subtitle="Ro'yxatdan o'tgach, hisob, egasi va toza ERP ish muhiti avtomatik yaratiladi."
       footer={
         <>
-          Account bormi? <Link to="/login">Login</Link>
+          Hisobingiz bormi? <Link to="/login">Kirish</Link>
         </>
       }
     >
@@ -112,7 +119,7 @@ const RegisterPage = () => {
         {serverError && <div className="auth-form__error">{serverError}</div>}
 
         <div className="auth-form__section">
-          <span>Business</span>
+          <span>Biznes</span>
           <div className="auth-form__grid">
             <Input
               label="Kompaniya / biznes nomi"
@@ -123,19 +130,19 @@ const RegisterPage = () => {
               required
             />
             <Input
-              label="Business type"
+              label="Biznes turi"
               value={values.businessType}
               autoComplete="organization-title"
               onChange={(event) => updateValue("businessType", event.target.value)}
             />
             <Input
-              label="Country"
+              label="Mamlakat"
               value={values.country}
               autoComplete="country-name"
               onChange={(event) => updateValue("country", event.target.value)}
             />
             <label className="auth-form__select">
-              <span>Currency</span>
+              <span>Valyuta</span>
               <select value={values.currency} onChange={(event) => updateValue("currency", event.target.value)}>
                 <option value="UZS">UZS</option>
                 <option value="USD">USD</option>
@@ -146,10 +153,10 @@ const RegisterPage = () => {
         </div>
 
         <div className="auth-form__section">
-          <span>Owner</span>
+          <span>Egasi</span>
           <div className="auth-form__grid">
             <Input
-              label="Owner full name"
+              label="Egasi F.I.Sh."
               value={values.fullName}
               error={errors.fullName}
               autoComplete="name"
@@ -177,7 +184,7 @@ const RegisterPage = () => {
             <PasswordField
               id="register-password"
               name="password"
-              label="Password"
+              label="Parol"
               value={values.password}
               error={errors.password}
               autoComplete="new-password"
@@ -186,7 +193,7 @@ const RegisterPage = () => {
             <PasswordField
               id="register-confirm-password"
               name="confirmPassword"
-              label="Confirm password"
+              label="Parolni tasdiqlash"
               value={values.confirmPassword}
               error={errors.confirmPassword}
               autoComplete="new-password"
@@ -209,7 +216,7 @@ const RegisterPage = () => {
           disabled={!isValid}
           leftIcon={isValid ? <CheckCircle2 size={18} /> : <Building2 size={18} />}
         >
-          Workspace yaratish
+          Ish muhitini yaratish
         </Button>
       </form>
     </AuthLayout>

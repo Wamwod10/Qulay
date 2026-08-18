@@ -861,7 +861,7 @@ const DomainSections = ({ settings, entityOptions, update, renderSection }) => (
       "Mijozlar bilan ishlash",
       "Mijoz standartlari, takror telefon va kredit qoidalari.",
       <>
-        <SettingRow title="Standart mijoz segmenti" description="Yangi mijoz uchun standart segment.">
+        <SettingRow title="Standart mijoz toifasi" description="Yangi mijoz uchun standart toifa.">
           <Select value={settings.crm.defaultCustomerSegment} options={[
             { value: "VIP", label: "VIP" },
             { value: "REGULAR", label: "Doimiy" },

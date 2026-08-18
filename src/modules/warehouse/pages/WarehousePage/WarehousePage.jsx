@@ -123,9 +123,9 @@ const WarehousePage = () => {
     }
   }, [warehouses, warehouseId]);
 
-  const handleStockIn = (values) => {
+  const handleStockIn = async (values) => {
     try {
-      stockIn(values);
+      await stockIn(values);
 
       setStockInOpen(false);
 
@@ -135,9 +135,9 @@ const WarehousePage = () => {
     }
   };
 
-  const handleInventory = (values) => {
+  const handleInventory = async (values) => {
     try {
-      inventoryAdjustStock(values);
+      await inventoryAdjustStock(values);
 
       setInventoryOpen(false);
 
@@ -153,9 +153,9 @@ const WarehousePage = () => {
     return movements.filter((movement) => movement.warehouseId === warehouseId);
   }, [movements, warehouseId]);
 
-  const handleStockOut = (values) => {
+  const handleStockOut = async (values) => {
     try {
-      stockOut(values);
+      await stockOut(values);
 
       setStockOutOpen(false);
 
@@ -165,9 +165,9 @@ const WarehousePage = () => {
     }
   };
 
-  const handleTransfer = (values) => {
+  const handleTransfer = async (values) => {
     try {
-      transferStock(values);
+      await transferStock(values);
 
       setTransferOpen(false);
 
@@ -233,14 +233,14 @@ const WarehousePage = () => {
     setWarehouses(getStoredWarehouses());
   };
 
-  const handleSaveWarehouse = (values) => {
+  const handleSaveWarehouse = async (values) => {
     if (editingWarehouse) {
       updateWarehouse({
         ...editingWarehouse,
         ...values,
       });
     } else {
-      createWarehouse(values);
+      await createWarehouse(values);
     }
 
     setWarehouseFormOpen(false);

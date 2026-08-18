@@ -7,6 +7,7 @@ import {
 } from "../services/api/baseApi";
 
 import {
+  consumeSettingsHydration,
   savePlatformSettings,
 } from "../modules/settings/utils/settingsStorage";
 import { getCurrentAccountId } from "../modules/auth/utils/tenantStorage";
@@ -31,6 +32,8 @@ export const store =
 
 let previousSettings =
   store.getState().settings;
+let settingsSaveTimer = null;
+let pendingSettings = null;
 
 store.subscribe(() => {
   const currentSettings =
@@ -43,10 +46,30 @@ store.subscribe(() => {
     previousSettings =
       currentSettings;
 
+    if (consumeSettingsHydration() || !getCurrentAccountId()) {
+      return;
+    }
+
     if (getCurrentAccountId()) {
-      savePlatformSettings(
-        currentSettings,
-      );
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      pendingSettings = currentSettings;
+
+      if (settingsSaveTimer) {
+        window.clearTimeout(settingsSaveTimer);
+      }
+
+      settingsSaveTimer = window.setTimeout(() => {
+        const settingsToSave = pendingSettings;
+        pendingSettings = null;
+        settingsSaveTimer = null;
+
+        if (settingsToSave) {
+          void savePlatformSettings(settingsToSave);
+        }
+      }, 250);
     }
   }
 });

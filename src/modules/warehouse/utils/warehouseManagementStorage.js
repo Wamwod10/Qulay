@@ -1,6 +1,6 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "warehouses";
 
@@ -18,7 +18,7 @@ const DEFAULT_WAREHOUSES = [
 ];
 
 export const getStoredWarehouses = () => {
-    const remoteWarehouses = unwrapList(syncApiRequest("/warehouses"), ["warehouses"]);
+    const remoteWarehouses = unwrapList(getCachedApiResponse("/warehouses"), ["warehouses"]);
 
     if (Array.isArray(remoteWarehouses)) {
         tenantSet(STORAGE_KEY, remoteWarehouses);
@@ -58,8 +58,8 @@ export const saveWarehouses = (warehouses) => {
     );
 };
 
-export const createWarehouse = (warehouse) => {
-    const remoteWarehouse = syncApiRequest("/warehouses", {
+export const createWarehouse = async (warehouse) => {
+    const remoteWarehouse = await apiRequest("/warehouses", {
         method: "POST",
         body: warehouse,
     });

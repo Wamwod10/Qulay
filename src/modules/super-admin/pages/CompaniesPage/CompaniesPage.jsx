@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Ban, Building2, CheckCircle2, Eye, RefreshCcw, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { translateText } from "../../../../localization/i18n";
 
 import { Badge, Button, Card, EmptyState, Input, Select, Table } from "../../../../shared/ui";
 import {
@@ -62,12 +63,12 @@ const CompaniesPage = () => {
     },
     {
       key: "owner",
-      title: "Owner",
+      title: translateText("Egasi"),
       render: (_, company) => company.owner?.fullName || company.owner?.email || "-",
     },
     {
       key: "usersCount",
-      title: "Users",
+      title: translateText("Foydalanuvchilar"),
       render: (value) => value || 0,
     },
     {
@@ -77,7 +78,7 @@ const CompaniesPage = () => {
     },
     {
       key: "createdAt",
-      title: "Register",
+      title: translateText("Ro'yxatdan o'tgan"),
       render: (value) => new Date(value).toLocaleString("uz-UZ"),
     },
     {
@@ -101,7 +102,7 @@ const CompaniesPage = () => {
       <header className="sa-users__header">
         <div>
           <h1>Kompaniyalar</h1>
-          <p>Tenantlar, ownerlar va bloklash holati real DBdan.</p>
+          <p>{translateText("Kompaniyalar, egalari va bloklash holati real bazadan.")}</p>
         </div>
         <Button variant="secondary" leftIcon={<RefreshCcw size={16} />} onClick={load}>Yangilash</Button>
       </header>
@@ -115,7 +116,7 @@ const CompaniesPage = () => {
       <Card padding="md" className="sa-users__workspace">
         <div className="sa-users__toolbar">
           <div className="sa-users__search">
-            <Input value={search} placeholder="Kompaniya, owner, email..." leftIcon={<Search size={16} />} onChange={(event) => setSearch(event.target.value)} />
+        <Input value={search} placeholder={translateText("Kompaniya, egasi, email...")} leftIcon={<Search size={16} />} onChange={(event) => setSearch(event.target.value)} />
           </div>
           <div className="sa-users__filter">
             <Select value={status} options={[{ value: "", label: "Barcha holatlar" }, { value: "ACTIVE", label: "Faol" }, { value: "BLOCKED", label: "Bloklangan" }]} onChange={(event) => setStatus(event.target.value)} />

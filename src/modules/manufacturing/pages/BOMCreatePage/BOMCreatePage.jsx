@@ -13,8 +13,8 @@ import { createBom } from "../../utils/manufacturingStorage";
 const BomCreatePage = () => {
   const navigate = useNavigate();
 
-  const handleSubmit = (values) => {
-    const bom = createBom(values);
+  const handleSubmit = async (values) => {
+    const bom = await createBom(values);
 
     navigate(`/manufacturing/boms/${bom.id}`);
   };

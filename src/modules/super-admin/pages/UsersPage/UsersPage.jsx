@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
+import { translateText } from "../../../../localization/i18n";
 
 import {
   Badge,
@@ -179,7 +180,7 @@ const UsersPage = () => {
   };
 
   const handleDelete = async (user) => {
-    const title = user.name || user.fullName || user.email || "user";
+    const title = user.name || user.fullName || user.email || translateText("foydalanuvchi");
 
     const confirmed = window.confirm(
       `${title} akkauntini o‘chirishni tasdiqlaysizmi?`,
@@ -207,7 +208,7 @@ const UsersPage = () => {
   const columns = [
     {
       key: "user",
-      title: "User",
+      title: translateText("Foydalanuvchi"),
 
       render: (_, user) => (
         <div className="sa-users__user">
@@ -216,7 +217,7 @@ const UsersPage = () => {
           </div>
 
           <div>
-            <strong>{user.name || user.fullName || "Nomsiz user"}</strong>
+            <strong>{user.name || user.fullName || translateText("Nomsiz foydalanuvchi")}</strong>
 
             <span>{user.email || user.phone || "—"}</span>
           </div>
@@ -227,21 +228,21 @@ const UsersPage = () => {
     {
       key: "companyName",
 
-      title: "Kompaniya",
+      title: translateText("Kompaniya"),
 
       render: (value, user) => value || user.businessName || "—",
     },
 
     {
       key: "role",
-      title: "Rol",
+      title: translateText("Rol"),
 
       render: (value) => value || "USER",
     },
 
     {
       key: "status",
-      title: "Holat",
+      title: translateText("Holat"),
 
       render: (value) => {
         const status = normalizeStatus(value);
@@ -285,7 +286,7 @@ const UsersPage = () => {
               size="sm"
               variant="ghost"
               disabled={busy}
-              title={blocked ? "Faollashtirish" : "Bloklash"}
+              title={blocked ? translateText("Faollashtirish") : translateText("Bloklash")}
               onClick={() => handleStatus(user)}
             >
               {blocked ? <CheckCircle2 size={16} /> : <Ban size={16} />}
@@ -310,7 +311,7 @@ const UsersPage = () => {
     <div className="sa-users">
       <header className="sa-users__header">
         <div>
-          <h1>Userlar</h1>
+          <h1>{translateText("Foydalanuvchilar")}</h1>
 
           <p>Platformaga ro‘yxatdan o‘tgan akkauntlarni boshqaring.</p>
         </div>
@@ -343,7 +344,7 @@ const UsersPage = () => {
           <div className="sa-users__search">
             <Input
               value={search}
-              placeholder="User, email, telefon yoki kompaniya..."
+              placeholder={translateText("Foydalanuvchi, email, telefon yoki kompaniya...")}
               leftIcon={<Search size={16} />}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -361,12 +362,12 @@ const UsersPage = () => {
         {error && <div className="sa-users__error">{error}</div>}
 
         {loading ? (
-          <div className="sa-users__loading">Userlar yuklanmoqda...</div>
+          <div className="sa-users__loading">{translateText("Foydalanuvchilar yuklanmoqda...")}</div>
         ) : filteredUsers.length ? (
           <Table columns={columns} data={filteredUsers} rowKey="id" />
         ) : (
           <EmptyState
-            title="User topilmadi"
+            title={translateText("Foydalanuvchi topilmadi")}
             description="Hozircha mos akkaunt mavjud emas."
           />
         )}

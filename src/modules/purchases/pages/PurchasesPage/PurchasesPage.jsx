@@ -199,9 +199,9 @@ const PurchasesPage = () => {
     }
   };
 
-  const handlePaymentUpdate = (values) => {
+  const handlePaymentUpdate = async (values) => {
     try {
-      updatePurchasePayment(values);
+      await updatePurchasePayment(values);
 
       setPaymentPurchase(null);
 
@@ -211,7 +211,7 @@ const PurchasesPage = () => {
     }
   };
 
-  const handleReceive = (receivedItems) => {
+  const handleReceive = async (receivedItems) => {
     if (!receivePurchase) {
       return;
     }
@@ -232,7 +232,7 @@ const PurchasesPage = () => {
         throw new Error("Bu xaridni qabul qilib bo‘lmaydi.");
       }
 
-      receivePurchaseIntoWarehouse({
+      await receivePurchaseIntoWarehouse({
         purchase: currentPurchase,
 
         receivedItems
@@ -252,13 +252,13 @@ const PurchasesPage = () => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!cancelPurchaseItem) {
       return;
     }
 
     try {
-      cancelPurchase(cancelPurchaseItem.id);
+      await cancelPurchase(cancelPurchaseItem.id);
 
       setCancelPurchaseItem(null);
 
@@ -320,7 +320,7 @@ const PurchasesPage = () => {
           <TableToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder={translateText("Buyurtma, supplier, ombor yoki mahsulot...")}
+            searchPlaceholder={translateText("Buyurtma, yetkazib beruvchi, ombor yoki mahsulot...")}
             actionLabel={translateText("Yangi xarid")}
             actionIcon={<Plus size={17} />}
             onAction={() => navigate("/purchases/create")} />

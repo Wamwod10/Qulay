@@ -2,13 +2,13 @@ import {
     syncSupplierReferences,
 } from "./supplierIntegration";
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY =
     "suppliers";
 
 export const getStoredSuppliers = () => {
-    const remoteSuppliers = unwrapList(syncApiRequest("/suppliers"), ["suppliers"]);
+    const remoteSuppliers = unwrapList(getCachedApiResponse("/suppliers"), ["suppliers"]);
 
     if (Array.isArray(remoteSuppliers)) {
         tenantSet(STORAGE_KEY, remoteSuppliers);
@@ -64,10 +64,10 @@ export const getSupplierById = (
     );
 };
 
-export const createSupplier = (
+export const createSupplier = async (
     supplier,
 ) => {
-    const remoteSupplier = syncApiRequest("/suppliers", {
+    const remoteSupplier = await apiRequest("/suppliers", {
         method: "POST",
         body: supplier,
     });
@@ -104,10 +104,10 @@ export const createSupplier = (
     return newSupplier;
 };
 
-export const updateSupplier = (
+export const updateSupplier = async (
     updatedSupplier,
 ) => {
-    const remoteSupplier = syncApiRequest(`/suppliers/${updatedSupplier.id}`, {
+    const remoteSupplier = await apiRequest(`/suppliers/${updatedSupplier.id}`, {
         method: "PATCH",
         body: updatedSupplier,
     });
@@ -143,7 +143,7 @@ export const updateSupplier = (
     return updatedSupplier;
 };
 
-export const toggleSupplierStatus = (
+export const toggleSupplierStatus = async (
     supplierId,
 ) => {
     const suppliers =
@@ -178,7 +178,7 @@ export const toggleSupplierStatus = (
     saveSuppliers(updated);
 
     if (updatedSupplier) {
-        syncApiRequest(`/suppliers/${supplierId}`, {
+        await apiRequest(`/suppliers/${supplierId}`, {
             method: "PATCH",
             body: { status: updatedSupplier.status },
         });
@@ -187,10 +187,10 @@ export const toggleSupplierStatus = (
     return updatedSupplier;
 };
 
-export const deleteSupplier = (
+export const deleteSupplier = async (
     supplierId,
 ) => {
-    syncApiRequest(`/suppliers/${supplierId}`, {
+    await apiRequest(`/suppliers/${supplierId}`, {
         method: "DELETE",
     });
 

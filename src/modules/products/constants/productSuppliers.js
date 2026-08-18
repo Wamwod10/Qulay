@@ -17,6 +17,6 @@ export const PRODUCT_SUPPLIERS = [
     },
     {
         value: "sup-005",
-        label: "Test Supplier",
+        label: "Sinov yetkazib beruvchisi",
     },
 ];

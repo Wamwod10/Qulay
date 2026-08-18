@@ -6,7 +6,6 @@ import {
 import {
   getCashboxBalances,
   getCustomerDebts,
-  getFinanceSummary,
   getFinanceTransactions,
   getSupplierDebts,
 } from "../../finance/utils/financeSelectors";
@@ -235,22 +234,28 @@ export const getDashboardFinanceSummary = (period = "today") => {
     from: range.fromInput,
     to: range.toInput,
   };
-  const summary = getFinanceSummary(filters);
-  const transactions = getFinanceTransactions(filters).filter(
+  const transactions = getFinanceTransactions(filters);
+  const visibleTransactions = transactions.filter(
     (transaction) => !transaction.internal,
   );
+  const inAmount = visibleTransactions
+    .filter((transaction) => transaction.type === "IN")
+    .reduce((total, transaction) => total + toMoney(transaction.amount), 0);
+  const outAmount = visibleTransactions
+    .filter((transaction) => transaction.type === "OUT")
+    .reduce((total, transaction) => total + toMoney(transaction.amount), 0);
   const cashboxBalance = getCashboxBalances().reduce(
     (total, row) => total + toMoney(row.balance),
     0,
   );
 
   return {
-    inAmount: roundMoney(summary.income),
-    outAmount: roundMoney(summary.expense),
-    netCashflow: roundMoney(summary.netCashflow),
+    inAmount: roundMoney(inAmount),
+    outAmount: roundMoney(outAmount),
+    netCashflow: roundMoney(inAmount - outAmount),
     cashboxBalance: roundMoney(cashboxBalance),
-    transactions,
-    recentTransactions: transactions.slice(0, 6),
+    transactions: visibleTransactions,
+    recentTransactions: visibleTransactions.slice(0, 6),
   };
 };
 
@@ -626,33 +631,33 @@ export const getDashboardData = (period = "today") => {
         id: "income",
         label: "Tushum",
         value: finance.inAmount,
-        meta: "Finance IN",
+        meta: "Moliya kirimi",
         path: "/finance/cashflow",
       },
       {
         id: "cashflow",
         label: "Sof pul oqimi",
         value: finance.netCashflow,
-        meta: "IN - OUT",
+        meta: "Kirim - chiqim",
         path: "/finance/cashflow",
       },
       {
         id: "customerDebt",
         label: "Mijoz qarzi",
         value: debts.customerDebt,
-        meta: `${debts.riskyCustomerCount} risk`,
+        meta: `${debts.riskyCustomerCount} xavf`,
         path: "/finance/debts",
       },
       {
         id: "supplierDebt",
-        label: "Supplier qarzi",
+        label: "Yetkazib beruvchi qarzi",
         value: debts.supplierDebt,
         meta: "Yetkazib beruvchi",
         path: "/suppliers",
       },
       {
         id: "stock",
-        label: "Low stock",
+        label: "Qoldiq kam",
         value: warehouse.lowStockCount + warehouse.outOfStockCount,
         meta: `${warehouse.outOfStockCount} tugagan`,
         path: "/warehouse",

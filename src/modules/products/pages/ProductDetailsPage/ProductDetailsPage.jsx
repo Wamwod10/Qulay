@@ -309,7 +309,7 @@ const GeneralTab = ({ product }) =>
         <InfoItem label={translateText("Brend")} value={product.brand} />
         <InfoItem label={translateText("O'lchov birligi")} value={product.unit} />
         <InfoItem label={translateText("Yetkazib beruvchi")} value={product.supplierName} />
-        <InfoItem label={translateText("Status")} value={getProductStatusLabel(product.status)} />
+        <InfoItem label={translateText("Holat")} value={getProductStatusLabel(product.status)} />
       </div>
     </Card>
 
@@ -338,13 +338,13 @@ const GeneralTab = ({ product }) =>
     <Card>
       <SectionHeader
       title={translateText("Identifikatsiya")}
-      description={translateText("Barcode va boshqa identifikatorlar.")} />
+      description={translateText("Shtrix-kod va boshqa identifikatorlar.")} />
     
 
       <div className="product-details__code-list">
         <CodeItem
         icon={<Barcode size={20} />}
-        label={translateText("Barcode")}
+        label={translateText("Shtrix-kod")}
         value={product.barcode || "-"} />
       
         <CodeItem
@@ -479,7 +479,7 @@ const SalesPurchasesTab = ({ product }) => {
       <Card>
         <SectionHeader
           title={translateText("Savdo tarixi")}
-          description={translateText("Sales modulidagi real yakunlangan savdolar.")} />
+          description={translateText("Savdo modulidagi real yakunlangan savdolar.")} />
         
 
         <Table
@@ -536,7 +536,7 @@ const HistoryTab = ({ history }) => {
   },
   {
     key: "summary",
-    title: translateText("Before / after"),
+    title: translateText("Oldingi / yangi"),
     render: (_, row) => formatSummary(row)
   }];
 
@@ -545,13 +545,13 @@ const HistoryTab = ({ history }) => {
     <Card>
       <SectionHeader
         title={translateText("Mahsulot tarixi")}
-        description={translateText("Create, edit, status, stock, price, archive va restore eventlari.")} />
+        description={translateText("Yaratish, tahrirlash, holat, qoldiq, narx, arxivlash va tiklash hodisalari.")} />
       
 
       <Table
         columns={columns}
         data={history}
-        emptyText={translateText("Bu mahsulot bo'yicha history hali yo'q.")} />
+        emptyText={translateText("Bu mahsulot bo'yicha tarix hali yo'q.")} />
       
     </Card>);
 
@@ -572,7 +572,7 @@ const ManufacturingTab = ({ product }) => {
             <InfoItem label={translateText("1 partiyaga sarf")} value={`25 ${product.unit}`} />
             <InfoItem label={translateText("Rezerv qilingan")} value={`40 ${product.unit}`} />
             <InfoItem
-              label={translateText("Mavjud stock")}
+              label={translateText("Mavjud qoldiq")}
               value={`${Math.max(product.stock - 40, 0)} ${product.unit}`} />
             
             <InfoItem label={translateText("Material use")} value="Asosiy retsept komponenti" />

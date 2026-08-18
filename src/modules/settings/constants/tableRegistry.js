@@ -26,7 +26,7 @@ export const TABLE_REGISTRY = [
       { key: "sales", title: "Savdo" },
       { key: "debt", title: "Qarz" },
       { key: "lastSale", title: "Oxirgi savdo" },
-      { key: "segment", title: "Segment" },
+      { key: "segment", title: "Toifa" },
       { key: "status", title: "Holat" },
       { key: "actions", title: "Amallar", locked: true },
     ],
@@ -151,7 +151,7 @@ export const TABLE_REGISTRY = [
     columns: [
       { key: "employeeId", title: "Xodim" },
       { key: "baseAmount", title: "Asos" },
-      { key: "bonuses", title: "Bonus" },
+      { key: "bonuses", title: "Mukofot" },
       { key: "advances", title: "Avans" },
       { key: "penalties", title: "Jarima" },
       { key: "netAmount", title: "Sof oylik" },
@@ -167,7 +167,7 @@ export const TABLE_REGISTRY = [
     columns: [
       { key: "employeeName", title: "Xodim" },
       { key: "baseAmount", title: "Asos" },
-      { key: "bonuses", title: "Bonus" },
+      { key: "bonuses", title: "Mukofot" },
       { key: "advances", title: "Avans" },
       { key: "penalties", title: "Jarima" },
       { key: "netAmount", title: "Sof oylik" },

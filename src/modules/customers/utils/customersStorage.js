@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 const STORAGE_KEY = "customers";
 const FOLLOW_UPS_KEY = "customer_followups";
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
@@ -58,7 +58,7 @@ export const normalizeCustomer = (customer = {}) => ({
 });
 export const getCustomerDisplayName = customer => customer?.companyName || customer?.name || customer?.fullName || customer?.phone || customer?.id || "Mijoz";
 const readCustomers = () => {
-  const remoteCustomers = unwrapList(syncApiRequest("/customers"), ["customers"]);
+  const remoteCustomers = unwrapList(getCachedApiResponse("/customers"), ["customers"]);
   if (Array.isArray(remoteCustomers)) {
     tenantSet(STORAGE_KEY, remoteCustomers);
     return remoteCustomers.map(normalizeCustomer);
@@ -96,8 +96,8 @@ export const saveCustomers = customers => {
 export const getCustomerById = customerId => {
   return getStoredCustomers().find(customer => customer.id === customerId) || null;
 };
-export const createCustomer = customer => {
-  const remoteCustomer = syncApiRequest("/customers", {
+export const createCustomer = async customer => {
+  const remoteCustomer = await apiRequest("/customers", {
     method: "POST",
     body: customer
   });
@@ -117,8 +117,8 @@ export const createCustomer = customer => {
   saveCustomers([newCustomer, ...customers]);
   return newCustomer;
 };
-export const updateCustomer = updatedCustomer => {
-  const remoteCustomer = updatedCustomer?.id ? syncApiRequest(`/customers/${updatedCustomer.id}`, {
+export const updateCustomer = async updatedCustomer => {
+  const remoteCustomer = updatedCustomer?.id ? await apiRequest(`/customers/${updatedCustomer.id}`, {
     method: "PATCH",
     body: updatedCustomer
   }) : null;
@@ -143,14 +143,14 @@ export const updateCustomer = updatedCustomer => {
   saveCustomers(next);
   return savedCustomer;
 };
-export const deleteCustomer = customerId => {
-  syncApiRequest(`/customers/${customerId}`, {
+export const deleteCustomer = async customerId => {
+  await apiRequest(`/customers/${customerId}`, {
     method: "DELETE"
   });
   const next = getStoredCustomers().filter(customer => customer.id !== customerId);
   saveCustomers(next);
 };
-export const deactivateCustomer = customerId => updateCustomer({
+export const deactivateCustomer = async customerId => updateCustomer({
   id: customerId,
   status: "INACTIVE"
 });

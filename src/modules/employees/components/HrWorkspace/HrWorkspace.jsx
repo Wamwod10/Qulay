@@ -258,9 +258,9 @@ const HrWorkspace = ({ view = "overview", mode = "list" }) => {
   };
 
   return (
-    <PageContainer title="HR / Xodimlar" description="Xodim, davomat, smena, payroll va finance oqimi.">
+    <PageContainer title="HR / Xodimlar" description="Xodim, davomat, smena, ish haqi va moliya oqimi.">
       <div className="hr-workspace">
-        <nav className="hr-workspace__nav" aria-label="HR navigation">
+        <nav className="hr-workspace__nav" aria-label="Xodimlar bo‘limi">
           <NavLink to="/hr" end>
             Boshqaruv paneli
           </NavLink>
@@ -442,12 +442,12 @@ const EmployeeList = ({ data, refresh }) => {
     },
   ]);
 
-  const handleDelete = (employee) => {
+  const handleDelete = async (employee) => {
     try {
       if (hasEmployeeHistory(employee.id)) {
-        deactivateEmployee(employee.id);
+        await deactivateEmployee(employee.id);
       } else {
-        deleteEmployee(employee.id);
+        await deleteEmployee(employee.id);
       }
       refresh();
     } catch (error) {
@@ -479,7 +479,7 @@ const EmployeeList = ({ data, refresh }) => {
         <Select
           label="Holat"
           value={filters.status}
-          options={optionize(EMPLOYEE_STATUSES, "Barcha statuslar")}
+          options={optionize(EMPLOYEE_STATUSES, "Barcha holatlar")}
           onChange={(event) => setFilters({ ...filters, status: event.target.value })}
         />
         <Select
@@ -551,12 +551,12 @@ const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
     try {
-      const saved = upsertEmployee({
+      const saved = await upsertEmployee({
         ...form,
         baseSalary: safeMoney(form.baseSalary),
         hourlyRate: safeMoney(form.hourlyRate),
@@ -692,7 +692,7 @@ const EmployeeDetails = ({ employee, data, refresh }) => {
         <DetailSection title="Smena" rows={[["Smena", shift?.name || "-"], ["Vaqt", shift ? `${shift.startTime}-${shift.endTime}` : "-"], ["Tanaffus", `${shift?.breakMinutes || 0} min`]]} />
         <DetailSection title="Maosh / oylik hisob-kitobi" rows={[["Maosh turi", salaryTypeLabels[employee.salaryType]], ["Jami qarz", money(debt)], ["Oxirgi to'lov", lastPayment ? money(lastPayment.amount) : "-"]]} />
         <DetailSection title="Avanslar" rows={getEmployeeAdvances(employee.id, monthIso()).map((item) => [item.date, money(item.amount)])} />
-        <DetailSection title="Bonuslar" rows={getEmployeeBonuses(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
+        <DetailSection title="Mukofotlar" rows={getEmployeeBonuses(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
         <DetailSection title="Jarimalar" rows={getEmployeePenalties(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
         <DetailSection title="Ta'tillar" rows={data.leaves.filter((leave) => leave.employeeId === employee.id).map((leave) => [leaveTypeLabels[leave.type] || leave.type, `${leave.startDate} - ${leave.endDate}`])} />
         <DetailSection title="To'lov tarixi" rows={payments.map((payment) => [payment.date, `${money(payment.amount)} / ${getPaymentMethodLabel(payment.method)}`])} />
@@ -755,7 +755,7 @@ const AttendanceManager = ({ data, refresh }) => {
         <DatePicker label="Sana" value={filters.date} onChange={(event) => setFilters({ ...filters, date: event.target.value })} />
         <Select label="Xodim" value={filters.employeeId} options={[{ value: "", label: "Barcha xodimlar" }, ...data.employees.map((employee) => ({ value: employee.id, label: employee.fullName }))]} onChange={(event) => setFilters({ ...filters, employeeId: event.target.value })} />
         <Select label="Bolim" value={filters.department} options={optionize(departments, "Barcha bolimlar")} onChange={(event) => setFilters({ ...filters, department: event.target.value })} />
-        <Select label="Holat" value={filters.status} options={optionize(ATTENDANCE_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
+        <Select label="Holat" value={filters.status} options={optionize(ATTENDANCE_STATUSES, "Barcha holatlar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
         <Button leftIcon={<Plus size={16} />} onClick={() => setModal("attendance")}>
           Davomat belgilash
         </Button>
@@ -854,17 +854,19 @@ const PayrollManager = ({ data, refresh }) => {
     );
   });
 
-  const calculateAll = () => {
-    data.employees
-      .filter((employee) => employee.status !== "INACTIVE")
-      .forEach((employee) => saveCalculatedPayroll(employee.id, filters.month));
+  const calculateAll = async () => {
+    await Promise.all(
+      data.employees
+        .filter((employee) => employee.status !== "INACTIVE")
+        .map((employee) => saveCalculatedPayroll(employee.id, filters.month)),
+    );
     refresh();
   };
 
   const payrollColumns = useConfiguredColumns("payroll", [
     { key: "employeeId", title: "Xodim", render: (value) => employeeMap.get(value)?.fullName || "-" },
     { key: "baseAmount", title: "Asos", render: (value, row) => `${money(value)} ${row.attendanceAdjustment ? `(${money(row.attendanceAdjustment)})` : ""}` },
-    { key: "bonuses", title: "Bonus", render: (value) => money(value) },
+    { key: "bonuses", title: "Mukofot", render: (value) => money(value) },
     { key: "advances", title: "Avans", render: (value) => money(value) },
     { key: "penalties", title: "Jarima", render: (value) => money(value) },
     { key: "netAmount", title: "Sof oylik", render: (value) => money(value) },
@@ -876,7 +878,7 @@ const PayrollManager = ({ data, refresh }) => {
       title: "Amallar",
       render: (_, payroll) => (
         <div className="hr-workspace__row-actions">
-          <button type="button" onClick={() => { saveCalculatedPayroll(payroll.employeeId, payroll.month); refresh(); }}>
+          <button type="button" onClick={async () => { await saveCalculatedPayroll(payroll.employeeId, payroll.month); refresh(); }}>
             <Clock3 size={16} />
           </button>
           <button type="button" disabled={payroll.debtAmount <= 0} onClick={() => setPaying(payroll)}>
@@ -892,7 +894,7 @@ const PayrollManager = ({ data, refresh }) => {
       <Card padding="lg" className="hr-workspace__filters">
         <Input label="Oy" type="month" value={filters.month} onChange={(event) => setFilters({ ...filters, month: event.target.value || monthIso() })} />
         <Select label="Bolim" value={filters.department} options={optionize(departments, "Barcha bolimlar")} onChange={(event) => setFilters({ ...filters, department: event.target.value })} />
-        <Select label="Holat" value={filters.status} options={optionize(PAYROLL_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
+        <Select label="Holat" value={filters.status} options={optionize(PAYROLL_STATUSES, "Barcha holatlar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
         <Button leftIcon={<Banknote size={16} />} onClick={calculateAll}>
           Barchasini hisoblash
         </Button>
@@ -972,7 +974,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
     ? employees.map((item) => ({ value: item.id, label: item.fullName }))
     : [{ value: employee?.id || "", label: employee?.fullName || "-" }];
 
-  const submit = () => {
+  const submit = async () => {
     setError("");
     try {
       if (type === "attendance") {
@@ -985,7 +987,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
           note: form.note,
         });
       } else if (type === "advance") {
-        addAdvance({
+        await addAdvance({
           employeeId: employee.id,
           amount: form.amount,
           date: form.date,
@@ -994,7 +996,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
           cashboxId: form.cashboxId,
         });
       } else if (type === "bonus") {
-        addBonus({ employeeId: employee.id, amount: form.amount, reason: form.reason || "Bonus", date: form.date, note: form.note });
+        addBonus({ employeeId: employee.id, amount: form.amount, reason: form.reason || "Mukofot", date: form.date, note: form.note });
       } else if (type === "penalty") {
         addPenalty({ employeeId: employee.id, amount: form.amount, reason: form.reason || "Boshqa", date: form.date, note: form.note });
       } else if (type === "leave") {
@@ -1017,7 +1019,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
   const titleMap = {
     attendance: "Davomat belgilash",
     advance: "Avans berish",
-    bonus: "Bonus qo'shish",
+    bonus: "Mukofot qo'shish",
     penalty: "Jarima qo'shish",
     leave: "Ta'til qo'shish",
   };
@@ -1101,7 +1103,7 @@ const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
     return null;
   }
 
-  const submit = () => {
+  const submit = async () => {
     setError("");
     try {
       if (
@@ -1111,7 +1113,7 @@ const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
         return;
       }
 
-      payPayroll({ payrollId: payroll.id, ...form });
+      await payPayroll({ payrollId: payroll.id, ...form });
       onDone();
     } catch (caughtError) {
       setError(caughtError.message);

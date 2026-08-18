@@ -359,7 +359,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
           
 
           <Input
-            label={translateText("Barcode")}
+            label={translateText("Shtrix-kod")}
             placeholder="4780012345000"
             value={form.barcode}
             onChange={(event) => handleChange("barcode", event.target.value)} />

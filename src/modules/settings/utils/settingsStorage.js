@@ -12,7 +12,10 @@ import {
   getStoredLanguage,
 } from "../../../localization/i18n";
 import { normalizeLanguage } from "../../../localization/languages";
-import { syncApiRequest } from "../../../services/api/syncApi";
+import { apiRequest } from "../../../services/api/apiClient";
+import { API_BASE_URL } from "../../../services/api/apiUrl";
+import { getStoredSession } from "../../auth/utils/authStorage";
+import { PLATFORM_ACCOUNT_ID, SUPER_ADMIN_ROLE } from "../../../constants/auth";
 
 const STORAGE_KEY = "universal_erp_platform_settings";
 const OLD_STORAGE_KEYS = [
@@ -20,6 +23,8 @@ const OLD_STORAGE_KEYS = [
   "platformSettings",
   "settings",
 ];
+
+let skipNextSettingsPersistence = false;
 
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -145,15 +150,12 @@ const readJson = (key) => {
   return JSON.parse(stored);
 };
 
-export const loadPlatformSettings = () => {
+export const getPlatformSettings = () => {
   try {
-    const response = syncApiRequest("/settings");
+    const session = getStoredSession();
 
-    if (response?.settings) {
-      const settings = normalizeSettings(response.settings);
-      tenantSet("settings", settings);
-
-      return settings;
+    if (!session?.accessToken || session.accountId === PLATFORM_ACCOUNT_ID || session.user?.role === SUPER_ADMIN_ROLE) {
+      return normalizeSettings();
     }
 
     const tenantSettings = tenantGet("settings", null);
@@ -168,45 +170,98 @@ export const loadPlatformSettings = () => {
       return normalizeSettings(canonical);
     }
 
-    for (const key of OLD_STORAGE_KEYS) {
+    return normalizeSettings();
+  } catch (error) {
+    return normalizeSettings();
+  }
+};
+
+export const loadPlatformSettings = async () => {
+  try {
+    const session = getStoredSession();
+
+    if (!session?.accessToken || session.accountId === PLATFORM_ACCOUNT_ID || session.user?.role === SUPER_ADMIN_ROLE) {
+      return normalizeSettings();
+    }
+
+    const response = await apiRequest("/settings");
+
+    if (response?.settings) {
+      const settings = normalizeSettings(response.settings);
+      tenantSet("settings", settings);
+
+      return settings;
+    }
+
+    const current = getPlatformSettings();
+
+    if (current) {
+      return current;
+    }
+
+    for (const key of [STORAGE_KEY, ...OLD_STORAGE_KEYS]) {
       const legacy = readJson(key);
 
       if (legacy) {
-        const migrated = normalizeSettings(legacy);
-        savePlatformSettings(migrated);
-
-        return migrated;
+        return normalizeSettings(legacy);
       }
     }
 
     return normalizeSettings();
   } catch (error) {
     console.error("Settings load error:", error);
-
-    return normalizeSettings();
+    return getPlatformSettings();
   }
+};
+
+export const markSettingsHydrated = () => {
+  skipNextSettingsPersistence = true;
+};
+
+export const consumeSettingsHydration = () => {
+  const shouldSkip = skipNextSettingsPersistence;
+  skipNextSettingsPersistence = false;
+  return shouldSkip;
 };
 
 export const savePlatformSettings = (settings) => {
   try {
+    const session = getStoredSession();
+
+    if (!session?.accessToken || session.accountId === PLATFORM_ACCOUNT_ID || session.user?.role === SUPER_ADMIN_ROLE) {
+      return;
+    }
+
     const normalizedSettings = normalizeSettings(settings);
-    const response = syncApiRequest("/settings", {
-      method: "PATCH",
-      body: { settings: normalizedSettings },
-    });
-
-    if (response?.settings) {
-      tenantSet("settings", normalizedSettings);
-      return;
-    }
-
-    if (tenantSet("settings", normalizedSettings)) {
-      return;
-    }
-
+    tenantSet("settings", normalizedSettings);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedSettings));
+
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+      ...(session.accountId && session.accountId !== PLATFORM_ACCOUNT_ID
+        ? { "X-Company-Id": session.accountId }
+        : {}),
+    };
+
+    return fetch(`${API_BASE_URL}/settings`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ settings: normalizedSettings }),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Settings save failed (${response.status})`);
+      }
+
+      return response;
+    }).catch((error) => {
+      console.error("Settings save error:", error);
+      return null;
+    });
   } catch (error) {
     console.error("Settings save error:", error);
+    return null;
   }
 };
 

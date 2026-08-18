@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const TRANSACTIONS_KEY = "finance_transactions";
 const CASHBOXES_KEY = "finance_cashboxes";
@@ -117,7 +117,7 @@ export const normalizeCashbox = (cashbox = {}) => ({
 });
 
 export const getStoredCashboxes = () => {
-  const remoteCashboxes = unwrapList(syncApiRequest("/finance/cashboxes"), ["cashboxes"]);
+  const remoteCashboxes = unwrapList(getCachedApiResponse("/finance/cashboxes"), ["cashboxes"]);
   if (Array.isArray(remoteCashboxes)) {
     writeJson(CASHBOXES_KEY, remoteCashboxes, { silent: true });
     return remoteCashboxes.map(normalizeCashbox);
@@ -177,7 +177,7 @@ export const normalizeFinanceTransaction = (transaction = {}) => {
 };
 
 export const getStoredFinanceTransactions = () => {
-  const remoteTransactions = unwrapList(syncApiRequest("/finance/transactions"), ["transactions"]);
+  const remoteTransactions = unwrapList(getCachedApiResponse("/finance/transactions"), ["transactions"]);
   if (Array.isArray(remoteTransactions)) {
     writeJson(TRANSACTIONS_KEY, remoteTransactions, { silent: true });
     return remoteTransactions.map(normalizeFinanceTransaction);
@@ -199,8 +199,8 @@ export const saveFinanceTransactions = (transactions) => {
   return writeJson(TRANSACTIONS_KEY, transactions.map(normalizeFinanceTransaction));
 };
 
-export const addFinanceTransaction = (transaction) => {
-  const remoteTransaction = syncApiRequest("/finance/transactions", {
+export const addFinanceTransaction = async (transaction) => {
+  const remoteTransaction = await apiRequest("/finance/transactions", {
     method: "POST",
     body: transaction,
   });
@@ -226,11 +226,11 @@ export const reverseFinanceTransaction = (transactionId, note = "") => {
   const target = transactions.find((transaction) => transaction.id === transactionId);
 
   if (!target) {
-    throw new Error("Finance transaction topilmadi.");
+    throw new Error("Moliya operatsiyasi topilmadi.");
   }
 
   if (target.sourceType === "SALE_PAYMENT" || target.sourceType === "PURCHASE_PAYMENT") {
-    throw new Error("Source transaction Sales/Purchases modulidan boshqariladi.");
+    throw new Error("Manba operatsiyasi savdo yoki xarid modulidan boshqariladi.");
   }
 
   if (target.reversed) {
@@ -246,7 +246,7 @@ export const reverseFinanceTransaction = (transactionId, note = "") => {
     sourceId: target.id,
     date: now,
     createdAt: now,
-    note: note || `Reverse: ${target.note || target.category}`,
+    note: note || `Qaytarish: ${target.note || target.category}`,
   });
 
   const next = transactions.map((transaction) =>

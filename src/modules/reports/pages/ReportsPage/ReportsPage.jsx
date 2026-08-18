@@ -364,7 +364,7 @@ const ReportsPage = () => {
       {
         key: "bonuses",
 
-        title: "Bonus",
+        title: "Mukofot",
 
         render: (value) => moneyText(value),
       },
@@ -630,7 +630,7 @@ const ReportsPage = () => {
 
         <ReportSection
           title="Xodimlar hisoboti"
-          description="Xodim, davomat, oylik hisob-kitobi, qarz va bonus/jarimalar asosida."
+          description="Xodim, davomat, oylik hisob-kitobi, qarz va mukofot/jarimalar asosida."
         >
           <div className="reports-page__hr-filter">
             <Input
@@ -668,7 +668,7 @@ const ReportsPage = () => {
             />
 
             <SummaryValue
-              label="Bonuslar"
+              label="Mukofotlar"
               value={moneyText(hrReport.summary.bonuses)}
             />
 
@@ -995,7 +995,7 @@ const ReportsPage = () => {
         </ReportSection>
 
         {/* =========================
-            DEFECT / WASTE
+            BRAK / CHIQINDI
         ========================== */}
 
         <ReportSection

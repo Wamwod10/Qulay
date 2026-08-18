@@ -10,12 +10,12 @@ const CustomerEditPage = () => {
     customerId
   } = useParams();
   const customer = getCustomerById(customerId);
-  const handleSubmit = values => {
-    const saved = updateCustomer(values);
+  const handleSubmit = async values => {
+    const saved = await updateCustomer(values);
     navigate(`/customers/${saved?.id || customerId}`);
   };
   if (!customer) {
-    return <PageContainer title={translateText("Mijoz topilmadi")} description={translateText("Tahrirlash uchun customer mavjud emas.")}>
+    return <PageContainer title={translateText("Mijoz topilmadi")} description={translateText("Tahrirlash uchun mijoz mavjud emas.")}>
         <Button variant="secondary" onClick={() => navigate("/customers")}>{translateText("Mijozlarga qaytish")}</Button>
       </PageContainer>;
   }
