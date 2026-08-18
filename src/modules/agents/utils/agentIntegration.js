@@ -5,6 +5,7 @@ import {
 import { getStoredPayments } from "../../finance/utils/paymentsStorage";
 import { getStoredOrders } from "../../sales/utils/ordersStorage";
 import { getStoredSales } from "../../sales/utils/salesStorage";
+import { translateText } from "../../../localization/i18n";
 
 import {
   getAgentById,
@@ -21,7 +22,7 @@ const sumBy = (items, getter) =>
 
 export const getCustomerDisplayName = (customer) => {
   if (!customer) {
-    return "Mijoz";
+    return translateText("Mijoz");
   }
 
   return (
@@ -30,7 +31,7 @@ export const getCustomerDisplayName = (customer) => {
     customer.companyName ||
     customer.phone ||
     customer.id ||
-    "Mijoz"
+    translateText("Mijoz")
   );
 };
 
@@ -190,15 +191,15 @@ export const getAgentDeleteSafety = (agentId) => {
   const blockingReasons = [];
 
   if (customers.length) {
-    blockingReasons.push(`${customers.length} ta mijoz biriktirilgan`);
+    blockingReasons.push(`${customers.length} ${translateText("ta mijoz biriktirilgan")}`);
   }
 
   if (orders.length) {
-    blockingReasons.push(`${orders.length} ta buyurtma bog'langan`);
+    blockingReasons.push(`${orders.length} ${translateText("ta buyurtma bog'langan")}`);
   }
 
   if (payments.length) {
-    blockingReasons.push(`${payments.length} ta to'lov bog'langan`);
+    blockingReasons.push(`${payments.length} ${translateText("ta to'lov bog'langan")}`);
   }
 
   return {

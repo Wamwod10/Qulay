@@ -6,13 +6,14 @@ import {
 } from "../../warehouse/utils/warehouseStorage";
 import { getStoredWarehouses } from "../../warehouse/utils/warehouseManagementStorage";
 
-import { INITIAL_SALES } from "../constants/salesMock";
+import { getTenantKey, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 import { calculateSaleTotals, roundMoney } from "./salesCalculations";
 import { getPaymentStatus } from "./salesHelpers";
 
-const STORAGE_KEY = "universal_erp_sales";
-const MOVEMENTS_KEY = "universal_erp_warehouse_movements";
+const STORAGE_KEY = "sales";
+const MOVEMENTS_KEY = "warehouse_movements";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
@@ -129,13 +130,7 @@ const readJson = (key, fallback) => {
   }
 
   try {
-    const stored = window.localStorage.getItem(key);
-
-    if (!stored) {
-      return fallback;
-    }
-
-    return JSON.parse(stored);
+    return tenantGet(key, fallback);
   } catch {
     return fallback;
   }
@@ -146,7 +141,7 @@ const writeJson = (key, value) => {
     return false;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  tenantSet(key, value);
 
   return true;
 };
@@ -158,9 +153,12 @@ const commitBatch = ({ sales, stock, movements }) => {
     return false;
   }
 
-  const previousSales = window.localStorage.getItem(STORAGE_KEY);
-  const previousStock = window.localStorage.getItem("universal_erp_warehouse_stock");
-  const previousMovements = window.localStorage.getItem(MOVEMENTS_KEY);
+  const salesKey = getTenantKey(STORAGE_KEY);
+  const stockKey = getTenantKey("warehouse_stock");
+  const movementsKey = getTenantKey(MOVEMENTS_KEY);
+  const previousSales = salesKey ? window.localStorage.getItem(salesKey) : null;
+  const previousStock = stockKey ? window.localStorage.getItem(stockKey) : null;
+  const previousMovements = movementsKey ? window.localStorage.getItem(movementsKey) : null;
 
   try {
     saveWarehouseStock(stock);
@@ -173,21 +171,21 @@ const commitBatch = ({ sales, stock, movements }) => {
     return true;
   } catch (error) {
     if (previousStock === null) {
-      window.localStorage.removeItem("universal_erp_warehouse_stock");
-    } else {
-      window.localStorage.setItem("universal_erp_warehouse_stock", previousStock);
+      if (stockKey) window.localStorage.removeItem(stockKey);
+    } else if (stockKey) {
+      window.localStorage.setItem(stockKey, previousStock);
     }
 
     if (previousMovements === null) {
-      window.localStorage.removeItem(MOVEMENTS_KEY);
-    } else {
-      window.localStorage.setItem(MOVEMENTS_KEY, previousMovements);
+      if (movementsKey) window.localStorage.removeItem(movementsKey);
+    } else if (movementsKey) {
+      window.localStorage.setItem(movementsKey, previousMovements);
     }
 
     if (previousSales === null) {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } else {
-      window.localStorage.setItem(STORAGE_KEY, previousSales);
+      if (salesKey) window.localStorage.removeItem(salesKey);
+    } else if (salesKey) {
+      window.localStorage.setItem(salesKey, previousSales);
     }
 
     throw error;
@@ -245,12 +243,19 @@ const validateSaleInput = (sale) => {
 };
 
 export const getStoredSales = () => {
+  const remoteSales = unwrapList(syncApiRequest("/sales"), ["sales"]);
+
+  if (Array.isArray(remoteSales)) {
+    writeSales(remoteSales);
+    return remoteSales.map(normalizeSale);
+  }
+
   const stored = readJson(STORAGE_KEY, null);
 
   if (!Array.isArray(stored)) {
-    writeSales(INITIAL_SALES);
+    writeSales([]);
 
-    return INITIAL_SALES.map(normalizeSale);
+    return [];
   }
 
   const normalizedSales = stored.map(normalizeSale);
@@ -277,6 +282,17 @@ export const getSaleById = (saleId) =>
   getStoredSales().find((sale) => sale.id === saleId) || null;
 
 export const createSale = (values) => {
+  const remoteSale = syncApiRequest("/sales", {
+    method: "POST",
+    body: values,
+  });
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales([remoteSale, ...sales.filter((sale) => sale.id !== remoteSale.id)]);
+    return normalizeSale(remoteSale);
+  }
+
   const sales = getStoredSales();
   const now = nowIso();
   const sale = normalizeSale({
@@ -294,6 +310,19 @@ export const createSale = (values) => {
 };
 
 export const updateSale = (updatedSale) => {
+  const remoteSale = updatedSale?.status === "DRAFT"
+    ? syncApiRequest("/sales", {
+        method: "POST",
+        body: updatedSale,
+      })
+    : null;
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales(sales.map((sale) => (sale.id === remoteSale.id ? remoteSale : sale)));
+    return normalizeSale(remoteSale);
+  }
+
   const sales = getStoredSales();
   let result = null;
 
@@ -317,6 +346,17 @@ export const updateSale = (updatedSale) => {
 };
 
 export const holdSale = (values) => {
+  const remoteSale = syncApiRequest("/sales", {
+    method: "POST",
+    body: values,
+  });
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales([remoteSale, ...sales.filter((sale) => sale.id !== remoteSale.id)]);
+    return normalizeSale(remoteSale);
+  }
+
   const sales = getStoredSales();
   const now = nowIso();
   const draft = normalizeSale({
@@ -341,6 +381,22 @@ export const holdSale = (values) => {
 };
 
 export const completeSale = (values) => {
+  const idempotencyKey = values.id || `sale-complete-${Date.now()}`;
+  const remoteSale = syncApiRequest("/sales/complete", {
+    method: "POST",
+    idempotencyKey,
+    body: { ...values, idempotencyKey },
+  });
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales([remoteSale, ...sales.filter((sale) => sale.id !== remoteSale.id)]);
+    window.dispatchEvent(new Event("warehouse:changed"));
+    window.dispatchEvent(new Event("finance:changed"));
+    window.dispatchEvent(new Event("customers:changed"));
+    return normalizeSale(remoteSale);
+  }
+
   validateSaleInput(values);
 
   const products = getStoredProducts();
@@ -450,6 +506,20 @@ export const completeSale = (values) => {
 };
 
 export const cancelSale = ({ saleId, reason = "" }) => {
+  const remoteSale = syncApiRequest(`/sales/${saleId}/cancel`, {
+    method: "POST",
+    body: { reason },
+  });
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales(sales.map((sale) => (sale.id === remoteSale.id ? remoteSale : sale)));
+    window.dispatchEvent(new Event("warehouse:changed"));
+    window.dispatchEvent(new Event("finance:changed"));
+    window.dispatchEvent(new Event("customers:changed"));
+    return normalizeSale(remoteSale);
+  }
+
   const sales = getStoredSales();
   const sale = sales.find((item) => item.id === saleId);
 
@@ -538,6 +608,20 @@ export const cancelSale = ({ saleId, reason = "" }) => {
 };
 
 export const returnSaleItems = ({ saleId, items = [], reason = "" }) => {
+  const remoteSale = syncApiRequest(`/sales/${saleId}/return`, {
+    method: "POST",
+    body: { items, reason },
+  });
+
+  if (remoteSale?.id) {
+    const sales = getStoredSales();
+    saveSales(sales.map((sale) => (sale.id === remoteSale.id ? remoteSale : sale)));
+    window.dispatchEvent(new Event("warehouse:changed"));
+    window.dispatchEvent(new Event("finance:changed"));
+    window.dispatchEvent(new Event("customers:changed"));
+    return normalizeSale(remoteSale);
+  }
+
   const sales = getStoredSales();
   const sale = sales.find((item) => item.id === saleId);
 

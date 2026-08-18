@@ -1,4 +1,4 @@
-import {
+import { translateText } from "../../../../localization/i18n";import {
   Archive,
   Barcode,
   Boxes,
@@ -7,8 +7,8 @@ import {
   MoreHorizontal,
   Power,
   RotateCcw,
-  Trash2,
-} from "lucide-react";
+  Trash2 } from
+"lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -26,7 +26,7 @@ const ProductActionsMenu = ({
   onStockAdjustment,
   onPriceChange,
   onArchive,
-  onDelete,
+  onDelete
 }) => {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -58,7 +58,7 @@ const ProductActionsMenu = ({
 
     setPosition({
       top: Math.max(12, top),
-      left,
+      left
     });
   };
 
@@ -116,8 +116,8 @@ const ProductActionsMenu = ({
         <Button
           size="sm"
           variant="ghost"
-          aria-label="Boshqa amallar"
-          title="Boshqa amallar"
+          aria-label={translateText("Boshqa amallar")}
+          title={translateText("Boshqa amallar")}
           onClick={() => {
             setOpen((current) => {
               const next = !current;
@@ -128,74 +128,74 @@ const ProductActionsMenu = ({
 
               return next;
             });
-          }}
-        >
+          }}>
+          
           <MoreHorizontal size={17} />
         </Button>
       </div>
 
       {open &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="product-actions-menu__dropdown"
-            style={{ top: position.top, left: position.left }}
-          >
-            {product.status !== "ARCHIVED" && (
-              <button type="button" onClick={() => execute(onToggleStatus)}>
+      createPortal(
+        <div
+          ref={menuRef}
+          className="product-actions-menu__dropdown"
+          style={{ top: position.top, left: position.left }}>
+          
+            {product.status !== "ARCHIVED" &&
+          <button type="button" onClick={() => execute(onToggleStatus)}>
                 <Power size={16} />
-                {product.status === "ACTIVE"
-                  ? "Faol emas qilish"
-                  : "Faollashtirish"}
+                {product.status === "ACTIVE" ?
+            "Faol emas qilish" :
+            "Faollashtirish"}
               </button>
-            )}
+          }
 
             <button type="button" onClick={() => execute(onDuplicate)}>
-              <Copy size={16} />
-              Nusxa olish
-            </button>
+              <Copy size={16} />{translateText("Nusxa olish")}
+
+          </button>
 
             <button type="button" onClick={() => execute(onBarcode)}>
-              <Barcode size={16} />
-              Barcode / QR
-            </button>
+              <Barcode size={16} />{translateText("Barcode / QR")}
+
+          </button>
 
             <button type="button" onClick={() => execute(onStockAdjustment)}>
-              <Boxes size={16} />
-              Qoldiqni tuzatish
-            </button>
+              <Boxes size={16} />{translateText("Qoldiqni tuzatish")}
+
+          </button>
 
             <button type="button" onClick={() => execute(onPriceChange)}>
-              <DollarSign size={16} />
-              Narxni o'zgartirish
-            </button>
+              <DollarSign size={16} />{translateText("Narxni o'zgartirish")}
+
+          </button>
 
             <div className="product-actions-menu__divider" />
 
             <button type="button" onClick={() => execute(onArchive)}>
-              {product.status === "ARCHIVED" ? (
-                <RotateCcw size={16} />
-              ) : (
-                <Archive size={16} />
-              )}
-              {product.status === "ARCHIVED"
-                ? "Arxivdan qaytarish"
-                : "Arxivga o'tkazish"}
+              {product.status === "ARCHIVED" ?
+            <RotateCcw size={16} /> :
+
+            <Archive size={16} />
+            }
+              {product.status === "ARCHIVED" ?
+            "Arxivdan qaytarish" :
+            "Arxivga o'tkazish"}
             </button>
 
             <button
-              type="button"
-              className="product-actions-menu__danger"
-              onClick={() => execute(onDelete)}
-            >
-              <Trash2 size={16} />
-              O'chirish
-            </button>
+            type="button"
+            className="product-actions-menu__danger"
+            onClick={() => execute(onDelete)}>
+            
+              <Trash2 size={16} />{translateText("O'chirish")}
+
+          </button>
           </div>,
-          document.body,
-        )}
-    </div>
-  );
+        document.body
+      )}
+    </div>);
+
 };
 
 export default ProductActionsMenu;

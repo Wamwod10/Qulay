@@ -8,6 +8,7 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
+    width: var(--receipt-width, 80mm);
     max-width: 360px;
     margin: 0 auto;
     padding: 20px;
@@ -96,6 +97,15 @@
     color: #66707c;
     font-size: 11px;
   }
+
+  &__footer {
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px dashed #b7bec7;
+    color: #66707c;
+    font-size: 11px;
+    text-align: center;
+  }
 }
 
 @media print {
@@ -111,12 +121,12 @@
   .sales-receipt {
     position: absolute;
     inset: 0 auto auto 0;
-    width: 80mm;
+    width: var(--receipt-width, 80mm);
     padding: 0;
   }
 
   .sales-receipt__paper {
-    width: 80mm;
+    width: var(--receipt-width, 80mm);
     max-width: none;
     box-shadow: none;
   }

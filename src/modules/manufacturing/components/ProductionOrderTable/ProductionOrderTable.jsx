@@ -6,6 +6,7 @@ import {
   getProductionStatusLabel,
   getProductionStatusVariant,
 } from "../../utils/manufacturingHelpers";
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 
 const ProductionOrdersTable = ({ orders = [], onView }) => {
   const columns = [
@@ -78,9 +79,11 @@ const ProductionOrdersTable = ({ orders = [], onView }) => {
     },
   ];
 
+  const configuredColumns = useConfiguredColumns("production-orders", columns);
+
   return (
     <Table
-      columns={columns}
+      columns={configuredColumns}
       data={orders}
       rowKey="id"
       emptyText="Ishlab chiqarish buyurtmasi mavjud emas."

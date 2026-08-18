@@ -221,7 +221,7 @@ const SupplierForm = ({ initialValues, onSubmit, onCancel }) => {
           <div>
             <h3>Qo‘shimcha</h3>
 
-            <p>Status va ichki izoh.</p>
+            <p>Holat va ichki izoh.</p>
           </div>
         </div>
 

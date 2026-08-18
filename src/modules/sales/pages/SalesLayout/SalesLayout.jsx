@@ -3,27 +3,29 @@ import { NavLink, Outlet } from "react-router-dom";
 import { History, Monitor } from "lucide-react";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
+import { useTerminology } from "../../../settings/selectors/settingsSelectors";
 
 import "./SalesLayout.scss";
 
 const SalesLayout = () => {
+  const { tTerm } = useTerminology();
   const tabs = [
     {
       to: "/sales/terminal",
-      label: "POS Terminal",
+      label: tTerm("pos"),
       icon: <Monitor size={16} />,
     },
     {
       to: "/sales/history",
-      label: "Savdo ro'yxati",
+      label: tTerm("salesHistory"),
       icon: <History size={16} />,
     },
   ];
 
   return (
     <PageContainer
-      title="Savdo"
-      description="POS terminal va backoffice savdo boshqaruvi bitta localStorage data bilan ishlaydi."
+      title={tTerm("sales")}
+      description="POS terminal va backoffice savdo boshqaruvi real backend ma'lumotlari bilan ishlaydi."
     >
       <div className="sales-layout">
         <nav className="sales-layout__switcher" aria-label="Sales mode">

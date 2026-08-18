@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "title": "Танзимот",
+    "typography": {
+      "title": "Матн ва шрифт",
+      "interface": "Интерфейс",
+      "fontSize": "Андозаи умумии матн",
+      "bodyWeight": "Ғафсии матни одӣ",
+      "headingWeight": "Ғафсии сарлавҳа",
+      "tableText": "Матни ҷадвал",
+      "density": "Зичии интерфейс",
+      "compact": "Compact",
+      "normal": "Normal",
+      "comfortable": "Comfortable",
+      "reset": "Ба стандарт баргардондан"
+    },
+    "tables": {
+      "columns": "Сутунҳои ҷадвал",
+      "show": "Нишон додан",
+      "hide": "Пинҳон кардан",
+      "up": "Боло",
+      "down": "Поён"
+    }
+  }
+}

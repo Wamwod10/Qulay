@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useState } from "react";
 
 import { Button, Input, Modal, Textarea } from "../../../../shared/ui";
 
@@ -24,7 +24,7 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
   const handleSubmit = () => {
     const parsedCost = Number(cost);
     const parsedSalePrice =
-      salePrice === "" || salePrice === null ? null : Number(salePrice);
+    salePrice === "" || salePrice === null ? null : Number(salePrice);
     const nextErrors = {};
 
     if (!Number.isFinite(parsedCost) || parsedCost < 0) {
@@ -32,11 +32,11 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
     }
 
     if (
-      parsedSalePrice !== null &&
-      (!Number.isFinite(parsedSalePrice) || parsedSalePrice < 0)
-    ) {
+    parsedSalePrice !== null && (
+    !Number.isFinite(parsedSalePrice) || parsedSalePrice < 0))
+    {
       nextErrors.salePrice =
-        "Sotuv narxi manfiy yoki noto'g'ri bo'lishi mumkin emas.";
+      "Sotuv narxi manfiy yoki noto'g'ri bo'lishi mumkin emas.";
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -48,7 +48,7 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
       productId: product.id,
       cost: parsedCost,
       salePrice: parsedSalePrice,
-      reason,
+      reason
     });
   };
 
@@ -56,13 +56,13 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="Narxni o'zgartirish"
+      title={translateText("Narxni o'zgartirish")}
       description={product.name}
-      size="sm"
-    >
+      size="sm">
+      
       <div className="products-page__modal-form">
         <Input
-          label="Tannarx"
+          label={translateText("Tannarx")}
           type="number"
           min="0"
           value={cost}
@@ -70,11 +70,11 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
           onChange={(event) => {
             setCost(event.target.value);
             setErrors((current) => ({ ...current, cost: undefined }));
-          }}
-        />
+          }} />
+        
 
         <Input
-          label="Sotuv narxi"
+          label={translateText("Sotuv narxi")}
           type="number"
           min="0"
           value={salePrice}
@@ -82,26 +82,26 @@ const PriceChangeModal = ({ product, open, onClose, onSubmit }) => {
           onChange={(event) => {
             setSalePrice(event.target.value);
             setErrors((current) => ({ ...current, salePrice: undefined }));
-          }}
-        />
+          }} />
+        
 
         <Textarea
-          label="Sabab"
-          placeholder="Masalan: yetkazib beruvchi narxi oshdi..."
+          label={translateText("Sabab")}
+          placeholder={translateText("Masalan: yetkazib beruvchi narxi oshdi...")}
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
+          onChange={(event) => setReason(event.target.value)} />
+        
 
         <div className="products-page__modal-actions">
-          <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+          <Button variant="secondary" onClick={onClose}>{translateText("Bekor qilish")}
+
           </Button>
 
-          <Button onClick={handleSubmit}>Saqlash</Button>
+          <Button onClick={handleSubmit}>{translateText("Saqlash")}</Button>
         </div>
       </div>
-    </Modal>
-  );
+    </Modal>);
+
 };
 
 export default PriceChangeModal;

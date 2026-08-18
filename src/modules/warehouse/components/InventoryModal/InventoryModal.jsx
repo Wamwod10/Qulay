@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
+import { translateOptions, translateText } from "../../../../localization/i18n";
 
 const InventoryModal = ({
   open,
@@ -60,19 +61,19 @@ const InventoryModal = ({
     setError("");
 
     if (!productId) {
-      setError("Mahsulotni tanlang.");
+      setError(translateText("Mahsulotni tanlang."));
 
       return;
     }
 
     if (countedQuantity === "") {
-      setError("Sanalgan qoldiqni kiriting.");
+      setError(translateText("Sanalgan qoldiqni kiriting."));
 
       return;
     }
 
     if (Number(countedQuantity) < 0) {
-      setError("Sanalgan qoldiq manfiy bo‘lishi mumkin emas.");
+      setError(translateText("Sanalgan qoldiq manfiy bo‘lishi mumkin emas."));
 
       return;
     }
@@ -92,8 +93,10 @@ const InventoryModal = ({
     <Modal
       open={open}
       onClose={onClose}
-      title="Inventarizatsiya"
-      description="Tizimdagi qoldiqni real sanalgan qoldiq bilan solishtirish."
+      title={translateText("Inventarizatsiya")}
+      description={translateText(
+        "Tizimdagi qoldiqni real sanalgan qoldiq bilan solishtirish.",
+      )}
       size="md"
     >
       <div
@@ -103,9 +106,9 @@ const InventoryModal = ({
         }}
       >
         <Select
-          label="Mahsulot"
+          label={translateText("Mahsulot")}
           value={productId}
-          placeholder="Mahsulot tanlang"
+          placeholder={translateText("Mahsulot tanlang")}
           options={productOptions}
           onChange={(event) => setProductId(event.target.value)}
         />
@@ -113,13 +116,13 @@ const InventoryModal = ({
         {selectedItem && (
           <>
             <Input
-              label="Tizimdagi qoldiq"
+              label={translateText("Tizimdagi qoldiq")}
               value={`${selectedItem.quantity} ${selectedItem.unit}`}
               disabled
             />
 
             <Input
-              label="Real sanalgan qoldiq"
+              label={translateText("Real sanalgan qoldiq")}
               type="number"
               min="0"
               value={countedQuantity}
@@ -147,7 +150,7 @@ const InventoryModal = ({
                       fontSize: 12,
                     }}
                   >
-                    Farq
+                    {translateText("Farq")}
                   </span>
 
                   <strong
@@ -170,9 +173,9 @@ const InventoryModal = ({
         )}
 
         <Select
-          label="Sabab"
+          label={translateText("Sabab")}
           value={reason}
-          options={[
+          options={translateOptions([
             {
               value: "Rejali inventarizatsiya",
               label: "Rejali inventarizatsiya",
@@ -193,13 +196,13 @@ const InventoryModal = ({
               value: "Boshqa",
               label: "Boshqa",
             },
-          ]}
+          ])}
           onChange={(event) => setReason(event.target.value)}
         />
 
         <Textarea
-          label="Izoh"
-          placeholder="Inventarizatsiya haqida izoh..."
+          label={translateText("Izoh")}
+          placeholder={translateText("Inventarizatsiya haqida izoh...")}
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
@@ -223,10 +226,10 @@ const InventoryModal = ({
           }}
         >
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>Tasdiqlash</Button>
+          <Button onClick={handleSubmit}>{translateText("Tasdiqlash")}</Button>
         </div>
       </div>
     </Modal>

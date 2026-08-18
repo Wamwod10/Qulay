@@ -1,12 +1,12 @@
-import {
+import { translateText } from "../../../../localization/i18n";import {
   AlertTriangle,
   Ban,
   CheckCircle2,
   Clock3,
   Eye,
   PackageOpen,
-  Wallet,
-} from "lucide-react";
+  Wallet } from
+"lucide-react";
 
 import { Badge, Button, LiveIcon, Table } from "../../../../shared/ui";
 
@@ -15,8 +15,10 @@ import PurchaseActionsMenu from "../PurchaseActionsMenu/PurchaseActionsMenu";
 import {
   formatPurchaseMoney,
   getPurchaseStatusLabel,
-  getPurchaseStatusVariant,
-} from "../../utils/purchaseHelpers";
+  getPurchaseStatusVariant } from
+"../../utils/purchaseHelpers";
+
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 
 import "./PurchaseTable.scss";
 
@@ -27,138 +29,140 @@ const PurchaseTable = ({
   onPayment,
   onReceive,
   onCancel,
-  onDuplicate,
+  onDuplicate
 }) => {
   const columns = [
-    {
-      key: "number",
-      title: "Buyurtma",
+  {
+    key: "number",
+    title: translateText("Buyurtma"),
 
-      render: (value, purchase) => (
-        <div className="purchase-table__number">
+    render: (value, purchase) =>
+    <div className="purchase-table__number">
           <strong>{value}</strong>
 
           <span>{purchase.orderDate}</span>
         </div>
-      ),
-    },
 
-    {
-      key: "supplierName",
-      title: "Yetkazib beruvchi",
+  },
 
-      render: (value) => (
-        <span className="purchase-table__muted">{value || "—"}</span>
-      ),
-    },
+  {
+    key: "supplierName",
+    title: translateText("Yetkazib beruvchi"),
 
-    {
-      key: "warehouseName",
-      title: "Ombor",
+    render: (value) =>
+    <span className="purchase-table__muted">{value || "—"}</span>
 
-      render: (value) => (
-        <span className="purchase-table__muted">{value || "—"}</span>
-      ),
-    },
+  },
 
-    {
-      key: "items",
-      title: "Mahsulot",
+  {
+    key: "warehouseName",
+    title: translateText("Ombor"),
 
-      render: (items) => {
-        const count = items?.length || 0;
+    render: (value) =>
+    <span className="purchase-table__muted">{value || "—"}</span>
 
-        return <span>{count} ta pozitsiya</span>;
-      },
-    },
+  },
 
-    {
-      key: "total",
-      title: "Jami",
+  {
+    key: "items",
+    title: translateText("Mahsulot"),
 
-      render: (value) => <strong>{formatPurchaseMoney(value)} so‘m</strong>,
-    },
+    render: (items) => {
+      const count = items?.length || 0;
 
-    {
-      key: "paidAmount",
-      title: "To‘langan",
+      return <span>{count}{translateText("ta pozitsiya")}</span>;
+    }
+  },
 
-      render: (value) => <span>{formatPurchaseMoney(value)} so‘m</span>,
-    },
+  {
+    key: "total",
+    title: translateText("Jami"),
 
-    {
-      key: "debtAmount",
-      title: "Qarz",
+    render: (value) => <strong>{formatPurchaseMoney(value)}{translateText("so‘m")}</strong>
+  },
 
-      render: (value) => {
-        const debt = Number(value || 0);
+  {
+    key: "paidAmount",
+    title: translateText("To‘langan"),
 
-        if (debt <= 0) {
-          return <Badge variant="success">To‘langan</Badge>;
-        }
+    render: (value) => <span>{formatPurchaseMoney(value)}{translateText("so‘m")}</span>
+  },
 
-        return (
-          <div className="purchase-table__debt">
-            <strong>{formatPurchaseMoney(debt)} so‘m</strong>
+  {
+    key: "debtAmount",
+    title: translateText("Qarz"),
+
+    render: (value) => {
+      const debt = Number(value || 0);
+
+      if (debt <= 0) {
+        return <Badge variant="success">{translateText("To‘langan")}</Badge>;
+      }
+
+      return (
+        <div className="purchase-table__debt">
+            <strong>{formatPurchaseMoney(debt)}{translateText("so‘m")}</strong>
 
             <Badge size="sm" variant="warning">
-              <LiveIcon icon={Wallet} motion="pulse-soft" size={13} />
-              Qarz bor
-            </Badge>
-          </div>
-        );
-      },
-    },
+              <LiveIcon icon={Wallet} motion="pulse-soft" size={13} />{translateText("Qarz bor")}
 
-    {
-      key: "status",
-      title: "Holat",
+          </Badge>
+          </div>);
 
-      render: (status, purchase) => (
-        <Badge variant={getPurchaseStatusVariant(status)}>
+    }
+  },
+
+  {
+    key: "status",
+    title: translateText("Holat"),
+
+    render: (status, purchase) =>
+    <Badge variant={getPurchaseStatusVariant(status)}>
           <PurchaseStatusIcon purchase={purchase} status={status} />
           {getPurchaseStatusLabel(status)}
         </Badge>
-      ),
-    },
 
-    {
-      key: "actions",
-      title: "",
+  },
 
-      render: (_, purchase) => (
-        <div className="purchase-table__actions">
+  {
+    key: "actions",
+    title: "",
+
+    render: (_, purchase) =>
+    <div className="purchase-table__actions">
           <Button
-            size="sm"
-            variant="ghost"
-            title="Ko‘rish"
-            onClick={() => onView?.(purchase)}
-          >
+        size="sm"
+        variant="ghost"
+        title={translateText("Ko‘rish")}
+        onClick={() => onView?.(purchase)}>
+        
             <Eye size={16} />
           </Button>
 
           <PurchaseActionsMenu
-            purchase={purchase}
-            onView={onView}
-            onEdit={onEdit}
-            onPayment={onPayment}
-            onReceive={onReceive}
-            onCancel={onCancel}
-            onDuplicate={onDuplicate}
-          />
+        purchase={purchase}
+        onView={onView}
+        onEdit={onEdit}
+        onPayment={onPayment}
+        onReceive={onReceive}
+        onCancel={onCancel}
+        onDuplicate={onDuplicate} />
+      
         </div>
-      ),
-    },
-  ];
+
+  }];
+
+
+  const configuredColumns = useConfiguredColumns("purchases", columns);
 
   return (
     <Table
-      columns={columns}
+      columns={configuredColumns}
       data={purchases}
       rowKey="id"
-      emptyText="Xarid buyurtmasi topilmadi."
-    />
-  );
+      emptyText={translateText("Xarid buyurtmasi topilmadi.")} />);
+
+
 };
 
 const isLatePurchase = (purchase) => {
@@ -166,9 +170,9 @@ const isLatePurchase = (purchase) => {
 
   return Boolean(
     purchase.expectedDate &&
-      purchase.expectedDate < today &&
-      purchase.status !== "RECEIVED" &&
-      purchase.status !== "CANCELLED",
+    purchase.expectedDate < today &&
+    purchase.status !== "RECEIVED" &&
+    purchase.status !== "CANCELLED"
   );
 };
 

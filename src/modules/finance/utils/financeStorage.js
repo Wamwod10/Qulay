@@ -1,5 +1,8 @@
-const TRANSACTIONS_KEY = "universal_erp_finance_transactions";
-const CASHBOXES_KEY = "universal_erp_finance_cashboxes";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
+
+const TRANSACTIONS_KEY = "finance_transactions";
+const CASHBOXES_KEY = "finance_cashboxes";
 
 export const PAYMENT_METHODS = ["CASH", "CARD", "BANK", "QR"];
 
@@ -8,7 +11,7 @@ export const EXPENSE_CATEGORIES = [
   "Oylik",
   "Transport",
   "Kommunal",
-  "Marketing",
+  "Marketing / reklama",
   "Ta'mirlash",
   "Soliq",
   "Boshqa",
@@ -76,17 +79,14 @@ const readJson = (key, fallback) => {
   }
 
   try {
-    const stored = window.localStorage.getItem(key);
+    const stored = tenantGet(key, null);
 
     if (!stored) {
-      window.localStorage.setItem(key, JSON.stringify(fallback));
-
+      tenantSet(key, fallback);
       return fallback;
     }
 
-    const parsed = JSON.parse(stored);
-
-    return parsed;
+    return stored;
   } catch (error) {
     console.error(`Finance storage read error (${key}):`, error);
 
@@ -99,7 +99,7 @@ const writeJson = (key, value, { silent = false } = {}) => {
     return false;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  tenantSet(key, value);
   if (!silent) {
     window.dispatchEvent(new Event("finance:changed"));
   }
@@ -117,6 +117,11 @@ export const normalizeCashbox = (cashbox = {}) => ({
 });
 
 export const getStoredCashboxes = () => {
+  const remoteCashboxes = unwrapList(syncApiRequest("/finance/cashboxes"), ["cashboxes"]);
+  if (Array.isArray(remoteCashboxes)) {
+    writeJson(CASHBOXES_KEY, remoteCashboxes, { silent: true });
+    return remoteCashboxes.map(normalizeCashbox);
+  }
   const stored = readJson(CASHBOXES_KEY, DEFAULT_CASHBOXES);
   const cashboxes = Array.isArray(stored) ? stored : DEFAULT_CASHBOXES;
   const normalized = cashboxes.map(normalizeCashbox);
@@ -172,6 +177,11 @@ export const normalizeFinanceTransaction = (transaction = {}) => {
 };
 
 export const getStoredFinanceTransactions = () => {
+  const remoteTransactions = unwrapList(syncApiRequest("/finance/transactions"), ["transactions"]);
+  if (Array.isArray(remoteTransactions)) {
+    writeJson(TRANSACTIONS_KEY, remoteTransactions, { silent: true });
+    return remoteTransactions.map(normalizeFinanceTransaction);
+  }
   const stored = readJson(TRANSACTIONS_KEY, []);
   const transactions = Array.isArray(stored) ? stored : [];
   const normalized = transactions.map(normalizeFinanceTransaction);
@@ -190,6 +200,15 @@ export const saveFinanceTransactions = (transactions) => {
 };
 
 export const addFinanceTransaction = (transaction) => {
+  const remoteTransaction = syncApiRequest("/finance/transactions", {
+    method: "POST",
+    body: transaction,
+  });
+  if (remoteTransaction?.id) {
+    const transactions = getStoredFinanceTransactions();
+    saveFinanceTransactions([remoteTransaction, ...transactions.filter((item) => item.id !== remoteTransaction.id)]);
+    return normalizeFinanceTransaction(remoteTransaction);
+  }
   const normalized = normalizeFinanceTransaction(transaction);
 
   if (normalized.amount <= 0) {

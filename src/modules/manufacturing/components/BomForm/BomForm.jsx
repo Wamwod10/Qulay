@@ -395,7 +395,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
             <div>
               <h3>Tannarx preview</h3>
 
-              <p>Hozirgi Products tannarxlari asosida hisoblanadi.</p>
+              <p>Hozirgi mahsulotlar tannarxlari asosida hisoblanadi.</p>
             </div>
           </div>
 

@@ -8,28 +8,29 @@ import {
 import { Badge, Card, EmptyState, LiveIcon, Table } from "../../../../shared/ui";
 
 import { formatWarehouseMoney } from "../../utils/warehouseHelpers";
+import { translateText } from "../../../../localization/i18n";
 
 import "./StockMovements.scss";
 
 const getMovementTypeLabel = (type) => {
   switch (type) {
     case "IN":
-      return "Kirim";
+      return translateText("Kirim");
 
     case "OUT":
-      return "Chiqim";
+      return translateText("Chiqim");
 
     case "TRANSFER_IN":
-      return "Transfer kirim";
+      return translateText("Transfer kirim");
 
     case "TRANSFER_OUT":
-      return "Transfer chiqim";
+      return translateText("Transfer chiqim");
 
     case "INVENTORY_ADJUSTMENT":
-      return "Inventarizatsiya";
+      return translateText("Inventarizatsiya");
 
     default:
-      return type || "-";
+      return type || "—";
   }
 };
 
@@ -79,14 +80,16 @@ const getMovementIcon = (type) => {
 
 const StockMovements = ({ movements = [], warehouses = [] }) => {
   const getWarehouseName = (warehouseId) =>
-    warehouses.find((warehouse) => warehouse.id === warehouseId)?.name || "-";
+    warehouses.find((warehouse) => warehouse.id === warehouseId)?.name || "—";
 
   if (!movements.length) {
     return (
       <Card>
         <EmptyState
-          title="Harakatlar mavjud emas"
-          description="Kirim, chiqim, transfer yoki inventarizatsiya qilingandan keyin operatsiyalar shu yerda ko'rinadi."
+          title={translateText("Harakatlar mavjud emas")}
+          description={translateText(
+            "Kirim, chiqim, transfer yoki inventarizatsiya qilingandan keyin operatsiyalar shu yerda ko'rinadi.",
+          )}
         />
       </Card>
     );
@@ -95,11 +98,11 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
   const columns = [
     {
       key: "createdAt",
-      title: "Sana",
+      title: translateText("Sana"),
     },
     {
       key: "type",
-      title: "Operatsiya",
+      title: translateText("Operatsiya"),
       render: (type) => (
         <div className="stock-movements__type">
           <span className="stock-movements__type-icon">
@@ -114,22 +117,22 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
     },
     {
       key: "productName",
-      title: "Mahsulot",
+      title: translateText("Mahsulot"),
       render: (value, row) => (
         <div className="stock-movements__product">
-          <strong>{value || "-"}</strong>
+          <strong>{value || "—"}</strong>
           <span>{row.productId}</span>
         </div>
       ),
     },
     {
       key: "warehouseId",
-      title: "Ombor",
+      title: translateText("Ombor"),
       render: (value) => getWarehouseName(value),
     },
     {
       key: "quantity",
-      title: "Miqdor",
+      title: translateText("Miqdor"),
       render: (value, row) => {
         if (row.type === "INVENTORY_ADJUSTMENT") {
           return (
@@ -155,21 +158,22 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
     },
     {
       key: "cost",
-      title: "Qiymat",
+      title: translateText("Qiymat"),
       render: (value, row) => {
         if (!value || !row.quantity) {
-          return "-";
+          return "—";
         }
 
         return `${formatWarehouseMoney(
           Number(value) * Number(row.quantity),
-        )} so'm`;
+        )} ${translateText("so'm")}`;
       },
     },
     {
       key: "source",
-      title: "Sabab / Manba",
-      render: (_, row) => row.source || row.reason || row.note || "-",
+      title: translateText("Sabab / Manba"),
+      render: (_, row) =>
+        translateText(row.source || row.reason || row.note || "—"),
     },
   ];
 
@@ -177,13 +181,17 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
     <Card padding="md" className="stock-movements">
       <div className="stock-movements__header">
         <div>
-          <h3>Ombor harakatlari</h3>
+          <h3>{translateText("Ombor harakatlari")}</h3>
           <p>
-            Barcha kirim, chiqim, transfer va inventarizatsiya operatsiyalari.
+            {translateText(
+              "Barcha kirim, chiqim, transfer va inventarizatsiya operatsiyalari.",
+            )}
           </p>
         </div>
 
-        <span>{movements.length} ta operatsiya</span>
+        <span>
+          {movements.length} {translateText("ta operatsiya")}
+        </span>
       </div>
 
       <Table columns={columns} data={movements} rowKey="id" />

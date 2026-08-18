@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
 import { Badge, Button, Card, EmptyState, Table } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import StockInModal from "../../components/StockInModal/StockInModal";
 import StockOutModal from "../../components/StockOutModal/StockOutModal";
@@ -75,11 +76,11 @@ const WarehouseProductDetailsPage = () => {
   if (!item) {
     return (
       <PageContainer
-        title="Mahsulot topilmadi"
-        description="Bu mahsulot tanlangan omborda mavjud emas."
+        title={translateText("Mahsulot topilmadi")}
+        description={translateText("Bu mahsulot tanlangan omborda mavjud emas.")}
       >
         <Button variant="secondary" onClick={() => navigate("/warehouse")}>
-          Omborga qaytish
+          {translateText("Omborga qaytish")}
         </Button>
       </PageContainer>
     );
@@ -103,7 +104,7 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(error.message || "Kirim qilishda xatolik.");
+      alert(translateText(error.message || "Kirim qilishda xatolik."));
     }
   };
 
@@ -115,7 +116,7 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(error.message || "Chiqim qilishda xatolik.");
+      alert(translateText(error.message || "Chiqim qilishda xatolik."));
     }
   };
 
@@ -127,26 +128,26 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(error.message || "Ko‘chirishda xatolik.");
+      alert(translateText(error.message || "Ko‘chirishda xatolik."));
     }
   };
 
   const movementColumns = [
     {
       key: "createdAt",
-      title: "Sana",
+      title: translateText("Sana"),
     },
     {
       key: "type",
-      title: "Operatsiya",
+      title: translateText("Operatsiya"),
 
       render: (type) => {
         const labels = {
-          IN: "Kirim",
-          OUT: "Chiqim",
-          TRANSFER_IN: "Transfer kirim",
-          TRANSFER_OUT: "Transfer chiqim",
-          INVENTORY_ADJUSTMENT: "Inventarizatsiya",
+          IN: translateText("Kirim"),
+          OUT: translateText("Chiqim"),
+          TRANSFER_IN: translateText("Transfer kirim"),
+          TRANSFER_OUT: translateText("Transfer chiqim"),
+          INVENTORY_ADJUSTMENT: translateText("Inventarizatsiya"),
         };
 
         const variants = {
@@ -166,7 +167,7 @@ const WarehouseProductDetailsPage = () => {
     },
     {
       key: "quantity",
-      title: "Miqdor",
+      title: translateText("Miqdor"),
 
       render: (_, movement) => {
         if (movement.type === "INVENTORY_ADJUSTMENT") {
@@ -188,17 +189,17 @@ const WarehouseProductDetailsPage = () => {
     },
     {
       key: "reason",
-      title: "Sabab / Manba",
+      title: translateText("Sabab / Manba"),
 
       render: (_, movement) =>
-        movement.source || movement.reason || movement.note || "—",
+        translateText(movement.source || movement.reason || movement.note || "—"),
     },
   ];
 
   return (
     <PageContainer
       title={item.productName}
-      description={`${warehouse?.name || "Ombor"} · SKU: ${item.sku || "—"}`}
+      description={`${warehouse?.name || translateText("Ombor")} · SKU: ${item.sku || "—"}`}
     >
       <div className="warehouse-product-details">
         <div className="warehouse-product-details__actions">
@@ -207,7 +208,7 @@ const WarehouseProductDetailsPage = () => {
             leftIcon={<ArrowLeft size={17} />}
             onClick={() => navigate("/warehouse")}
           >
-            Ortga
+            {translateText("Ortga")}
           </Button>
 
           <div className="warehouse-product-details__quick-actions">
@@ -215,7 +216,7 @@ const WarehouseProductDetailsPage = () => {
               leftIcon={<ArrowDownToLine size={17} />}
               onClick={() => setStockInOpen(true)}
             >
-              Kirim
+              {translateText("Kirim")}
             </Button>
 
             <Button
@@ -223,7 +224,7 @@ const WarehouseProductDetailsPage = () => {
               leftIcon={<ArrowUpFromLine size={17} />}
               onClick={() => setStockOutOpen(true)}
             >
-              Chiqim
+              {translateText("Chiqim")}
             </Button>
 
             <Button
@@ -231,7 +232,7 @@ const WarehouseProductDetailsPage = () => {
               leftIcon={<ArrowLeftRight size={17} />}
               onClick={() => setTransferOpen(true)}
             >
-              Ko‘chirish
+              {translateText("Ko‘chirish")}
             </Button>
           </div>
         </div>
@@ -249,19 +250,21 @@ const WarehouseProductDetailsPage = () => {
             <div>
               <h2>{item.productName}</h2>
 
-              <p>{item.category || "Kategoriya yo‘q"}</p>
+              <p>{item.category || translateText("Kategoriya yo‘q")}</p>
 
               <div className="warehouse-product-details__meta">
                 <span>SKU: {item.sku || "—"}</span>
 
-                <span>Birlik: {item.unit}</span>
+                <span>
+                  {translateText("Birlik:")} {item.unit}
+                </span>
               </div>
             </div>
           </Card>
 
           <WarehouseMetric
             icon={<Boxes size={20} />}
-            label="Jami qoldiq"
+            label={translateText("Jami qoldiq")}
             value={`${item.quantity} ${item.unit}`}
             badge={
               <Badge variant={getWarehouseStockBadgeVariant(item)}>
@@ -271,84 +274,94 @@ const WarehouseProductDetailsPage = () => {
           />
 
           <WarehouseMetric
-            label="Rezerv"
+            label={translateText("Rezerv")}
             value={`${item.reserved || 0} ${item.unit}`}
           />
 
-          <WarehouseMetric label="Mavjud" value={`${available} ${item.unit}`} />
+          <WarehouseMetric
+            label={translateText("Mavjud")}
+            value={`${available} ${item.unit}`}
+          />
 
           <WarehouseMetric
             icon={<Wallet size={20} />}
-            label="Ombor qiymati"
-            value={`${formatWarehouseMoney(stockValue)} so‘m`}
+            label={translateText("Ombor qiymati")}
+            value={`${formatWarehouseMoney(stockValue)} ${translateText("so‘m")}`}
           />
         </section>
 
         <section className="warehouse-product-details__grid">
           <Card>
             <div className="warehouse-product-details__section-header">
-              <h3>Qoldiq ma’lumotlari</h3>
+              <h3>{translateText("Qoldiq ma’lumotlari")}</h3>
 
-              <p>Tanlangan ombordagi joriy holat.</p>
+              <p>{translateText("Tanlangan ombordagi joriy holat.")}</p>
             </div>
 
             <div className="warehouse-product-details__info-grid">
               <InfoItem
-                label="Jami qoldiq"
+                label={translateText("Jami qoldiq")}
                 value={`${item.quantity} ${item.unit}`}
               />
 
               <InfoItem
-                label="Rezerv"
+                label={translateText("Rezerv")}
                 value={`${item.reserved || 0} ${item.unit}`}
               />
 
-              <InfoItem label="Mavjud" value={`${available} ${item.unit}`} />
+              <InfoItem
+                label={translateText("Mavjud")}
+                value={`${available} ${item.unit}`}
+              />
 
               <InfoItem
-                label="Minimal qoldiq"
+                label={translateText("Minimal qoldiq")}
                 value={`${item.minimumStock || 0} ${item.unit}`}
               />
 
               <InfoItem
-                label="Tannarx"
-                value={`${formatWarehouseMoney(item.cost)} so‘m`}
+                label={translateText("Tannarx")}
+                value={`${formatWarehouseMoney(item.cost)} ${translateText("so‘m")}`}
               />
 
               <InfoItem
-                label="Ombor qiymati"
-                value={`${formatWarehouseMoney(stockValue)} so‘m`}
+                label={translateText("Ombor qiymati")}
+                value={`${formatWarehouseMoney(stockValue)} ${translateText("so‘m")}`}
               />
             </div>
           </Card>
 
           <Card>
             <div className="warehouse-product-details__section-header">
-              <h3>Ombor ma’lumotlari</h3>
+              <h3>{translateText("Ombor ma’lumotlari")}</h3>
 
-              <p>Mahsulot joylashgan ombor.</p>
+              <p>{translateText("Mahsulot joylashgan ombor.")}</p>
             </div>
 
             <div className="warehouse-product-details__info-grid">
-              <InfoItem label="Ombor" value={warehouse?.name} />
+              <InfoItem label={translateText("Ombor")} value={warehouse?.name} />
 
-              <InfoItem label="Filial" value={warehouse?.branch} />
+              <InfoItem label={translateText("Filial")} value={warehouse?.branch} />
 
               <InfoItem
-                label="Stock holati"
+                label={translateText("Stock holati")}
                 value={getWarehouseStockStatusLabel(item)}
               />
 
-              <InfoItem label="Mahsulot ID" value={item.productId} />
+              <InfoItem label={translateText("Mahsulot ID")} value={item.productId} />
             </div>
           </Card>
         </section>
 
         <Card>
           <div className="warehouse-product-details__section-header">
-            <h3>Harakatlar tarixi</h3>
+            <h3>{translateText("Harakatlar tarixi")}</h3>
 
-            <p>Faqat shu mahsulot va shu omborga tegishli operatsiyalar.</p>
+            <p>
+              {translateText(
+                "Faqat shu mahsulot va shu omborga tegishli operatsiyalar.",
+              )}
+            </p>
           </div>
 
           {productMovements.length ? (
@@ -359,8 +372,10 @@ const WarehouseProductDetailsPage = () => {
             />
           ) : (
             <EmptyState
-              title="Harakat mavjud emas"
-              description="Ushbu mahsulot bo‘yicha hali ombor operatsiyasi bajarilmagan."
+              title={translateText("Harakat mavjud emas")}
+              description={translateText(
+                "Ushbu mahsulot bo‘yicha hali ombor operatsiyasi bajarilmagan.",
+              )}
             />
           )}
         </Card>

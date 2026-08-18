@@ -8,16 +8,18 @@ import {
   roundMoney,
   toMoney,
 } from "../../finance/utils/financeStorage";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
-const EMPLOYEES_KEY = "universal_erp_hr_employees";
-const ATTENDANCE_KEY = "universal_erp_hr_attendance";
-const SHIFTS_KEY = "universal_erp_hr_shifts";
-const ADVANCES_KEY = "universal_erp_hr_advances";
-const BONUSES_KEY = "universal_erp_hr_bonuses";
-const PENALTIES_KEY = "universal_erp_hr_penalties";
-const LEAVES_KEY = "universal_erp_hr_leaves";
-const PAYROLLS_KEY = "universal_erp_hr_payrolls";
-const PAYROLL_PAYMENTS_KEY = "universal_erp_hr_payroll_payments";
+const EMPLOYEES_KEY = "hr_employees";
+const ATTENDANCE_KEY = "hr_attendance";
+const SHIFTS_KEY = "hr_shifts";
+const ADVANCES_KEY = "hr_advances";
+const BONUSES_KEY = "hr_bonuses";
+const PENALTIES_KEY = "hr_penalties";
+const LEAVES_KEY = "hr_leaves";
+const PAYROLLS_KEY = "hr_payrolls";
+const PAYROLL_PAYMENTS_KEY = "hr_payroll_payments";
 
 export const SALARY_TYPES = ["MONTHLY", "DAILY", "HOURLY"];
 export const EMPLOYEE_STATUSES = ["ACTIVE", "INACTIVE", "ON_LEAVE"];
@@ -99,15 +101,12 @@ const readJson = (key, fallback) => {
   }
 
   try {
-    const stored = window.localStorage.getItem(key);
+    const parsed = tenantGet(key, null);
 
-    if (!stored) {
-      window.localStorage.setItem(key, JSON.stringify(fallback));
-
+    if (!parsed) {
+      tenantSet(key, fallback);
       return fallback;
     }
-
-    const parsed = JSON.parse(stored);
 
     return Array.isArray(fallback) && !Array.isArray(parsed) ? fallback : parsed;
   } catch (error) {
@@ -122,7 +121,7 @@ const writeJson = (key, value, { silent = false } = {}) => {
     return false;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  tenantSet(key, value);
 
   if (!silent) {
     window.dispatchEvent(new Event("hr:changed"));
@@ -222,6 +221,11 @@ export const normalizeEmployee = (employee = {}) => {
 };
 
 export const getStoredEmployees = () => {
+  const remoteEmployees = unwrapList(syncApiRequest("/employees"), ["employees"]);
+  if (Array.isArray(remoteEmployees)) {
+    writeJson(EMPLOYEES_KEY, remoteEmployees, { silent: true });
+    return remoteEmployees.map(normalizeEmployee);
+  }
   const normalized = readJson(EMPLOYEES_KEY, []).map(normalizeEmployee);
 
   writeJson(EMPLOYEES_KEY, normalized, { silent: true });
@@ -235,6 +239,15 @@ export const saveEmployees = (employees) =>
     : false;
 
 export const upsertEmployee = (payload) => {
+  const remoteEmployee = syncApiRequest(payload.id ? `/employees/${payload.id}` : "/employees", {
+    method: payload.id ? "PATCH" : "POST",
+    body: payload,
+  });
+  if (remoteEmployee?.id) {
+    const employees = getStoredEmployees();
+    saveEmployees([remoteEmployee, ...employees.filter((employee) => employee.id !== remoteEmployee.id)]);
+    return normalizeEmployee(remoteEmployee);
+  }
   const employees = getStoredEmployees();
   const now = new Date().toISOString();
   const normalized = normalizeEmployee({
@@ -274,6 +287,9 @@ export const hasEmployeeHistory = (employeeId) =>
   ].some((items) => items.some((item) => item.employeeId === employeeId));
 
 export const deleteEmployee = (employeeId) => {
+  syncApiRequest(`/employees/${employeeId}`, {
+    method: "DELETE",
+  });
   if (hasEmployeeHistory(employeeId)) {
     throw new Error("Tarix mavjud. Xodimni o'chirish o'rniga inactive qiling.");
   }
@@ -571,7 +587,7 @@ export const upsertLeave = (payload) => {
 };
 
 export const getStoredPayrolls = () =>
-  readJson(PAYROLLS_KEY, []).map((record) => ({
+  (unwrapList(syncApiRequest("/employees/payroll"), ["payrolls"]) || readJson(PAYROLLS_KEY, [])).map((record) => ({
     id: String(record.id || createHrId("payroll")),
     employeeId: record.employeeId || null,
     month: String(record.month || monthIso()),
@@ -725,6 +741,19 @@ export const calculateEmployeePayroll = (employeeId, month = monthIso()) => {
 
 export const saveCalculatedPayroll = (employeeId, month = monthIso()) => {
   const payroll = calculateEmployeePayroll(employeeId, month);
+  const remotePayroll = syncApiRequest("/employees/payroll", {
+    method: "POST",
+    body: {
+      ...payroll,
+      period: payroll.month || month,
+      grossAmount: payroll.grossAmount || payroll.baseSalary,
+    },
+  });
+  if (remotePayroll?.id) {
+    const records = getStoredPayrolls();
+    savePayrolls([remotePayroll, ...records.filter((record) => record.id !== remotePayroll.id)]);
+    return remotePayroll;
+  }
   const records = getStoredPayrolls();
 
   savePayrolls([payroll, ...records.filter((record) => record.id !== payroll.id)]);
@@ -733,6 +762,17 @@ export const saveCalculatedPayroll = (employeeId, month = monthIso()) => {
 };
 
 export const payPayroll = ({ payrollId, amount, method = "CASH", cashboxId, date, note = "" }) => {
+  const remotePayroll = syncApiRequest(`/employees/payroll/${payrollId}/pay`, {
+    method: "POST",
+    idempotencyKey: `payroll-payment:${payrollId}:${amount}`,
+    body: { amount, method, cashboxId, date, note, idempotencyKey: `payroll-payment:${payrollId}:${amount}` },
+  });
+  if (remotePayroll?.id) {
+    const payrolls = getStoredPayrolls();
+    savePayrolls(payrolls.map((record) => (record.id === remotePayroll.id ? remotePayroll : record)));
+    window.dispatchEvent(new Event("finance:changed"));
+    return { payroll: remotePayroll, payment: null };
+  }
   const payrolls = getStoredPayrolls();
   const payroll = payrolls.find((record) => record.id === payrollId);
 

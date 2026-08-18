@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useMemo, useState } from "react";
 
 import { Boxes, CircleAlert, Package, PackageCheck, Plus } from "lucide-react";
 
@@ -13,8 +13,8 @@ import {
   LiveIcon,
   Pagination,
   Select,
-  TableToolbar,
-} from "../../../../shared/ui";
+  TableToolbar } from
+"../../../../shared/ui";
 
 import BarcodeQrModal from "../../components/BarcodeQrModal/BarcodeQrModal";
 import PriceChangeModal from "../../components/PriceChangeModal/PriceChangeModal";
@@ -32,10 +32,14 @@ import {
   getStoredProducts,
   restoreStoredProduct,
   toggleStoredProductStatus,
-  updateStoredProductPrices,
-} from "../../utils/productsStorage";
+  updateStoredProductPrices } from
+"../../utils/productsStorage";
 
 import { getStockStatus } from "../../utils/productHelpers";
+import {
+  useTableSettings,
+  useTerminology } from
+"../../../settings/selectors/settingsSelectors";
 
 import "./ProductsPage.scss";
 
@@ -43,6 +47,9 @@ const PAGE_SIZE = 10;
 
 const ProductsPage = () => {
   const navigate = useNavigate();
+  const { tTerm } = useTerminology();
+  const productTableSettings = useTableSettings("products");
+  const pageSize = productTableSettings.defaultPageSize || PAGE_SIZE;
 
   const [products, setProducts] = useState(() => getStoredProducts());
   const [search, setSearch] = useState("");
@@ -71,36 +78,36 @@ const ProductsPage = () => {
       const productBarcode = product.barcode?.toLowerCase() || "";
 
       const matchesSearch =
-        !normalizedSearch ||
-        productName.includes(normalizedSearch) ||
-        productSku.includes(normalizedSearch) ||
-        productBarcode.includes(normalizedSearch);
+      !normalizedSearch ||
+      productName.includes(normalizedSearch) ||
+      productSku.includes(normalizedSearch) ||
+      productBarcode.includes(normalizedSearch);
 
       const matchesType = !typeFilter || product.type === typeFilter;
       const matchesCategory = !categoryFilter || product.category === categoryFilter;
       const matchesStock = !stockFilter || getStockStatus(product) === stockFilter;
 
-      const matchesStatus = statusFilter
-        ? product.status === statusFilter
-        : product.status !== "ARCHIVED";
+      const matchesStatus = statusFilter ?
+      product.status === statusFilter :
+      product.status !== "ARCHIVED";
 
       return (
         matchesSearch &&
         matchesType &&
         matchesCategory &&
         matchesStatus &&
-        matchesStock
-      );
+        matchesStock);
+
     });
   }, [products, search, typeFilter, categoryFilter, statusFilter, stockFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
 
   const paginatedProducts = useMemo(() => {
-    const startIndex = (page - 1) * PAGE_SIZE;
+    const startIndex = (page - 1) * pageSize;
 
-    return filteredProducts.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [filteredProducts, page]);
+    return filteredProducts.slice(startIndex, startIndex + pageSize);
+  }, [filteredProducts, page, pageSize]);
 
   const stats = useMemo(() => {
     const visibleProducts = products.filter((product) => product.status !== "ARCHIVED");
@@ -109,11 +116,11 @@ const ProductsPage = () => {
       total: visibleProducts.length,
       active: visibleProducts.filter((product) => product.status === "ACTIVE").length,
       lowStock: visibleProducts.filter(
-        (product) => getStockStatus(product) === "LOW_STOCK",
+        (product) => getStockStatus(product) === "LOW_STOCK"
       ).length,
       outOfStock: visibleProducts.filter(
-        (product) => getStockStatus(product) === "OUT_OF_STOCK",
-      ).length,
+        (product) => getStockStatus(product) === "OUT_OF_STOCK"
+      ).length
     };
   }, [products]);
 
@@ -128,7 +135,7 @@ const ProductsPage = () => {
   }, [page, totalPages]);
 
   const hasActiveFilters = Boolean(
-    search || typeFilter || categoryFilter || statusFilter || stockFilter,
+    search || typeFilter || categoryFilter || statusFilter || stockFilter
   );
 
   const handleClearFilters = () => {
@@ -201,9 +208,9 @@ const ProductsPage = () => {
 
   return (
     <PageContainer
-      title="Mahsulotlar"
-      description="Xomashyo, yarim tayyor, tayyor va savdo mahsulotlarini boshqarish."
-    >
+      title={tTerm("products")}
+      description={translateText("Xomashyo, yarim tayyor, tayyor va savdo mahsulotlarini boshqarish.")}>
+      
       <div className="products-page">
         <section className="products-page__stats">
           <Card variant="soft" padding="md" className="products-page__stat-card">
@@ -212,7 +219,7 @@ const ProductsPage = () => {
             </div>
 
             <div>
-              <span>Jami mahsulot</span>
+              <span>{translateText("Jami")}{tTerm("product").toLowerCase()}</span>
               <strong>{stats.total}</strong>
             </div>
           </Card>
@@ -223,7 +230,7 @@ const ProductsPage = () => {
             </div>
 
             <div>
-              <span>Faol</span>
+              <span>{translateText("Faol")}</span>
               <strong>{stats.active}</strong>
             </div>
           </Card>
@@ -235,12 +242,12 @@ const ProductsPage = () => {
                 motion="warning-glow"
                 active={stats.lowStock > 0}
                 size={21}
-                strokeWidth={1.8}
-              />
+                strokeWidth={1.8} />
+              
             </div>
 
             <div>
-              <span>Kam qolgan</span>
+              <span>{translateText("Kam qolgan")}</span>
               <strong>{stats.lowStock}</strong>
             </div>
           </Card>
@@ -252,12 +259,12 @@ const ProductsPage = () => {
                 motion="danger-breathe"
                 active={stats.outOfStock > 0}
                 size={21}
-                strokeWidth={1.8}
-              />
+                strokeWidth={1.8} />
+              
             </div>
 
             <div>
-              <span>Tugagan</span>
+              <span>{translateText("Tugagan")}</span>
               <strong>{stats.outOfStock}</strong>
             </div>
           </Card>
@@ -267,68 +274,68 @@ const ProductsPage = () => {
           <TableToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Nomi, SKU yoki barcode bo'yicha qidirish..."
-            actionLabel="Yangi mahsulot"
+            searchPlaceholder={translateText("Nomi, SKU yoki barcode bo'yicha qidirish...")}
+            actionLabel={`${translateText("Yangi")} ${tTerm("product").toLowerCase()}`}
             actionIcon={<Plus size={17} strokeWidth={1.9} />}
-            onAction={() => navigate("/products/create")}
-          />
+            onAction={() => navigate("/products/create")} />
+          
 
           <div className="products-page__filters">
             <div className="products-page__filter">
               <Select
                 value={typeFilter}
-                placeholder="Barcha turlar"
+                placeholder={translateText("Barcha turlar")}
                 options={PRODUCT_TYPES}
-                onChange={(event) => setTypeFilter(event.target.value)}
-              />
+                onChange={(event) => setTypeFilter(event.target.value)} />
+              
             </div>
 
             <div className="products-page__filter">
               <Select
                 value={categoryFilter}
-                placeholder="Barcha kategoriyalar"
+                placeholder={translateText("Barcha kategoriyalar")}
                 options={PRODUCT_CATEGORIES}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-              />
+                onChange={(event) => setCategoryFilter(event.target.value)} />
+              
             </div>
 
             <div className="products-page__filter">
               <Select
                 value={stockFilter}
-                placeholder="Barcha qoldiq"
+                placeholder={translateText("Barcha qoldiq")}
                 options={[
-                  { value: "IN_STOCK", label: "Yetarli" },
-                  { value: "LOW_STOCK", label: "Kam qolgan" },
-                  { value: "OUT_OF_STOCK", label: "Tugagan" },
-                ]}
-                onChange={(event) => setStockFilter(event.target.value)}
-              />
+                { value: "IN_STOCK", label: translateText("Yetarli") },
+                { value: "LOW_STOCK", label: translateText("Kam qolgan") },
+                { value: "OUT_OF_STOCK", label: translateText("Tugagan") }]
+                }
+                onChange={(event) => setStockFilter(event.target.value)} />
+              
             </div>
 
             <div className="products-page__filter">
               <Select
                 value={statusFilter}
-                placeholder="Barcha holatlar"
+                placeholder={translateText("Barcha holatlar")}
                 options={[
-                  { value: "ACTIVE", label: "Faol" },
-                  { value: "INACTIVE", label: "Faol emas" },
-                  { value: "ARCHIVED", label: "Arxiv" },
-                ]}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              />
+                { value: "ACTIVE", label: translateText("Faol") },
+                { value: "INACTIVE", label: translateText("Faol emas") },
+                { value: "ARCHIVED", label: translateText("Arxiv") }]
+                }
+                onChange={(event) => setStatusFilter(event.target.value)} />
+              
             </div>
 
-            {hasActiveFilters && (
-              <Button variant="ghost" onClick={handleClearFilters}>
-                Filtrlarni tozalash
-              </Button>
-            )}
+            {hasActiveFilters &&
+            <Button variant="ghost" onClick={handleClearFilters}>{translateText("Filtrlarni tozalash")}
+
+            </Button>
+            }
           </div>
 
           <div className="products-page__result-info">
             <span>
-              {filteredProducts.length} ta mahsulot
-              {statusFilter ? "" : " (arxivsiz)"}
+              {filteredProducts.length} {translateText("ta mahsulot")}
+              {statusFilter ? "" : ` (${translateText("arxivsiz")})`}
             </span>
           </div>
 
@@ -344,8 +351,8 @@ const ProductsPage = () => {
             onStockAdjustment={(product) => setStockProduct(product)}
             onPriceChange={(product) => setPriceProduct(product)}
             onArchive={(product) => setArchiveProduct(product)}
-            onDelete={(product) => setDeleteProduct(product)}
-          />
+            onDelete={(product) => setDeleteProduct(product)} />
+          
 
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </Card>
@@ -354,55 +361,57 @@ const ProductsPage = () => {
       <BarcodeQrModal
         product={barcodeProduct}
         open={Boolean(barcodeProduct)}
-        onClose={() => setBarcodeProduct(null)}
-      />
+        onClose={() => setBarcodeProduct(null)} />
+      
 
       <StockAdjustmentModal
         product={stockProduct}
         open={Boolean(stockProduct)}
         onClose={() => setStockProduct(null)}
-        onSubmit={handleStockAdjustment}
-      />
+        onSubmit={handleStockAdjustment} />
+      
 
       <PriceChangeModal
         product={priceProduct}
         open={Boolean(priceProduct)}
         onClose={() => setPriceProduct(null)}
-        onSubmit={handlePriceChange}
-      />
+        onSubmit={handlePriceChange} />
+      
 
       <ConfirmDialog
         open={Boolean(archiveProduct)}
-        title={archiveDialogIsRestore ? "Arxivdan qaytarish" : "Arxivga o'tkazish"}
+        title={translateText(
+        archiveDialogIsRestore ? "Arxivdan qaytarish" : "Arxivga o'tkazish"
+        )}
         description={
-          archiveProduct
-            ? `"${archiveProduct.name}" mahsuloti ${
-                archiveDialogIsRestore
-                  ? "faol holatga qaytariladi."
-                  : "arxivga o'tkaziladi."
-              }`
-            : ""
+        archiveProduct ?
+        `"${archiveProduct.name}" ${translateText("mahsuloti")} ${
+        archiveDialogIsRestore ?
+        translateText("faol holatga qaytariladi.") :
+        translateText("arxivga o'tkaziladi.")}` :
+
+        ""
         }
-        confirmText={archiveDialogIsRestore ? "Qaytarish" : "Arxivlash"}
+        confirmText={translateText(archiveDialogIsRestore ? "Qaytarish" : "Arxivlash")}
         onClose={() => setArchiveProduct(null)}
-        onConfirm={handleArchiveOrRestore}
-      />
+        onConfirm={handleArchiveOrRestore} />
+      
 
       <ConfirmDialog
         open={Boolean(deleteProduct)}
-        title="Mahsulotni o'chirish"
+        title={translateText("Mahsulotni o'chirish")}
         description={
-          deleteProduct
-            ? `"${deleteProduct.name}" butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi.`
-            : ""
+        deleteProduct ?
+        `"${deleteProduct.name}" ${translateText("butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi.")}` :
+        ""
         }
-        confirmText="O'chirish"
+        confirmText={translateText("O'chirish")}
         danger
         onClose={() => setDeleteProduct(null)}
-        onConfirm={handleDelete}
-      />
-    </PageContainer>
-  );
+        onConfirm={handleDelete} />
+      
+    </PageContainer>);
+
 };
 
 export default ProductsPage;

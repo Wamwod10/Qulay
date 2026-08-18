@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { translateText } from "../../../../localization/i18n";import { ArrowLeft } from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -10,8 +10,8 @@ import ProductForm from "../../components/ProductForm/ProductForm";
 
 import {
   getStoredProductById,
-  updateStoredProduct,
-} from "../../utils/productsStorage";
+  updateStoredProduct } from
+"../../utils/productsStorage";
 
 import "./ProductEditPage.scss";
 
@@ -23,14 +23,14 @@ const ProductEditPage = () => {
   if (!product) {
     return (
       <PageContainer
-        title="Mahsulot topilmadi"
-        description="Tahrirlamoqchi bo'lgan mahsulot mavjud emas."
-      >
-        <Button variant="secondary" onClick={() => navigate("/products")}>
-          Mahsulotlarga qaytish
+        title={translateText("Mahsulot topilmadi")}
+        description={translateText("Tahrirlamoqchi bo'lgan mahsulot mavjud emas.")}>
+        
+        <Button variant="secondary" onClick={() => navigate("/products")}>{translateText("Mahsulotlarga qaytish")}
+
         </Button>
-      </PageContainer>
-    );
+      </PageContainer>);
+
   }
 
   const handleSubmit = (updatedProduct) => {
@@ -43,17 +43,17 @@ const ProductEditPage = () => {
 
   return (
     <PageContainer
-      title="Mahsulotni tahrirlash"
-      description={`${product.name} - ${product.sku}`}
-    >
+      title={translateText("Mahsulotni tahrirlash")}
+      description={`${product.name} - ${product.sku}`}>
+      
       <div className="product-edit-page">
         <div className="product-edit-page__actions">
           <Button
             variant="secondary"
             leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate(`/products/${product.id}`)}
-          >
-            Ortga
+            onClick={() => navigate(`/products/${product.id}`)}>{translateText("Ortga")}
+
+
           </Button>
         </div>
 
@@ -61,12 +61,12 @@ const ProductEditPage = () => {
           <ProductForm
             initialValues={product}
             onSubmit={handleSubmit}
-            onCancel={() => navigate(`/products/${product.id}`)}
-          />
+            onCancel={() => navigate(`/products/${product.id}`)} />
+          
         </Card>
       </div>
-    </PageContainer>
-  );
+    </PageContainer>);
+
 };
 
 export default ProductEditPage;

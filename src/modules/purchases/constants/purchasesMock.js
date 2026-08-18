@@ -1,132 +1,131 @@
-export const PURCHASE_STATUS = {
-    DRAFT: "DRAFT",
-    ORDERED: "ORDERED",
-    PARTIALLY_RECEIVED: "PARTIALLY_RECEIVED",
-    RECEIVED: "RECEIVED",
-    CANCELLED: "CANCELLED",
+import { translateText } from "../../../localization/i18n";export const PURCHASE_STATUS = {
+  DRAFT: "DRAFT",
+  ORDERED: "ORDERED",
+  PARTIALLY_RECEIVED: "PARTIALLY_RECEIVED",
+  RECEIVED: "RECEIVED",
+  CANCELLED: "CANCELLED"
 };
 
 export const PURCHASE_STATUS_OPTIONS = [
-    {
-        value: "DRAFT",
-        label: "Qoralama",
-    },
-    {
-        value: "ORDERED",
-        label: "Buyurtma berilgan",
-    },
-    {
-        value: "PARTIALLY_RECEIVED",
-        label: "Qisman qabul qilingan",
-    },
-    {
-        value: "RECEIVED",
-        label: "Qabul qilingan",
-    },
-    {
-        value: "CANCELLED",
-        label: "Bekor qilingan",
-    },
-];
+{
+  value: "DRAFT",
+  label: translateText("Qoralama")
+},
+{
+  value: "ORDERED",
+  label: translateText("Buyurtma berilgan")
+},
+{
+  value: "PARTIALLY_RECEIVED",
+  label: translateText("Qisman qabul qilingan")
+},
+{
+  value: "RECEIVED",
+  label: translateText("Qabul qilingan")
+},
+{
+  value: "CANCELLED",
+  label: translateText("Bekor qilingan")
+}];
+
 
 export const INITIAL_PURCHASES = [
-    {
-        id: "pur-001",
+{
+  id: "pur-001",
 
-        number: "PO-1001",
+  number: "PO-1001",
 
-        supplierId: "sup-001",
-        supplierName: "Oltin Don Trade",
+  supplierId: "sup-001",
+  supplierName: "Oltin Don Trade",
 
-        warehouseId: "wh-main",
-        warehouseName: "Asosiy ombor",
+  warehouseId: "wh-main",
+  warehouseName: "Asosiy ombor",
 
-        status: "RECEIVED",
+  status: "RECEIVED",
 
-        orderDate: "2026-08-05",
-        expectedDate: "2026-08-06",
+  orderDate: "2026-08-05",
+  expectedDate: "2026-08-06",
 
-        items: [
-            {
-                id: "pi-001",
+  items: [
+  {
+    id: "pi-001",
 
-                productId: "prd-001",
-                productName: "Un Premium",
+    productId: "prd-001",
+    productName: "Un Premium",
 
-                sku: "4821",
+    sku: "4821",
 
-                unit: "kg",
+    unit: "kg",
 
-                quantity: 300,
-                receivedQuantity: 300,
+    quantity: 300,
+    receivedQuantity: 300,
 
-                purchasePrice: 4200,
+    purchasePrice: 4200,
 
-                total: 1260000,
-            },
-        ],
+    total: 1260000
+  }],
 
-        subtotal: 1260000,
-        discount: 0,
-        tax: 0,
 
-        total: 1260000,
+  subtotal: 1260000,
+  discount: 0,
+  tax: 0,
 
-        paidAmount: 1260000,
-        debtAmount: 0,
+  total: 1260000,
 
-        note: "",
+  paidAmount: 1260000,
+  debtAmount: 0,
 
-        createdAt: "05.08.2026 10:15",
-    },
+  note: "",
 
-    {
-        id: "pur-002",
+  createdAt: "05.08.2026 10:15"
+},
 
-        number: "PO-1002",
+{
+  id: "pur-002",
 
-        supplierId: "sup-002",
-        supplierName: "Samarqand Sugar",
+  number: "PO-1002",
 
-        warehouseId: "wh-main",
-        warehouseName: "Asosiy ombor",
+  supplierId: "sup-002",
+  supplierName: "Samarqand Sugar",
 
-        status: "ORDERED",
+  warehouseId: "wh-main",
+  warehouseName: "Asosiy ombor",
 
-        orderDate: "2026-08-09",
-        expectedDate: "2026-08-10",
+  status: "ORDERED",
 
-        items: [
-            {
-                id: "pi-002",
+  orderDate: "2026-08-09",
+  expectedDate: "2026-08-10",
 
-                productId: "prd-002",
-                productName: "Shakar",
+  items: [
+  {
+    id: "pi-002",
 
-                sku: "7314",
+    productId: "prd-002",
+    productName: "Shakar",
 
-                unit: "kg",
+    sku: "7314",
 
-                quantity: 200,
-                receivedQuantity: 0,
+    unit: "kg",
 
-                purchasePrice: 13500,
+    quantity: 200,
+    receivedQuantity: 0,
 
-                total: 2700000,
-            },
-        ],
+    purchasePrice: 13500,
 
-        subtotal: 2700000,
-        discount: 0,
-        tax: 0,
+    total: 2700000
+  }],
 
-        total: 2700000,
 
-        paidAmount: 0,
-        debtAmount: 2700000,
+  subtotal: 2700000,
+  discount: 0,
+  tax: 0,
 
-        note: "Ertalab yetkazib beriladi.",
+  total: 2700000,
 
-        createdAt: "09.08.2026 14:20",
-    },
-];
+  paidAmount: 0,
+  debtAmount: 2700000,
+
+  note: "Ertalab yetkazib beriladi.",
+
+  createdAt: "09.08.2026 14:20"
+}];

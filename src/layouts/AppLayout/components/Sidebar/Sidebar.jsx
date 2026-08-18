@@ -14,9 +14,12 @@ import {
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 import { navigationItems } from "../../../../config/navigation.config";
 import useModuleAccess from "../../../../hooks/useModuleAccess";
+import { tenantSet } from "../../../../modules/auth/utils/tenantStorage";
+import { mergeNavigationSettings } from "../../../../modules/settings/utils/moduleSettingsHelpers";
 
 import "./Sidebar.scss";
 
@@ -37,10 +40,19 @@ const iconMap = {
 
 const Sidebar = () => {
   const { hasModule } = useModuleAccess();
-
-  const visibleItems = navigationItems.filter(
-    (item) => !item.module || hasModule(item.module),
+  const modules = useSelector((state) => state.settings.modules);
+  const terminology = useSelector((state) => state.settings.terminology);
+  const language = useSelector((state) => state.settings.formats?.language);
+  const rememberLastOpenedModule = useSelector(
+    (state) => state.settings.behavior?.rememberLastOpenedModule,
   );
+
+  const visibleItems = mergeNavigationSettings({
+    items: navigationItems,
+    modules,
+    terminology,
+    language,
+  }).filter((item) => !item.hidden && (!item.module || hasModule(item.module)));
 
   return (
     <aside className="sidebar">
@@ -51,7 +63,7 @@ const Sidebar = () => {
 
         <div className="sidebar__brand-text">
           <strong>Universal</strong>
-          <span>Business OS</span>
+          <span>Biznes tizimi</span>
         </div>
       </div>
 
@@ -63,6 +75,11 @@ const Sidebar = () => {
             <NavLink
               key={item.id}
               to={item.path}
+              onClick={() => {
+                if (rememberLastOpenedModule) {
+                  tenantSet("last_module", item.id);
+                }
+              }}
               className={({ isActive }) =>
                 [
                   "sidebar__item",

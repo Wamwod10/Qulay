@@ -1,6 +1,7 @@
-import { INITIAL_AGENTS } from "../constants/agentsMock";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
-const STORAGE_KEY = "universal_erp_agents";
+const STORAGE_KEY = "agents";
 
 const ARRAY_FIELDS = ["customerIds", "orderIds", "paymentIds"];
 const NULLABLE_ID_FIELDS = ["vehicleId", "warehouseId"];
@@ -87,36 +88,37 @@ export const normalizeAgent = (agent = {}) => {
 };
 
 const readAgents = () => {
+  const remoteAgents = unwrapList(syncApiRequest("/agents"), ["agents"]);
+  if (Array.isArray(remoteAgents)) {
+    tenantSet(STORAGE_KEY, remoteAgents);
+    return remoteAgents.map(normalizeAgent);
+  }
   if (!canUseStorage()) {
-    return INITIAL_AGENTS.map(normalizeAgent);
+    return [];
   }
 
   try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    const agents = tenantGet(STORAGE_KEY, null);
 
-    if (!storedValue) {
-      const initialAgents = INITIAL_AGENTS.map(normalizeAgent);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initialAgents));
-
-      return initialAgents;
+    if (!agents) {
+      tenantSet(STORAGE_KEY, []);
+      return [];
     }
 
-    const agents = JSON.parse(storedValue);
-
     if (!Array.isArray(agents)) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      tenantSet(STORAGE_KEY, []);
 
       return [];
     }
 
     const normalizedAgents = agents.map(normalizeAgent);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedAgents));
+    tenantSet(STORAGE_KEY, normalizedAgents);
 
     return normalizedAgents;
   } catch (error) {
     console.error("Agents storage read error:", error);
 
-    return INITIAL_AGENTS.map(normalizeAgent);
+    return [];
   }
 };
 
@@ -127,10 +129,8 @@ export const saveAgents = (agents) => {
     return false;
   }
 
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(agents.map(normalizeAgent)),
-  );
+  tenantSet(STORAGE_KEY, agents.map(normalizeAgent));
+  window.dispatchEvent(new Event("agents:changed"));
 
   return true;
 };
@@ -140,6 +140,15 @@ export const getAgentById = (agentId) => {
 };
 
 export const createAgent = (values) => {
+  const remoteAgent = syncApiRequest("/agents", {
+    method: "POST",
+    body: values,
+  });
+  if (remoteAgent?.id) {
+    const agents = getStoredAgents();
+    saveAgents([remoteAgent, ...agents.filter((agent) => agent.id !== remoteAgent.id)]);
+    return normalizeAgent(remoteAgent);
+  }
   const agents = getStoredAgents();
   const now = new Date().toISOString();
 
@@ -156,6 +165,15 @@ export const createAgent = (values) => {
 };
 
 export const updateAgent = (updatedAgent) => {
+  const remoteAgent = updatedAgent?.id ? syncApiRequest(`/agents/${updatedAgent.id}`, {
+    method: "PATCH",
+    body: updatedAgent,
+  }) : null;
+  if (remoteAgent?.id) {
+    const agents = getStoredAgents();
+    saveAgents(agents.map((agent) => (agent.id === remoteAgent.id ? remoteAgent : agent)));
+    return normalizeAgent(remoteAgent);
+  }
   const agents = getStoredAgents();
   let savedAgent = null;
 
@@ -194,6 +212,9 @@ export const toggleAgentStatus = (agentId) => {
 };
 
 export const deleteAgent = (agentId) => {
+  syncApiRequest(`/agents/${agentId}`, {
+    method: "DELETE",
+  });
   const agents = getStoredAgents();
 
   saveAgents(agents.filter((agent) => agent.id !== agentId));

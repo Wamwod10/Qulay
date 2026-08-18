@@ -1,17 +1,18 @@
+import { tenantGet, tenantRemove, tenantSet } from "../../auth/utils/tenantStorage";
+
 const DRAFT_KEY =
-    "universal_erp_purchase_draft";
+    "purchase_draft";
 
 export const getPurchaseDraft =
     () => {
         try {
             const stored =
-                localStorage.getItem(
+                tenantGet(
                     DRAFT_KEY,
+                    null,
                 );
 
-            return stored
-                ? JSON.parse(stored)
-                : null;
+            return stored || null;
         } catch {
             return null;
         }
@@ -21,16 +22,16 @@ export const savePurchaseDraft = (
     draft,
 ) => {
     try {
-        localStorage.setItem(
+        tenantSet(
             DRAFT_KEY,
-            JSON.stringify({
+            {
                 ...draft,
 
                 savedAt:
                     new Date().toLocaleString(
                         "uz-UZ",
                     ),
-            }),
+            },
         );
     } catch (error) {
         console.error(
@@ -42,7 +43,5 @@ export const savePurchaseDraft = (
 
 export const clearPurchaseDraft =
     () => {
-        localStorage.removeItem(
-            DRAFT_KEY,
-        );
+        tenantRemove(DRAFT_KEY);
     };

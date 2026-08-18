@@ -17,10 +17,13 @@ import {
   buildSaleSearchText,
   formatSaleMoney,
 } from "../../utils/salesHelpers";
+import { translateText } from "../../../../localization/i18n";
 
 import "../SalesPage/SalesPage.scss";
 
 const PAGE_SIZE = 10;
+
+const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
 
 const SalesHistoryPage = () => {
   const navigate = useNavigate();
@@ -114,7 +117,7 @@ const SalesHistoryPage = () => {
   const pagedSales = filteredSales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleCancel = (sale) => {
-    const reason = window.prompt("Bekor qilish sababi:");
+    const reason = window.prompt(translateText("Bekor qilish sababi:"));
 
     if (reason === null) {
       return;
@@ -143,18 +146,18 @@ const SalesHistoryPage = () => {
         <SaleStat
           icon={<ReceiptText size={21} />}
           label="Jami savdo"
-          value={`${formatSaleMoney(stats.total)} so'm`}
+          value={moneyText(stats.total)}
         />
         <SaleStat
           icon={<CircleDollarSign size={21} />}
-          label="Paid"
-          value={`${formatSaleMoney(stats.paid)} so'm`}
+          label="To'langan"
+          value={moneyText(stats.paid)}
           variant="success"
         />
         <SaleStat
           icon={<Wallet size={21} />}
-          label="Debt"
-          value={`${formatSaleMoney(stats.debt)} so'm`}
+          label="Qarz"
+          value={moneyText(stats.debt)}
           variant="warning"
         />
       </section>
@@ -163,8 +166,8 @@ const SalesHistoryPage = () => {
         <TableToolbar
           searchValue={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Sotuv, SKU, mijoz, agent..."
-          actionLabel="POS terminal"
+          searchPlaceholder={translateText("Sotuv, SKU, mijoz, agent...")}
+          actionLabel={translateText("POS terminal")}
           actionIcon={<ShoppingBag size={17} />}
           onAction={() => navigate("/sales/terminal")}
         />
@@ -172,31 +175,31 @@ const SalesHistoryPage = () => {
         <div className="sales-page__filters sales-page__filters--wide">
           <Select
             value={statusFilter}
-            placeholder="Barcha holatlar"
+            placeholder={translateText("Barcha holatlar")}
             options={[
-              { value: "", label: "Barcha holatlar" },
-              { value: "DRAFT", label: "Qoralama" },
-              { value: "COMPLETED", label: "Yakunlangan" },
-              { value: "CANCELLED", label: "Bekor qilingan" },
+              { value: "", label: translateText("Barcha holatlar") },
+              { value: "DRAFT", label: translateText("Qoralama") },
+              { value: "COMPLETED", label: translateText("Yakunlangan") },
+              { value: "CANCELLED", label: translateText("Bekor qilingan") },
             ]}
             onChange={(event) => setStatusFilter(event.target.value)}
           />
           <Select
             value={paymentFilter}
-            placeholder="Barcha to'lovlar"
+            placeholder={translateText("Barcha to'lovlar")}
             options={[
-              { value: "", label: "Barcha to'lovlar" },
-              { value: "UNPAID", label: "To'lanmagan" },
-              { value: "PARTIAL", label: "Qisman" },
-              { value: "PAID", label: "To'langan" },
+              { value: "", label: translateText("Barcha to'lovlar") },
+              { value: "UNPAID", label: translateText("To'lanmagan") },
+              { value: "PARTIAL", label: translateText("Qisman") },
+              { value: "PAID", label: translateText("To'langan") },
             ]}
             onChange={(event) => setPaymentFilter(event.target.value)}
           />
           <Select
             value={customerFilter}
-            placeholder="Barcha mijozlar"
+            placeholder={translateText("Barcha mijozlar")}
             options={[
-              { value: "", label: "Barcha mijozlar" },
+              { value: "", label: translateText("Barcha mijozlar") },
               ...customers.map((customer) => ({
                 value: customer.id,
                 label: customer.name || customer.phone || customer.id,
@@ -206,9 +209,9 @@ const SalesHistoryPage = () => {
           />
           <Select
             value={agentFilter}
-            placeholder="Barcha agentlar"
+            placeholder={translateText("Barcha agentlar")}
             options={[
-              { value: "", label: "Barcha agentlar" },
+              { value: "", label: translateText("Barcha agentlar") },
               ...agents.map((agent) => ({
                 value: agent.id,
                 label: agent.name || agent.phone || agent.id,
@@ -218,9 +221,9 @@ const SalesHistoryPage = () => {
           />
           <Select
             value={warehouseFilter}
-            placeholder="Barcha omborlar"
+            placeholder={translateText("Barcha omborlar")}
             options={[
-              { value: "", label: "Barcha omborlar" },
+              { value: "", label: translateText("Barcha omborlar") },
               ...warehouses.map((warehouse) => ({
                 value: warehouse.id,
                 label: warehouse.name,
@@ -228,8 +231,8 @@ const SalesHistoryPage = () => {
             ]}
             onChange={(event) => setWarehouseFilter(event.target.value)}
           />
-          <DatePicker value={from} placeholder="Boshlanish" onChange={(event) => setFrom(event.target.value)} />
-          <DatePicker value={to} placeholder="Tugash" onChange={(event) => setTo(event.target.value)} />
+          <DatePicker value={from} placeholder={translateText("Boshlanish")} onChange={(event) => setFrom(event.target.value)} />
+          <DatePicker value={to} placeholder={translateText("Tugash")} onChange={(event) => setTo(event.target.value)} />
         </div>
 
         <SalesTable
@@ -242,14 +245,14 @@ const SalesHistoryPage = () => {
         />
 
         <div className="sales-page__pagination">
-          <Badge variant="neutral">{filteredSales.length} ta natija</Badge>
+          <Badge variant="neutral">{filteredSales.length} {translateText("ta natija")}</Badge>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       </Card>
 
       <Modal
         open={Boolean(receiptSale)}
-        title="Receipt"
+        title={translateText("Chek")}
         size="sm"
         onClose={() => setReceiptSale(null)}
       >
@@ -273,7 +276,7 @@ const SaleStat = ({ icon, label, value, variant }) => (
     </div>
 
     <div>
-      <span>{label}</span>
+      <span>{translateText(label)}</span>
       <strong>{value}</strong>
     </div>
   </Card>

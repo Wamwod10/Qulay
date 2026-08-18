@@ -1,3 +1,5 @@
+import { getLocale } from "../../../../localization/i18n";
+
 export const DEFAULT_PRODUCTION_STAGES = [
     {
         id: "mixing",
@@ -98,7 +100,7 @@ export const startProductionStage = (
                         "IN_PROGRESS",
                     startedAt:
                         new Date().toLocaleString(
-                            "uz-UZ",
+                            getLocale(),
                         ),
                 }
                 : item,
@@ -139,7 +141,7 @@ export const completeProductionStage = (
                         "COMPLETED",
                     completedAt:
                         new Date().toLocaleString(
-                            "uz-UZ",
+                            getLocale(),
                         ),
                 }
                 : item,

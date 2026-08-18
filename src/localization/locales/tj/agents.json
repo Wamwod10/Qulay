@@ -1,0 +1,12 @@
+{
+  "agents": {
+    "title": "Агентҳо",
+    "agent": "Агент",
+    "route": "Маршрут",
+    "customers": "Мизоҷон",
+    "orders": "Фармоишҳо",
+    "payments": "Пардохтҳо",
+    "performance": "Натиҷа",
+    "debt": "Қарз"
+  }
+}

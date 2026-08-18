@@ -1,10 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    company: {
-        id: "company-dev",
-        name: "Asosiy kompaniya",
-    },
+    company: null,
 
     branch: {
         id: "branch-main",
@@ -20,7 +17,7 @@ const initialState = {
     branches: [],
     warehouses: [],
 
-    isInitialized: true,
+    isInitialized: false,
 };
 
 const tenantSlice = createSlice({
@@ -31,6 +28,7 @@ const tenantSlice = createSlice({
     reducers: {
         setCompany: (state, action) => {
             state.company = action.payload;
+            state.isInitialized = true;
         },
 
         setBranch: (state, action) => {

@@ -1,0 +1,13 @@
+{
+  "employees": {
+    "title": "Кормандон",
+    "employee": "Корманд",
+    "attendance": "Ҳозиршавӣ",
+    "shift": "Баст",
+    "late": "Дер кард",
+    "atWork": "Дар кор",
+    "leave": "Рухсатӣ",
+    "salary": "Маош",
+    "payableAmount": "Маблағи пардохтшаванда"
+  }
+}

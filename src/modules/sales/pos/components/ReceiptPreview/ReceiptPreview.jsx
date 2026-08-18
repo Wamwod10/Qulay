@@ -7,28 +7,40 @@ import {
   formatSaleMoney,
   getPaymentMethodLabel,
 } from "../../../utils/salesHelpers";
+import { translateText } from "../../../../../localization/i18n";
 
 import "./ReceiptPreview.scss";
 
-const ReceiptPreview = ({ sale, onPrint }) => {
+const ReceiptPreview = ({ sale, settings = {}, onPrint }) => {
   if (!sale) {
     return null;
   }
 
+  const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+
   return (
     <div className="sales-receipt">
-      <div className="sales-receipt__paper">
+      <div
+        className="sales-receipt__paper"
+        style={{
+          "--receipt-width": settings.receiptWidth || "80mm",
+        }}
+      >
         <header>
-          <strong>UNIVERSAL ERP POS</strong>
-          <span>Receipt / Chek</span>
+          <strong>{settings.receiptHeader || "UNIVERSAL ERP POS"}</strong>
+          <span>{translateText("Receipt / Chek")}</span>
         </header>
 
         <div className="sales-receipt__meta">
-          <span>Sotuv: {sale.number}</span>
-          <span>Sana: {formatSaleDate(sale.completedAt || sale.createdAt)}</span>
-          <span>Mijoz: {sale.customerName || "Mijozsiz"}</span>
-          <span>Agent: {sale.agentName || "-"}</span>
-          <span>Ombor: {sale.warehouseName || "-"}</span>
+          <span>{translateText("Sotuv")}: {sale.number}</span>
+          <span>{translateText("Sana")}: {formatSaleDate(sale.completedAt || sale.createdAt)}</span>
+          {settings.showCustomerOnReceipt !== false && (
+            <span>{translateText("Mijoz")}: {sale.customerName || translateText("Mijozsiz")}</span>
+          )}
+          {settings.showAgentOnReceipt !== false && (
+            <span>{translateText("Agent")}: {sale.agentName || "-"}</span>
+          )}
+          <span>{translateText("Ombor")}: {sale.warehouseName || "-"}</span>
         </div>
 
         <div className="sales-receipt__items">
@@ -37,7 +49,7 @@ const ReceiptPreview = ({ sale, onPrint }) => {
               <div>
                 <strong>{item.productName}</strong>
                 <span>
-                  {item.quantity} {item.unit} x {formatSaleMoney(item.price)}
+                  {item.quantity} {translateText(item.unit)} x {formatSaleMoney(item.price)}
                 </span>
               </div>
               <b>{formatSaleMoney(item.subtotal)}</b>
@@ -47,19 +59,19 @@ const ReceiptPreview = ({ sale, onPrint }) => {
 
         <div className="sales-receipt__totals">
           <span>
-            Subtotal <b>{formatSaleMoney(sale.subtotal)} so'm</b>
+            {translateText("Subtotal")} <b>{moneyText(sale.subtotal)}</b>
           </span>
           <span>
-            Discount <b>-{formatSaleMoney(sale.discount)} so'm</b>
+            {translateText("Discount")} <b>-{moneyText(sale.discount)}</b>
           </span>
           <strong>
-            Total <b>{formatSaleMoney(sale.total)} so'm</b>
+            {translateText("Total")} <b>{moneyText(sale.total)}</b>
           </strong>
           <span>
-            Paid <b>{formatSaleMoney(sale.paidAmount)} so'm</b>
+            {translateText("To'langan")} <b>{moneyText(sale.paidAmount)}</b>
           </span>
           <span>
-            Debt <b>{formatSaleMoney(sale.debtAmount)} so'm</b>
+            {translateText("Qarz")} <b>{moneyText(sale.debtAmount)}</b>
           </span>
         </div>
 
@@ -67,19 +79,23 @@ const ReceiptPreview = ({ sale, onPrint }) => {
           {(sale.payments || []).length ? (
             sale.payments.map((payment) => (
               <span key={payment.id}>
-                {getPaymentMethodLabel(payment.method)}: {formatSaleMoney(payment.amount)} so'm
+                {getPaymentMethodLabel(payment.method)}: {moneyText(payment.amount)}
               </span>
             ))
           ) : (
-            <span>To'lov kiritilmagan</span>
+            <span>{translateText("To'lov kiritilmagan")}</span>
           )}
         </div>
 
         {sale.note && <p className="sales-receipt__note">{sale.note}</p>}
+
+        {settings.receiptFooter && (
+          <p className="sales-receipt__footer">{settings.receiptFooter}</p>
+        )}
       </div>
 
       <Button leftIcon={<Printer size={17} />} onClick={onPrint}>
-        Print
+        {translateText("Print")}
       </Button>
     </div>
   );

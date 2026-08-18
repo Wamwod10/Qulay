@@ -1,4 +1,4 @@
-import {
+import { translateText } from "../../../../localization/i18n";import {
   ArrowLeft,
   Barcode,
   Boxes,
@@ -8,8 +8,8 @@ import {
   Pencil,
   QrCode,
   ShoppingCart,
-  Warehouse,
-} from "lucide-react";
+  Warehouse } from
+"lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -21,8 +21,8 @@ import { Badge, Button, Card, Table, Tabs } from "../../../../shared/ui";
 
 import {
   getProductHistory,
-  getStoredProductById,
-} from "../../utils/productsStorage";
+  getStoredProductById } from
+"../../utils/productsStorage";
 
 import {
   formatProductPrice,
@@ -30,13 +30,13 @@ import {
   getProductStatusLabel,
   getProductTypeLabel,
   getStockBadgeVariant,
-  getStockStatusLabel,
-} from "../../utils/productHelpers";
+  getStockStatusLabel } from
+"../../utils/productHelpers";
 
 import {
   PRODUCT_MANUFACTURING_HISTORY,
-  PRODUCT_PURCHASE_HISTORY,
-} from "../../constants/productHistoryMock";
+  PRODUCT_PURCHASE_HISTORY } from
+"../../constants/productHistoryMock";
 import { getStoredSales } from "../../../sales/utils/salesStorage";
 import { formatSaleDate } from "../../../sales/utils/salesHelpers";
 
@@ -50,7 +50,7 @@ const HISTORY_LABELS = {
   STOCK_ADJUSTMENT: "Qoldiq",
   PRICE: "Narx",
   ARCHIVE: "Arxiv",
-  RESTORE: "Qaytarildi",
+  RESTORE: "Qaytarildi"
 };
 
 const MANUFACTURING_TYPES = ["RAW_MATERIAL", "SEMI_FINISHED", "FINISHED_GOOD"];
@@ -73,29 +73,29 @@ const ProductDetailsPage = () => {
     }
 
     return Math.round(
-      ((Number(product.salePrice) - Number(product.cost || 0)) /
-        Number(product.salePrice)) *
-        100,
+      (Number(product.salePrice) - Number(product.cost || 0)) /
+      Number(product.salePrice) *
+      100
     );
   }, [product]);
 
   const tabs = useMemo(() => {
     const nextTabs = [
-      { key: "general", label: "Umumiy", icon: <Package size={16} /> },
-      { key: "warehouse", label: "Ombor", icon: <Warehouse size={16} /> },
-      {
-        key: "sales",
-        label: "Savdo va xaridlar",
-        icon: <ShoppingCart size={16} />,
-      },
-      { key: "history", label: "Tarix", icon: <History size={16} /> },
-    ];
+    { key: "general", label: translateText("Umumiy"), icon: <Package size={16} /> },
+    { key: "warehouse", label: translateText("Ombor"), icon: <Warehouse size={16} /> },
+    {
+      key: "sales",
+      label: translateText("Savdo va xaridlar"),
+      icon: <ShoppingCart size={16} />
+    },
+    { key: "history", label: translateText("Tarix"), icon: <History size={16} /> }];
+
 
     if (isManufacturingProduct) {
       nextTabs.push({
         key: "manufacturing",
-        label: "Ishlab chiqarish",
-        icon: <Factory size={16} />,
+        label: translateText("Ishlab chiqarish"),
+        icon: <Factory size={16} />
       });
     }
 
@@ -129,36 +129,36 @@ const ProductDetailsPage = () => {
   if (!product) {
     return (
       <PageContainer
-        title="Mahsulot topilmadi"
-        description="Bu mahsulot mavjud emas yoki o'chirilgan."
-      >
-        <Button variant="secondary" onClick={() => navigate("/products")}>
-          Mahsulotlarga qaytish
+        title={translateText("Mahsulot topilmadi")}
+        description={translateText("Bu mahsulot mavjud emas yoki o'chirilgan.")}>
+        
+        <Button variant="secondary" onClick={() => navigate("/products")}>{translateText("Mahsulotlarga qaytish")}
+
         </Button>
-      </PageContainer>
-    );
+      </PageContainer>);
+
   }
 
   return (
     <PageContainer
       title={product.name}
-      description={`${product.sku} - ${getProductTypeLabel(product.type)}`}
-    >
+      description={`${product.sku} - ${getProductTypeLabel(product.type)}`}>
+      
       <div className="product-details">
         <div className="product-details__top-actions">
           <Button
             variant="secondary"
             leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate("/products")}
-          >
-            Ortga
+            onClick={() => navigate("/products")}>{translateText("Ortga")}
+
+
           </Button>
 
           <Button
             leftIcon={<Pencil size={17} />}
-            onClick={() => navigate(`/products/${product.id}/edit`)}
-          >
-            Tahrirlash
+            onClick={() => navigate(`/products/${product.id}/edit`)}>{translateText("Tahrirlash")}
+
+
           </Button>
         </div>
 
@@ -167,24 +167,24 @@ const ProductDetailsPage = () => {
             <button
               type="button"
               className={[
-                "product-details__image",
-                product.image ? "product-details__image--clickable" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              "product-details__image",
+              product.image ? "product-details__image--clickable" : ""].
+
+              filter(Boolean).
+              join(" ")}
               onClick={() => {
                 if (product.image) {
                   setImagePreviewOpen(true);
                 }
               }}
               disabled={!product.image}
-              title={product.image ? "Rasmni kattalashtirish" : undefined}
-            >
-              {product.image ? (
-                <img src={product.image} alt={product.name} />
-              ) : (
-                <Package size={30} />
-              )}
+              title={product.image ? translateText("Rasmni kattalashtirish") : undefined}>
+              
+              {product.image ?
+              <img src={product.image} alt={product.name} /> :
+
+              <Package size={30} />
+              }
             </button>
 
             <div className="product-details__identity-content">
@@ -202,343 +202,359 @@ const ProductDetailsPage = () => {
 
               <div className="product-details__identity-meta">
                 <span>SKU: {product.sku}</span>
-                <span>Birlik: {product.unit}</span>
-                {product.brand && <span>Brend: {product.brand}</span>}
+                <span>
+                  {translateText("Birlik:")} {product.unit}
+                </span>
+                {product.brand && (
+                  <span>
+                    {translateText("Brend:")} {product.brand}
+                  </span>
+                )}
               </div>
             </div>
           </Card>
 
           <MetricCard
-            label="Joriy qoldiq"
+            label={translateText("Joriy qoldiq")}
             value={`${product.stock} ${product.unit}`}
             badge={
-              <Badge size="sm" variant={getStockBadgeVariant(product)}>
+            <Badge size="sm" variant={getStockBadgeVariant(product)}>
                 {getStockStatusLabel(product)}
               </Badge>
-            }
-          />
+            } />
+          
 
           <MetricCard
-            label="Tannarx"
-            value={`${formatProductPrice(product.cost)} so'm`}
-            description={`1 ${product.unit} uchun`}
-          />
+            label={translateText("Tannarx")}
+            value={`${formatProductPrice(product.cost)} ${translateText("so'm")}`}
+            description={`1 ${product.unit} ${translateText("uchun")}`} />
+          
 
           <MetricCard
-            label="Sotuv narxi"
+            label={translateText("Sotuv narxi")}
             value={
-              product.salePrice
-                ? `${formatProductPrice(product.salePrice)} so'm`
-                : "-"
+            product.salePrice ?
+            `${formatProductPrice(product.salePrice)} ${translateText("so'm")}` :
+            "-"
             }
             description={
-              margin !== null ? `Marja: ${margin}%` : "Sotuv narxi belgilanmagan"
-            }
-          />
+            margin !== null ?
+            `${translateText("Marja:")} ${margin}%` :
+            translateText("Sotuv narxi belgilanmagan")
+            } />
+          
         </section>
 
         <Tabs items={tabs} activeKey={activeTab} onChange={setActiveTab} />
 
         {activeTab === "general" && <GeneralTab product={product} />}
-        {activeTab === "warehouse" && (
-          <WarehouseTab product={product} history={history} />
-        )}
+        {activeTab === "warehouse" &&
+        <WarehouseTab product={product} history={history} />
+        }
         {activeTab === "sales" && <SalesPurchasesTab product={product} />}
         {activeTab === "history" && <HistoryTab history={history} />}
-        {activeTab === "manufacturing" && isManufacturingProduct && (
-          <ManufacturingTab product={product} />
-        )}
+        {activeTab === "manufacturing" && isManufacturingProduct &&
+        <ManufacturingTab product={product} />
+        }
 
-        {imagePreviewOpen && product.image && (
-          <div
-            className="product-details__image-overlay"
-            onClick={() => setImagePreviewOpen(false)}
-            role="presentation"
-          >
+        {imagePreviewOpen && product.image &&
+        <div
+          className="product-details__image-overlay"
+          onClick={() => setImagePreviewOpen(false)}
+          role="presentation">
+          
             <div
-              className="product-details__image-modal"
-              onClick={(event) => event.stopPropagation()}
-              role="presentation"
-            >
+            className="product-details__image-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="presentation">
+            
               <img src={product.image} alt={product.name} />
 
               <Button
-                variant="secondary"
-                onClick={() => setImagePreviewOpen(false)}
-              >
-                Yopish
-              </Button>
+              variant="secondary"
+              onClick={() => setImagePreviewOpen(false)}>{translateText("Yopish")}
+
+
+            </Button>
             </div>
           </div>
-        )}
+        }
       </div>
-    </PageContainer>
-  );
+    </PageContainer>);
+
 };
 
-const MetricCard = ({ label, value, description, badge }) => (
-  <Card className="product-details__metric">
+const MetricCard = ({ label, value, description, badge }) =>
+<Card className="product-details__metric">
     <span>{label}</span>
     <strong>{value}</strong>
     {description && <small>{description}</small>}
     {badge}
-  </Card>
-);
+  </Card>;
 
-const GeneralTab = ({ product }) => (
-  <div className="product-details__tab-grid">
+
+const GeneralTab = ({ product }) =>
+<div className="product-details__tab-grid">
     <Card>
       <SectionHeader
-        title="Asosiy ma'lumotlar"
-        description="Mahsulotning katalog ma'lumotlari."
-      />
+      title={translateText("Asosiy ma'lumotlar")}
+      description={translateText("Mahsulotning katalog ma'lumotlari.")} />
+    
 
       <div className="product-details__info-grid">
-        <InfoItem label="Nomi" value={product.name} />
+        <InfoItem label={translateText("Nomi")} value={product.name} />
         <InfoItem label="SKU" value={product.sku} />
-        <InfoItem label="Turi" value={getProductTypeLabel(product.type)} />
-        <InfoItem label="Kategoriya" value={product.category} />
-        <InfoItem label="Brend" value={product.brand} />
-        <InfoItem label="O'lchov birligi" value={product.unit} />
-        <InfoItem label="Yetkazib beruvchi" value={product.supplierName} />
-        <InfoItem label="Status" value={getProductStatusLabel(product.status)} />
+        <InfoItem label={translateText("Turi")} value={getProductTypeLabel(product.type)} />
+        <InfoItem label={translateText("Kategoriya")} value={product.category} />
+        <InfoItem label={translateText("Brend")} value={product.brand} />
+        <InfoItem label={translateText("O'lchov birligi")} value={product.unit} />
+        <InfoItem label={translateText("Yetkazib beruvchi")} value={product.supplierName} />
+        <InfoItem label={translateText("Status")} value={getProductStatusLabel(product.status)} />
       </div>
     </Card>
 
     <Card>
       <SectionHeader
-        title="Narx va soliq"
-        description="Mahsulotning moliyaviy parametrlari."
-      />
+      title={translateText("Narx va soliq")}
+      description={translateText("Mahsulotning moliyaviy parametrlari.")} />
+    
 
       <div className="product-details__info-grid">
         <InfoItem
-          label="Tannarx"
-          value={`${formatProductPrice(product.cost)} so'm`}
-        />
+        label={translateText("Tannarx")}
+        value={`${formatProductPrice(product.cost)} so'm`} />
+      
         <InfoItem
-          label="Sotuv narxi"
-          value={
-            product.salePrice ? `${formatProductPrice(product.salePrice)} so'm` : "-"
-          }
-        />
+        label={translateText("Sotuv narxi")}
+        value={
+        product.salePrice ? `${formatProductPrice(product.salePrice)} so'm` : "-"
+        } />
+      
         <InfoItem label="QQS" value={`${product.tax || 0}%`} />
-        <InfoItem label="Chegirma" value={`${product.discount || 0}%`} />
+        <InfoItem label={translateText("Chegirma")} value={`${product.discount || 0}%`} />
       </div>
     </Card>
 
     <Card>
       <SectionHeader
-        title="Identifikatsiya"
-        description="Barcode va boshqa identifikatorlar."
-      />
+      title={translateText("Identifikatsiya")}
+      description={translateText("Barcode va boshqa identifikatorlar.")} />
+    
 
       <div className="product-details__code-list">
         <CodeItem
-          icon={<Barcode size={20} />}
-          label="Barcode"
-          value={product.barcode || "-"}
-        />
+        icon={<Barcode size={20} />}
+        label={translateText("Barcode")}
+        value={product.barcode || "-"} />
+      
         <CodeItem
-          icon={<QrCode size={20} />}
-          label="QR"
-          value={product.sku ? `QR-${product.sku}` : "-"}
-        />
+        icon={<QrCode size={20} />}
+        label="QR"
+        value={product.sku ? `QR-${product.sku}` : "-"} />
+      
       </div>
     </Card>
 
     <Card>
-      <SectionHeader title="Izoh" description="Mahsulot bo'yicha ichki ma'lumot." />
+      <SectionHeader title={translateText("Izoh")} description={translateText("Mahsulot bo'yicha ichki ma'lumot.")} />
 
       <div className="product-details__notes">
         {product.notes || "Mahsulot uchun izoh kiritilmagan."}
       </div>
     </Card>
-  </div>
-);
+  </div>;
+
 
 const WarehouseTab = ({ product, history }) => {
   const stockHistory = history.filter((item) => item.type === "STOCK_ADJUSTMENT");
 
   const stockColumns = [
-    { key: "date", title: "Sana", render: (value) => formatHistoryDate(value) },
-    { key: "title", title: "Operatsiya" },
-    {
-      key: "oldValue",
-      title: "Oldingi",
-      render: (value) => `${value ?? "-"} ${product.unit}`,
-    },
-    {
-      key: "newValue",
-      title: "Yangi",
-      render: (value) => `${value ?? "-"} ${product.unit}`,
-    },
-    { key: "description", title: "Sabab" },
-  ];
+  { key: "date", title: translateText("Sana"), render: (value) => formatHistoryDate(value) },
+  { key: "title", title: translateText("Operatsiya") },
+  {
+    key: "oldValue",
+    title: translateText("Oldingi"),
+    render: (value) => `${value ?? "-"} ${product.unit}`
+  },
+  {
+    key: "newValue",
+    title: translateText("Yangi"),
+    render: (value) => `${value ?? "-"} ${product.unit}`
+  },
+  { key: "description", title: translateText("Sabab") }];
+
 
   return (
     <div className="product-details__tab-stack">
       <div className="product-details__warehouse-summary">
-        <MetricCard label="Jami qoldiq" value={`${product.stock} ${product.unit}`} />
+        <MetricCard label={translateText("Jami qoldiq")} value={`${product.stock} ${product.unit}`} />
         <MetricCard
-          label="Minimal qoldiq"
-          value={`${product.minimumStock} ${product.unit}`}
-        />
+          label={translateText("Minimal qoldiq")}
+          value={`${product.minimumStock} ${product.unit}`} />
+        
         <MetricCard
-          label="Ombor qiymati"
-          value={`${formatProductPrice(product.stock * product.cost)} so'm`}
-        />
+          label={translateText("Ombor qiymati")}
+          value={`${formatProductPrice(product.stock * product.cost)} so'm`} />
+        
         <MetricCard
-          label="Qoldiq holati"
+          label={translateText("Qoldiq holati")}
           value={getStockStatusLabel(product)}
           badge={
-            <Badge size="sm" variant={getStockBadgeVariant(product)}>
+          <Badge size="sm" variant={getStockBadgeVariant(product)}>
               {getStockStatusLabel(product)}
             </Badge>
-          }
-        />
+          } />
+        
       </div>
 
       <Card>
         <SectionHeader
-          title="Qoldiq harakatlari"
-          description="Mahsulot bo'yicha localStorage historydan olingan ombor o'zgarishlari."
-        />
+          title={translateText("Qoldiq harakatlari")}
+          description={translateText("Mahsulot bo'yicha backenddan olingan ombor o'zgarishlari.")} />
+        
 
         <Table
           columns={stockColumns}
           data={stockHistory}
-          emptyText="Bu mahsulot bo'yicha qoldiq tuzatish tarixi yo'q."
-        />
+          emptyText={translateText("Bu mahsulot bo'yicha qoldiq tuzatish tarixi yo'q.")} />
+        
       </Card>
-    </div>
-  );
+    </div>);
+
 };
 
 const SalesPurchasesTab = ({ product }) => {
-  const salesRows = getStoredSales()
-    .filter((sale) => sale.status !== "CANCELLED")
-    .flatMap((sale) =>
-      (sale.items || [])
-        .filter((item) => item.productId === product.id)
-        .map((item) => ({
-          id: `${sale.id}-${item.id}`,
-          date: formatSaleDate(sale.completedAt || sale.createdAt),
-          document: sale.number,
-          customer: sale.customerName || "Mijozsiz",
-          quantity: item.quantity,
-          price: item.price,
-          total: item.subtotal,
-        })),
-    );
+  const salesRows = getStoredSales().
+  filter((sale) => sale.status !== "CANCELLED").
+  flatMap((sale) =>
+  (sale.items || []).
+  filter((item) => item.productId === product.id).
+  map((item) => ({
+    id: `${sale.id}-${item.id}`,
+    date: formatSaleDate(sale.completedAt || sale.createdAt),
+    document: sale.number,
+    customer: sale.customerName || "Mijozsiz",
+    quantity: item.quantity,
+    price: item.price,
+    total: item.subtotal
+  }))
+  );
   const soldQuantity = salesRows.reduce((total, row) => total + Number(row.quantity || 0), 0);
   const revenue = salesRows.reduce((total, row) => total + Number(row.total || 0), 0);
 
   const salesColumns = [
-    { key: "date", title: "Sana" },
-    { key: "document", title: "Hujjat" },
-    { key: "customer", title: "Mijoz" },
-    {
-      key: "quantity",
-      title: "Miqdor",
-      render: (value) => `${value} ${product.unit}`,
-    },
-    { key: "price", title: "Narx", render: (value) => `${formatProductPrice(value)} so'm` },
-    { key: "total", title: "Jami", render: (value) => `${formatProductPrice(value)} so'm` },
-  ];
+  { key: "date", title: translateText("Sana") },
+  { key: "document", title: translateText("Hujjat") },
+  { key: "customer", title: translateText("Mijoz") },
+  {
+    key: "quantity",
+    title: translateText("Miqdor"),
+    render: (value) => `${value} ${product.unit}`
+  },
+  { key: "price", title: translateText("Narx"), render: (value) => `${formatProductPrice(value)} so'm` },
+  { key: "total", title: translateText("Jami"), render: (value) => `${formatProductPrice(value)} so'm` }];
+
 
   const purchaseColumns = [
-    { key: "date", title: "Sana" },
-    { key: "document", title: "Hujjat" },
-    { key: "supplier", title: "Yetkazib beruvchi" },
-    {
-      key: "quantity",
-      title: "Miqdor",
-      render: (value) => `${value} ${product.unit}`,
-    },
-    { key: "price", title: "Narx", render: (value) => `${formatProductPrice(value)} so'm` },
-    { key: "total", title: "Jami", render: (value) => `${formatProductPrice(value)} so'm` },
-  ];
+  { key: "date", title: translateText("Sana") },
+  { key: "document", title: translateText("Hujjat") },
+  { key: "supplier", title: translateText("Yetkazib beruvchi") },
+  {
+    key: "quantity",
+    title: translateText("Miqdor"),
+    render: (value) => `${value} ${product.unit}`
+  },
+  { key: "price", title: translateText("Narx"), render: (value) => `${formatProductPrice(value)} so'm` },
+  { key: "total", title: translateText("Jami"), render: (value) => `${formatProductPrice(value)} so'm` }];
+
 
   return (
     <div className="product-details__tab-stack">
       <div className="product-details__warehouse-summary">
-        <MetricCard label="Sotuvlar soni" value={`${salesRows.length} ta`} />
-        <MetricCard label="Sotilgan miqdor" value={`${soldQuantity} ${product.unit}`} />
-        <MetricCard label="Revenue" value={`${formatProductPrice(revenue)} so'm`} />
+        <MetricCard label={translateText("Sotuvlar soni")} value={`${salesRows.length} ta`} />
+        <MetricCard label={translateText("Sotilgan miqdor")} value={`${soldQuantity} ${product.unit}`} />
+        <MetricCard label={translateText("Revenue")} value={`${formatProductPrice(revenue)} so'm`} />
       </div>
 
       <Card>
         <SectionHeader
-          title="Savdo tarixi"
-          description="Sales modulidagi real yakunlangan savdolar."
-        />
+          title={translateText("Savdo tarixi")}
+          description={translateText("Sales modulidagi real yakunlangan savdolar.")} />
+        
 
         <Table
           columns={salesColumns}
           data={salesRows}
-          emptyText="Bu mahsulot bo'yicha savdo mavjud emas."
-        />
+          emptyText={translateText("Bu mahsulot bo'yicha savdo mavjud emas.")} />
+        
       </Card>
 
       <Card>
         <SectionHeader
-          title="Xaridlar tarixi"
-          description="Xomashyo va savdo mahsulotlari uchun demo xaridlar."
-        />
+          title={translateText("Xaridlar tarixi")}
+          description={translateText("Xomashyo va savdo mahsulotlari uchun demo xaridlar.")} />
+        
 
         <Table
           columns={purchaseColumns}
           data={
-            product.type === "RAW_MATERIAL" || product.type === "TRADING_PRODUCT"
-              ? PRODUCT_PURCHASE_HISTORY
-              : []
+          product.type === "RAW_MATERIAL" || product.type === "TRADING_PRODUCT" ?
+          PRODUCT_PURCHASE_HISTORY :
+          []
           }
-          emptyText="Bu mahsulot bo'yicha xarid mavjud emas."
-        />
+          emptyText={translateText("Bu mahsulot bo'yicha xarid mavjud emas.")} />
+        
       </Card>
-    </div>
-  );
+    </div>);
+
 };
 
 const HistoryTab = ({ history }) => {
   const columns = [
-    { key: "date", title: "Sana", render: (value) => formatHistoryDate(value) },
-    {
-      key: "type",
-      title: "Turi",
-      render: (value) => <Badge variant="neutral">{HISTORY_LABELS[value] || value}</Badge>,
-    },
-    { key: "title", title: "Sarlavha" },
-    { key: "description", title: "Tavsif" },
-    { key: "oldValue", title: "Oldingi", render: formatHistoryValue },
-    { key: "newValue", title: "Yangi", render: formatHistoryValue },
-    {
-      key: "price",
-      title: "Narxlar",
-      render: (_, row) => formatPriceHistory(row),
-    },
-    {
-      key: "summary",
-      title: "Before / after",
-      render: (_, row) => formatSummary(row),
-    },
-  ];
+  { key: "date", title: translateText("Sana"), render: (value) => formatHistoryDate(value) },
+  {
+    key: "type",
+    title: translateText("Turi"),
+    render: (value) => <Badge variant="neutral">{HISTORY_LABELS[value] || value}</Badge>
+  },
+  {
+    key: "title",
+    title: translateText("Sarlavha"),
+    render: (value) => translateText(value)
+  },
+  {
+    key: "description",
+    title: translateText("Tavsif"),
+    render: (value) => translateText(value)
+  },
+  { key: "oldValue", title: translateText("Oldingi"), render: formatHistoryValue },
+  { key: "newValue", title: translateText("Yangi"), render: formatHistoryValue },
+  {
+    key: "price",
+    title: translateText("Narxlar"),
+    render: (_, row) => formatPriceHistory(row)
+  },
+  {
+    key: "summary",
+    title: translateText("Before / after"),
+    render: (_, row) => formatSummary(row)
+  }];
+
 
   return (
     <Card>
       <SectionHeader
-        title="Mahsulot tarixi"
-        description="Create, edit, status, stock, price, archive va restore eventlari."
-      />
+        title={translateText("Mahsulot tarixi")}
+        description={translateText("Create, edit, status, stock, price, archive va restore eventlari.")} />
+      
 
       <Table
         columns={columns}
         data={history}
-        emptyText="Bu mahsulot bo'yicha history hali yo'q."
-      />
-    </Card>
-  );
+        emptyText={translateText("Bu mahsulot bo'yicha history hali yo'q.")} />
+      
+    </Card>);
+
 };
 
 const ManufacturingTab = ({ product }) => {
@@ -547,92 +563,92 @@ const ManufacturingTab = ({ product }) => {
       <div className="product-details__tab-grid">
         <Card>
           <SectionHeader
-            title="Xomashyo ishlatilishi"
-            description="Backend ulangunga qadar demo BOM ma'lumotlari."
-          />
+            title={translateText("Xomashyo ishlatilishi")}
+            description={translateText("Backend ulangunga qadar demo BOM ma'lumotlari.")} />
+          
 
           <div className="product-details__info-grid">
-            <InfoItem label="Qaysi BOMda ishlatiladi" value="Shokoladli pechenye v1" />
-            <InfoItem label="1 partiyaga sarf" value={`25 ${product.unit}`} />
-            <InfoItem label="Rezerv qilingan" value={`40 ${product.unit}`} />
+            <InfoItem label={translateText("Qaysi BOMda ishlatiladi")} value="Shokoladli pechenye v1" />
+            <InfoItem label={translateText("1 partiyaga sarf")} value={`25 ${product.unit}`} />
+            <InfoItem label={translateText("Rezerv qilingan")} value={`40 ${product.unit}`} />
             <InfoItem
-              label="Mavjud stock"
-              value={`${Math.max(product.stock - 40, 0)} ${product.unit}`}
-            />
-            <InfoItem label="Material use" value="Asosiy retsept komponenti" />
+              label={translateText("Mavjud stock")}
+              value={`${Math.max(product.stock - 40, 0)} ${product.unit}`} />
+            
+            <InfoItem label={translateText("Material use")} value="Asosiy retsept komponenti" />
           </div>
         </Card>
-      </div>
-    );
+      </div>);
+
   }
 
   const columns = [
-    { key: "number", title: "Buyurtma" },
-    { key: "date", title: "Sana" },
-    {
-      key: "quantity",
-      title: "Ishlab chiqarildi",
-      render: (value) => `${value} ${product.unit}`,
-    },
-    { key: "cost", title: "Tannarx", render: (value) => `${formatProductPrice(value)} so'm` },
-    { key: "status", title: "Holat", render: () => <Badge variant="success">Tugallangan</Badge> },
-  ];
+  { key: "number", title: translateText("Buyurtma") },
+  { key: "date", title: translateText("Sana") },
+  {
+    key: "quantity",
+    title: translateText("Ishlab chiqarildi"),
+    render: (value) => `${value} ${product.unit}`
+  },
+  { key: "cost", title: translateText("Tannarx"), render: (value) => `${formatProductPrice(value)} so'm` },
+  { key: "status", title: translateText("Holat"), render: () => <Badge variant="success">{translateText("Tugallangan")}</Badge> }];
+
 
   return (
     <div className="product-details__tab-stack">
       <Card>
         <SectionHeader
-          title="Ishlab chiqarish ma'lumotlari"
-          description="Tayyor yoki yarim tayyor mahsulot retsepti va ishlab chiqarish holati."
-        />
+          title={translateText("Ishlab chiqarish ma'lumotlari")}
+          description={translateText("Tayyor yoki yarim tayyor mahsulot retsepti va ishlab chiqarish holati.")} />
+        
 
         <div className="product-details__info-grid">
-          <InfoItem label="BOM / Recipe" value={`${product.name} v1`} />
+          <InfoItem label={translateText("BOM / Recipe")} value={`${product.name} v1`} />
           <InfoItem
-            label="Oxirgi tannarx"
-            value={`${formatProductPrice(product.cost)} so'm`}
-          />
-          <InfoItem label="Oxirgi ishlab chiqarish" value="PRD-2026-0042" />
-          <InfoItem label="Jami qoldiq" value={`${product.stock} ${product.unit}`} />
+            label={translateText("Oxirgi tannarx")}
+            value={`${formatProductPrice(product.cost)} so'm`} />
+          
+          <InfoItem label={translateText("Oxirgi ishlab chiqarish")} value="PRD-2026-0042" />
+          <InfoItem label={translateText("Jami qoldiq")} value={`${product.stock} ${product.unit}`} />
         </div>
       </Card>
 
       <Card>
         <SectionHeader
-          title="Ishlab chiqarish tarixi"
-          description="Backend ulangunga qadar demo ishlab chiqarish buyurtmalari."
-        />
+          title={translateText("Ishlab chiqarish tarixi")}
+          description={translateText("Backend ulangunga qadar demo ishlab chiqarish buyurtmalari.")} />
+        
 
         <Table columns={columns} data={PRODUCT_MANUFACTURING_HISTORY} />
       </Card>
-    </div>
-  );
+    </div>);
+
 };
 
-const SectionHeader = ({ title, description }) => (
-  <div className="product-details__section-header">
+const SectionHeader = ({ title, description }) =>
+<div className="product-details__section-header">
     <h3>{title}</h3>
     {description && <p>{description}</p>}
-  </div>
-);
+  </div>;
 
-const InfoItem = ({ label, value }) => (
-  <div className="product-details__info-item">
+
+const InfoItem = ({ label, value }) =>
+<div className="product-details__info-item">
     <span>{label}</span>
     <strong>{value || "-"}</strong>
-  </div>
-);
+  </div>;
 
-const CodeItem = ({ icon, label, value }) => (
-  <div className="product-details__code-item">
+
+const CodeItem = ({ icon, label, value }) =>
+<div className="product-details__code-item">
     <div>{icon}</div>
 
     <span>
       <small>{label}</small>
       <strong>{value}</strong>
     </span>
-  </div>
-);
+  </div>;
+
 
 const formatHistoryDate = (value) => {
   if (!value) {
@@ -654,9 +670,9 @@ const formatHistoryValue = (value) => {
   }
 
   if (typeof value === "object") {
-    return Object.entries(value)
-      .map(([key, item]) => `${key}: ${item ?? "-"}`)
-      .join(", ");
+    return Object.entries(value).
+    map(([key, item]) => `${key}: ${item ?? "-"}`).
+    join(", ");
   }
 
   return String(value);
@@ -664,19 +680,19 @@ const formatHistoryValue = (value) => {
 
 const formatPriceHistory = (row) => {
   const hasPriceData =
-    row.oldCost !== undefined ||
-    row.newCost !== undefined ||
-    row.oldSalePrice !== undefined ||
-    row.newSalePrice !== undefined;
+  row.oldCost !== undefined ||
+  row.newCost !== undefined ||
+  row.oldSalePrice !== undefined ||
+  row.newSalePrice !== undefined;
 
   if (!hasPriceData) {
     return "-";
   }
 
   return [
-    `Tannarx: ${formatProductPrice(row.oldCost)} -> ${formatProductPrice(row.newCost)}`,
-    `Sotuv: ${formatProductPrice(row.oldSalePrice)} -> ${formatProductPrice(row.newSalePrice)}`,
-  ].join(" | ");
+  `Tannarx: ${formatProductPrice(row.oldCost)} -> ${formatProductPrice(row.newCost)}`,
+  `Sotuv: ${formatProductPrice(row.oldSalePrice)} -> ${formatProductPrice(row.newSalePrice)}`].
+  join(" | ");
 };
 
 const formatSummary = (row) => {

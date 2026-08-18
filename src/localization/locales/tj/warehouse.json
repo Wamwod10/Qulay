@@ -1,0 +1,12 @@
+{
+  "warehouse": {
+    "title": "Анбор",
+    "stock": "Боқимонда",
+    "stockIn": "Воридот",
+    "stockOut": "Баромад",
+    "transfer": "Гузаронидан",
+    "available": "Мавҷуд",
+    "lowStock": "Кам мондааст",
+    "outOfStock": "Тамом шудааст"
+  }
+}

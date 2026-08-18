@@ -49,6 +49,7 @@ import {
   Select,
   TableToolbar,
 } from "../../../../shared/ui";
+import { translateOptions, translateText } from "../../../../localization/i18n";
 
 import { WAREHOUSES } from "../../constants/warehouseMock";
 
@@ -130,7 +131,7 @@ const WarehousePage = () => {
 
       refreshWarehouseData();
     } catch (error) {
-      alert(error.message || "Kirim qilishda xatolik yuz berdi.");
+      alert(translateText(error.message || "Kirim qilishda xatolik yuz berdi."));
     }
   };
 
@@ -142,7 +143,9 @@ const WarehousePage = () => {
 
       refreshWarehouseData();
     } catch (error) {
-      alert(error.message || "Inventarizatsiyada xatolik yuz berdi.");
+      alert(
+        translateText(error.message || "Inventarizatsiyada xatolik yuz berdi."),
+      );
     }
   };
 
@@ -158,7 +161,7 @@ const WarehousePage = () => {
 
       refreshWarehouseData();
     } catch (error) {
-      alert(error.message || "Chiqim qilishda xatolik yuz berdi.");
+      alert(translateText(error.message || "Chiqim qilishda xatolik yuz berdi."));
     }
   };
 
@@ -170,7 +173,7 @@ const WarehousePage = () => {
 
       refreshWarehouseData();
     } catch (error) {
-      alert(error.message || "Ko‘chirishda xatolik yuz berdi.");
+      alert(translateText(error.message || "Ko‘chirishda xatolik yuz berdi."));
     }
   };
 
@@ -266,13 +269,15 @@ const WarehousePage = () => {
 
   return (
     <PageContainer
-      title="Ombor"
-      description="Mahsulot qoldiqlari, kirim-chiqim va ombor operatsiyalarini boshqarish."
+      title={translateText("Ombor")}
+      description={translateText(
+        "Mahsulot qoldiqlari, kirim-chiqim va ombor operatsiyalarini boshqarish.",
+      )}
     >
       <div className="warehouse-page">
         <section className="warehouse-page__top">
           <div className="warehouse-page__selector">
-            <span>Joriy ombor</span>
+            <span>{translateText("Joriy ombor")}</span>
 
             <Select
               value={warehouseId}
@@ -286,7 +291,7 @@ const WarehousePage = () => {
               leftIcon={<ArrowDownToLine size={17} />}
               onClick={() => setStockInOpen(true)}
             >
-              Kirim
+              {translateText("Kirim")}
             </Button>
 
             <Button
@@ -294,7 +299,7 @@ const WarehousePage = () => {
               leftIcon={<ArrowUpFromLine size={17} />}
               onClick={() => setStockOutOpen(true)}
             >
-              Chiqim
+              {translateText("Chiqim")}
             </Button>
 
             <Button
@@ -302,7 +307,7 @@ const WarehousePage = () => {
               leftIcon={<ArrowLeftRight size={17} />}
               onClick={() => setTransferOpen(true)}
             >
-              Ko‘chirish
+              {translateText("Ko‘chirish")}
             </Button>
 
             <Button
@@ -310,7 +315,7 @@ const WarehousePage = () => {
               leftIcon={<ClipboardCheck size={17} />}
               onClick={() => setInventoryOpen(true)}
             >
-              Inventarizatsiya
+              {translateText("Inventarizatsiya")}
             </Button>
           </div>
         </section>
@@ -318,14 +323,14 @@ const WarehousePage = () => {
         <section className="warehouse-page__stats">
           <WarehouseStat
             icon={<Boxes size={21} />}
-            label="Mahsulotlar"
+            label={translateText("Mahsulotlar")}
             value={stats.products}
           />
 
           <WarehouseStat
             icon={<Wallet size={21} />}
-            label="Ombor qiymati"
-            value={`${formatWarehouseMoney(stats.totalValue)} so‘m`}
+            label={translateText("Ombor qiymati")}
+            value={`${formatWarehouseMoney(stats.totalValue)} ${translateText("so‘m")}`}
           />
 
           <WarehouseStat
@@ -337,7 +342,7 @@ const WarehousePage = () => {
                 size={21}
               />
             }
-            label="Kam qolgan"
+            label={translateText("Kam qolgan")}
             value={stats.lowStock}
             variant="warning"
           />
@@ -351,7 +356,7 @@ const WarehousePage = () => {
                 size={21}
               />
             }
-            label="Tugagan"
+            label={translateText("Tugagan")}
             value={stats.outOfStock}
             variant="danger"
           />
@@ -371,7 +376,7 @@ const WarehousePage = () => {
             <div>
               <h2>{selectedWarehouse?.name}</h2>
 
-              <p>Joriy qoldiq va mavjud mahsulotlar.</p>
+              <p>{translateText("Joriy qoldiq va mavjud mahsulotlar.")}</p>
             </div>
           </div>
 
@@ -379,13 +384,15 @@ const WarehousePage = () => {
             <TableToolbar
               searchValue={search}
               onSearchChange={setSearch}
-              searchPlaceholder="Mahsulot yoki SKU bo‘yicha qidirish..."
+              searchPlaceholder={translateText(
+                "Mahsulot yoki SKU bo‘yicha qidirish...",
+              )}
             >
               <div className="warehouse-page__filter">
                 <Select
                   value={typeFilter}
-                  placeholder="Barcha turlar"
-                  options={[
+                  placeholder={translateText("Barcha turlar")}
+                  options={translateOptions([
                     {
                       value: "RAW_MATERIAL",
                       label: "Xomashyo",
@@ -402,7 +409,7 @@ const WarehousePage = () => {
                       value: "TRADING_PRODUCT",
                       label: "Savdo mahsuloti",
                     },
-                  ]}
+                  ])}
                   onChange={(event) => setTypeFilter(event.target.value)}
                 />
               </div>
@@ -410,8 +417,8 @@ const WarehousePage = () => {
               <div className="warehouse-page__filter">
                 <Select
                   value={stockStatusFilter}
-                  placeholder="Barcha qoldiq"
-                  options={[
+                  placeholder={translateText("Barcha qoldiq")}
+                  options={translateOptions([
                     {
                       value: "IN_STOCK",
                       label: "Yetarli",
@@ -424,7 +431,7 @@ const WarehousePage = () => {
                       value: "OUT_OF_STOCK",
                       label: "Tugagan",
                     },
-                  ]}
+                  ])}
                   onChange={(event) => setStockStatusFilter(event.target.value)}
                 />
               </div>
@@ -437,14 +444,14 @@ const WarehousePage = () => {
                     setStockStatusFilter("");
                   }}
                 >
-                  Filtrlarni tozalash
+                  {translateText("Filtrlarni tozalash")}
                 </Button>
               )}
             </TableToolbar>
           </div>
 
           <div className="warehouse-page__result">
-            {filteredStock.length} ta mahsulot
+            {filteredStock.length} {translateText("ta mahsulot")}
           </div>
 
           <StockGrid

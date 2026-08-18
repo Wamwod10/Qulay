@@ -1,13 +1,36 @@
+import { getLocale, translateText } from "../../../localization/i18n";
+
 import "./Table.scss";
 
 const Table = ({
   columns = [],
   data = [],
   rowKey = "id",
-  emptyText = "Ma’lumot topilmadi.",
+  emptyText = "Ma'lumot topilmadi.",
+  density,
 }) => {
+  const tableSettings = columns.__tableSettings || {};
+  const effectiveDensity = density || tableSettings.rowDensity;
+  const sortKey = tableSettings.defaultSort;
+  const tableData = sortKey
+    ? [...data].sort((left, right) =>
+        String(left?.[sortKey] ?? "").localeCompare(
+          String(right?.[sortKey] ?? ""),
+          getLocale(),
+        ),
+      )
+    : data;
+  const classes = [
+    "ui-table",
+    effectiveDensity && effectiveDensity !== "inherit"
+      ? `ui-table--${effectiveDensity}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="ui-table">
+    <div className={classes}>
       <div className="ui-table__scroll">
         <table>
           <thead>
@@ -26,8 +49,8 @@ const Table = ({
           </thead>
 
           <tbody>
-            {data.length > 0 ? (
-              data.map((row, rowIndex) => (
+            {tableData.length > 0 ? (
+              tableData.map((row, rowIndex) => (
                 <tr key={row[rowKey] ?? rowIndex}>
                   {columns.map((column) => (
                     <td key={column.key}>
@@ -41,7 +64,7 @@ const Table = ({
             ) : (
               <tr>
                 <td className="ui-table__empty" colSpan={columns.length}>
-                  {emptyText}
+                  {translateText(emptyText)}
                 </td>
               </tr>
             )}

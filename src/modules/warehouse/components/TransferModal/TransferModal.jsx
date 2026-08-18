@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import { getStoredWarehouses } from "../../utils/warehouseManagementStorage";
 
@@ -72,25 +73,29 @@ const TransferModal = ({
     setError("");
 
     if (!fromWarehouseId) {
-      setError("Manba omborni tanlang.");
+      setError(translateText("Manba omborni tanlang."));
 
       return;
     }
 
     if (!toWarehouseId) {
-      setError("Qabul qiluvchi omborni tanlang.");
+      setError(translateText("Qabul qiluvchi omborni tanlang."));
 
       return;
     }
 
     if (fromWarehouseId === toWarehouseId) {
-      setError("Manba va qabul qiluvchi ombor bir xil bo‘lishi mumkin emas.");
+      setError(
+        translateText(
+          "Manba va qabul qiluvchi ombor bir xil bo‘lishi mumkin emas.",
+        ),
+      );
 
       return;
     }
 
     if (!productId) {
-      setError("Mahsulotni tanlang.");
+      setError(translateText("Mahsulotni tanlang."));
 
       return;
     }
@@ -98,14 +103,16 @@ const TransferModal = ({
     const amount = Number(quantity);
 
     if (!amount || amount <= 0) {
-      setError("Miqdor 0 dan katta bo‘lishi kerak.");
+      setError(translateText("Miqdor 0 dan katta bo‘lishi kerak."));
 
       return;
     }
 
     if (selectedProduct && amount > Number(selectedProduct.quantity)) {
       setError(
-        `Manba omborda faqat ${selectedProduct.quantity} ${selectedProduct.unit} mavjud.`,
+        translateText(
+          `Manba omborda faqat ${selectedProduct.quantity} ${selectedProduct.unit} mavjud.`,
+        ),
       );
 
       return;
@@ -124,8 +131,10 @@ const TransferModal = ({
     <Modal
       open={open}
       onClose={onClose}
-      title="Omborlar orasida ko‘chirish"
-      description="Mahsulot qoldig‘ini bir ombordan boshqa omborga o‘tkazish."
+      title={translateText("Omborlar orasida ko‘chirish")}
+      description={translateText(
+        "Mahsulot qoldig‘ini bir ombordan boshqa omborga o‘tkazish.",
+      )}
       size="md"
     >
       <div
@@ -135,7 +144,7 @@ const TransferModal = ({
         }}
       >
         <Select
-          label="Manba ombor"
+          label={translateText("Manba ombor")}
           value={fromWarehouseId}
           options={warehouseOptions}
           onChange={(event) => {
@@ -146,31 +155,31 @@ const TransferModal = ({
         />
 
         <Select
-          label="Qabul qiluvchi ombor"
+          label={translateText("Qabul qiluvchi ombor")}
           value={toWarehouseId}
-          placeholder="Ombor tanlang"
+          placeholder={translateText("Ombor tanlang")}
           options={destinationOptions}
           onChange={(event) => setToWarehouseId(event.target.value)}
         />
 
         <Select
-          label="Mahsulot"
+          label={translateText("Mahsulot")}
           value={productId}
-          placeholder="Mahsulot tanlang"
+          placeholder={translateText("Mahsulot tanlang")}
           options={productOptions}
           onChange={(event) => setProductId(event.target.value)}
         />
 
         {selectedProduct && (
           <Input
-            label="Manba ombordagi qoldiq"
+            label={translateText("Manba ombordagi qoldiq")}
             value={`${selectedProduct.quantity} ${selectedProduct.unit}`}
             disabled
           />
         )}
 
         <Input
-          label="Ko‘chirish miqdori"
+          label={translateText("Ko‘chirish miqdori")}
           type="number"
           min="0"
           value={quantity}
@@ -179,8 +188,10 @@ const TransferModal = ({
         />
 
         <Textarea
-          label="Izoh"
-          placeholder="Masalan: ishlab chiqarish omboriga ko‘chirildi..."
+          label={translateText("Izoh")}
+          placeholder={translateText(
+            "Masalan: ishlab chiqarish omboriga ko‘chirildi...",
+          )}
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
@@ -204,10 +215,10 @@ const TransferModal = ({
           }}
         >
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>Ko‘chirish</Button>
+          <Button onClick={handleSubmit}>{translateText("Ko‘chirish")}</Button>
         </div>
       </div>
     </Modal>

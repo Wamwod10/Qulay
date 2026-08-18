@@ -7,6 +7,7 @@ import {
 import {
     getStoredProducts,
 } from "../../../products/utils/productsStorage";
+import { getLocale } from "../../../../localization/i18n";
 
 import {
     getStoredProductionOrders,
@@ -474,7 +475,7 @@ export const completeProductionOrder = ({
 
         completedAt:
             new Date().toLocaleString(
-                "uz-UZ",
+                getLocale(),
             ),
     };
 

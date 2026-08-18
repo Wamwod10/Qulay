@@ -1,12 +1,12 @@
-import {
+import { translateText } from "../../../../localization/i18n";import {
   Ban,
   CreditCard,
   Eye,
   MoreHorizontal,
   Pencil,
   PackageCheck,
-  Copy,
-} from "lucide-react";
+  Copy } from
+"lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -23,7 +23,7 @@ const PurchaseActionsMenu = ({
   onPayment,
   onReceive,
   onCancel,
-  onDuplicate,
+  onDuplicate
 }) => {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -32,19 +32,19 @@ const PurchaseActionsMenu = ({
 
   const [position, setPosition] = useState({
     top: 0,
-    left: 0,
+    left: 0
   });
 
   const canEdit =
-    purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
+  purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
 
   const canReceive =
-    purchase.status === "ORDERED" || purchase.status === "PARTIALLY_RECEIVED";
+  purchase.status === "ORDERED" || purchase.status === "PARTIALLY_RECEIVED";
 
   const canPayment = purchase.status !== "CANCELLED";
 
   const canCancel =
-    purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
+  purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
 
   const updatePosition = () => {
     if (!buttonRef.current) {
@@ -74,7 +74,7 @@ const PurchaseActionsMenu = ({
 
     setPosition({
       top: Math.max(12, top),
-      left,
+      left
     });
   };
 
@@ -123,7 +123,7 @@ const PurchaseActionsMenu = ({
         <Button
           size="sm"
           variant="ghost"
-          title="Boshqa amallar"
+          title={translateText("Boshqa amallar")}
           onClick={() => {
             setOpen((current) => {
               const next = !current;
@@ -134,72 +134,72 @@ const PurchaseActionsMenu = ({
 
               return next;
             });
-          }}
-        >
+          }}>
+          
           <MoreHorizontal size={17} />
         </Button>
       </div>
 
       {open &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="purchase-actions-menu"
-            style={{
-              top: position.top,
-              left: position.left,
-            }}
-          >
+      createPortal(
+        <div
+          ref={menuRef}
+          className="purchase-actions-menu"
+          style={{
+            top: position.top,
+            left: position.left
+          }}>
+          
             <button type="button" onClick={() => execute(onView)}>
-              <Eye size={16} />
-              Ko‘rish
-            </button>
+              <Eye size={16} />{translateText("Ko‘rish")}
 
-            {canEdit && (
-              <button type="button" onClick={() => execute(onEdit)}>
-                <Pencil size={16} />
-                Tahrirlash
-              </button>
-            )}
+          </button>
+
+            {canEdit &&
+          <button type="button" onClick={() => execute(onEdit)}>
+                <Pencil size={16} />{translateText("Tahrirlash")}
+
+          </button>
+          }
 
             <button type="button" onClick={() => execute(onDuplicate)}>
-              <Copy size={16} />
-              Nusxa olish
-            </button>
+              <Copy size={16} />{translateText("Nusxa olish")}
 
-            {canPayment && (
-              <button type="button" onClick={() => execute(onPayment)}>
-                <CreditCard size={16} />
-                To‘lov
-              </button>
-            )}
+          </button>
 
-            {canReceive && (
-              <button type="button" onClick={() => execute(onReceive)}>
-                <PackageCheck size={16} />
-                Qabul qilish
-              </button>
-            )}
+            {canPayment &&
+          <button type="button" onClick={() => execute(onPayment)}>
+                <CreditCard size={16} />{translateText("To‘lov")}
 
-            {canCancel && (
-              <>
+          </button>
+          }
+
+            {canReceive &&
+          <button type="button" onClick={() => execute(onReceive)}>
+                <PackageCheck size={16} />{translateText("Qabul qilish")}
+
+          </button>
+          }
+
+            {canCancel &&
+          <>
                 <div className="purchase-actions-menu__divider" />
 
                 <button
-                  type="button"
-                  className="purchase-actions-menu__danger"
-                  onClick={() => execute(onCancel)}
-                >
-                  <Ban size={16} />
-                  Bekor qilish
-                </button>
+              type="button"
+              className="purchase-actions-menu__danger"
+              onClick={() => execute(onCancel)}>
+              
+                  <Ban size={16} />{translateText("Bekor qilish")}
+
+            </button>
               </>
-            )}
+          }
           </div>,
-          document.body,
-        )}
-    </>
-  );
+        document.body
+      )}
+    </>);
+
 };
 
 export default PurchaseActionsMenu;

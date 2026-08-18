@@ -1,7 +1,7 @@
+import { API_BASE_URL } from "./apiUrl";
+
 export const API_CONFIG = {
-  baseUrl:
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000/api",
+  baseUrl: API_BASE_URL,
 
   timeout: 30000,
 

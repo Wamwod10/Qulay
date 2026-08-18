@@ -14,9 +14,23 @@ import {
   roundMoney,
   toMoney,
 } from "./financeStorage";
+import {
+  formatDateWithSettings,
+  formatMoneyWithSettings,
+  formatTimeWithSettings,
+} from "../../settings/utils/formatSettingsHelpers";
+import { loadPlatformSettings } from "../../settings/utils/settingsStorage";
+
+const getFormats = () => {
+  try {
+    return loadPlatformSettings().formats || {};
+  } catch {
+    return {};
+  }
+};
 
 export const formatFinanceMoney = (value) =>
-  new Intl.NumberFormat("uz-UZ").format(toMoney(value));
+  formatMoneyWithSettings(toMoney(value), getFormats()).replace(/\s(so'm|UZS|USD)$/, "");
 
 export const formatFinanceDate = (value) => {
   if (!value) {
@@ -29,7 +43,7 @@ export const formatFinanceDate = (value) => {
     return String(value);
   }
 
-  return date.toLocaleString("uz-UZ");
+  return `${formatDateWithSettings(date, getFormats())} ${formatTimeWithSettings(date, getFormats())}`;
 };
 
 export const getPaymentMethodLabel = (method) => {
@@ -116,7 +130,7 @@ export const getSalePaymentTransactions = () =>
         normalizeDerivedTransaction({
           id: `fin-sale-refund-${sale.id}-${item.id}`,
           type: "OUT",
-          category: "Refund",
+          category: "Qaytarim",
           sourceType: "REFUND",
           sourceId: item.id,
           customerId: sale.customerId,
@@ -147,7 +161,7 @@ export const getSalePaymentTransactions = () =>
           normalizeDerivedTransaction({
             id: `fin-sale-pay-${sale.id}-${payment.id}`,
             type: "IN",
-            category: "Sales",
+            category: "Savdo",
             sourceType: "SALE_PAYMENT",
             sourceId: payment.id,
             customerId: sale.customerId,
@@ -166,7 +180,7 @@ export const getSalePaymentTransactions = () =>
             normalizeDerivedTransaction({
               id: `fin-sale-paid-${sale.id}`,
               type: "IN",
-              category: "Sales",
+              category: "Savdo",
               sourceType: "SALE_PAYMENT",
               sourceId: sale.id,
               customerId: sale.customerId,
@@ -193,7 +207,7 @@ export const getPurchasePaymentTransactions = () =>
       normalizeDerivedTransaction({
         id: `fin-purchase-paid-${purchase.id}`,
         type: "OUT",
-        category: "Supplier payment",
+        category: "Yetkazib beruvchi to'lovi",
         sourceType: "PURCHASE_PAYMENT",
         sourceId: purchase.id,
         supplierId: purchase.supplierId,

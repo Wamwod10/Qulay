@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
+import { translateOptions, translateText } from "../../../../localization/i18n";
 
 const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
   const [productId, setProductId] = useState("");
@@ -52,13 +53,13 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
     setError("");
 
     if (!productId) {
-      setError("Mahsulotni tanlang.");
+      setError(translateText("Mahsulotni tanlang."));
 
       return;
     }
 
     if (!quantity || Number(quantity) <= 0) {
-      setError("Miqdor 0 dan katta bo‘lishi kerak.");
+      setError(translateText("Miqdor 0 dan katta bo‘lishi kerak."));
 
       return;
     }
@@ -77,8 +78,8 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="Omborga kirim"
-      description="Tanlangan omborga mahsulot qabul qilish."
+      title={translateText("Omborga kirim")}
+      description={translateText("Tanlangan omborga mahsulot qabul qilish.")}
       size="md"
     >
       <div
@@ -88,23 +89,23 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
         }}
       >
         <Select
-          label="Mahsulot"
+          label={translateText("Mahsulot")}
           value={productId}
-          placeholder="Mahsulot tanlang"
+          placeholder={translateText("Mahsulot tanlang")}
           options={productOptions}
           onChange={(event) => setProductId(event.target.value)}
         />
 
         {selectedItem && (
           <Input
-            label="Hozirgi qoldiq"
+            label={translateText("Hozirgi qoldiq")}
             value={`${selectedItem.quantity} ${selectedItem.unit}`}
             disabled
           />
         )}
 
         <Input
-          label="Kirim miqdori"
+          label={translateText("Kirim miqdori")}
           type="number"
           min="0"
           value={quantity}
@@ -113,7 +114,7 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
         />
 
         <Input
-          label="Tannarx"
+          label={translateText("Tannarx")}
           type="number"
           min="0"
           value={cost}
@@ -122,9 +123,9 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
         />
 
         <Select
-          label="Kirim manbasi"
+          label={translateText("Kirim manbasi")}
           value={source}
-          options={[
+          options={translateOptions([
             {
               value: "Yetkazib beruvchi",
               label: "Yetkazib beruvchi",
@@ -145,13 +146,13 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
               value: "Boshqa",
               label: "Boshqa",
             },
-          ]}
+          ])}
           onChange={(event) => setSource(event.target.value)}
         />
 
         <Textarea
-          label="Izoh"
-          placeholder="Kirim bo‘yicha qo‘shimcha ma’lumot..."
+          label={translateText("Izoh")}
+          placeholder={translateText("Kirim bo‘yicha qo‘shimcha ma’lumot...")}
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />
@@ -175,10 +176,10 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
           }}
         >
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>Kirim qilish</Button>
+          <Button onClick={handleSubmit}>{translateText("Kirim qilish")}</Button>
         </div>
       </div>
     </Modal>

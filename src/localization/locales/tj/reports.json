@@ -1,0 +1,11 @@
+{
+  "reports": {
+    "title": "Ҳисоботҳо",
+    "sales": "Фурӯш",
+    "finance": "Молия",
+    "warehouse": "Анбор",
+    "manufacturing": "Истеҳсолот",
+    "customers": "Мизоҷон",
+    "hr": "Кормандон"
+  }
+}

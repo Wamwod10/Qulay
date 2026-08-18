@@ -1,4 +1,4 @@
-import Barcode from "react-barcode";
+import { translateText } from "../../../../localization/i18n";import Barcode from "react-barcode";
 
 import { QRCodeSVG } from "qrcode.react";
 
@@ -17,14 +17,14 @@ const BarcodeQrModal = ({ product, open, onClose }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="Barcode / QR"
+      title={translateText("Barcode / QR")}
       description={`${product.name} - ${barcodeValue}`}
-      size="md"
-    >
+      size="md">
+      
       <div className="barcode-qr-modal">
         <div className="barcode-qr-modal__print-area">
           <div className="barcode-qr-modal__item">
-            <span>Barcode</span>
+            <span>{translateText("Barcode")}</span>
 
             <div className="barcode-qr-modal__code">
               <Barcode
@@ -32,13 +32,13 @@ const BarcodeQrModal = ({ product, open, onClose }) => {
                 height={65}
                 width={1.35}
                 fontSize={13}
-                margin={6}
-              />
+                margin={6} />
+              
             </div>
           </div>
 
           <div className="barcode-qr-modal__item">
-            <span>QR kod</span>
+            <span>{translateText("QR kod")}</span>
 
             <div className="barcode-qr-modal__qr">
               <QRCodeSVG
@@ -46,24 +46,24 @@ const BarcodeQrModal = ({ product, open, onClose }) => {
                   id: product.id,
                   sku: product.sku,
                   barcode: barcodeValue,
-                  name: product.name,
+                  name: product.name
                 })}
-                size={180}
-              />
+                size={180} />
+              
             </div>
           </div>
         </div>
 
         <div className="barcode-qr-modal__actions">
-          <Button variant="secondary" onClick={onClose}>
-            Yopish
+          <Button variant="secondary" onClick={onClose}>{translateText("Yopish")}
+
           </Button>
 
-          <Button onClick={() => window.print()}>Chop etish</Button>
+          <Button onClick={() => window.print()}>{translateText("Chop etish")}</Button>
         </div>
       </div>
-    </Modal>
-  );
+    </Modal>);
+
 };
 
 export default BarcodeQrModal;

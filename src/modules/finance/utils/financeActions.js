@@ -53,7 +53,7 @@ export const addCustomerPayment = ({
   return addFinanceTransaction({
     id: createFinanceId("cust-pay"),
     type: "IN",
-    category: "Customer payment",
+    category: "Mijoz to'lovi",
     sourceType: "CUSTOMER_PAYMENT",
     sourceId: saleId || customerId,
     customerId,
@@ -89,7 +89,7 @@ export const addSupplierPayment = ({
   return addFinanceTransaction({
     id: createFinanceId("sup-pay"),
     type: "OUT",
-    category: "Supplier payment",
+    category: "Yetkazib beruvchi to'lovi",
     sourceType: "SUPPLIER_PAYMENT",
     sourceId: purchaseId || supplierId,
     supplierId,
@@ -146,7 +146,7 @@ export const addCashMovement = ({
   return addFinanceTransaction({
     id: createFinanceId(safeType === "IN" ? "cash-in" : "cash-out"),
     type: safeType,
-    category: safeType === "IN" ? "Cash in" : "Cash out",
+    category: safeType === "IN" ? "Kassa kirimi" : "Kassa chiqimi",
     sourceType: safeType === "IN" ? "CASH_IN" : "CASH_OUT",
     sourceId: cashboxId,
     amount: safeAmount,
@@ -176,7 +176,7 @@ export const addCashTransfer = ({
   const outTransaction = addFinanceTransaction({
     id: `${transferId}-out`,
     type: "OUT",
-    category: "Cash transfer",
+    category: "Kassa o'tkazmasi",
     sourceType: "CASH_TRANSFER",
     sourceId: transferId,
     amount: safeAmount,
@@ -190,7 +190,7 @@ export const addCashTransfer = ({
   const inTransaction = addFinanceTransaction({
     id: `${transferId}-in`,
     type: "IN",
-    category: "Cash transfer",
+    category: "Kassa o'tkazmasi",
     sourceType: "CASH_TRANSFER",
     sourceId: transferId,
     amount: safeAmount,
@@ -230,7 +230,7 @@ export const addAgentCollection = ({
   return addFinanceTransaction({
     id: createFinanceId("agent-col"),
     type: "IN",
-    category: "Agent collection",
+    category: "Agent tushumi",
     sourceType: "AGENT_COLLECTION",
     sourceId: saleId || customerId || agentId,
     customerId,
@@ -265,7 +265,7 @@ export const addAgentHandover = ({
   return addFinanceTransaction({
     id: createFinanceId("agent-hand"),
     type: "IN",
-    category: "Agent handover",
+    category: "Agent topshirimi",
     sourceType: "AGENT_HANDOVER",
     sourceId: agentId,
     agentId,

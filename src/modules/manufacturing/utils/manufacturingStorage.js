@@ -1,12 +1,10 @@
 import {
-    INITIAL_BOMS,
-    INITIAL_PRODUCTION_ORDERS,
-} from "../constants/manufacturingMock";
-
-import {
     checkMaterialAvailability,
     hasEnoughMaterials,
 } from "../production-orders/utils/materialAvailability";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { getLocale } from "../../../localization/i18n";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 import {
     calculateProductionMaterialCost,
@@ -30,10 +28,10 @@ import {
 } from "./productionCost";
 
 const BOM_STORAGE_KEY =
-    "universal_erp_manufacturing_boms";
+    "manufacturing_boms";
 
 const PRODUCTION_STORAGE_KEY =
-    "universal_erp_production_orders";
+    "production_orders";
 
 const normalizeProductionOrder = (order) => {
     const overheadItems =
@@ -94,37 +92,50 @@ const normalizeProductionOrder = (order) => {
 };
 
 export const getStoredBoms = () => {
+    const remoteBoms = unwrapList(syncApiRequest("/manufacturing/boms"), ["boms"]);
+    if (Array.isArray(remoteBoms)) {
+        tenantSet(BOM_STORAGE_KEY, remoteBoms);
+        return remoteBoms;
+    }
     try {
         const stored =
-            localStorage.getItem(
+            tenantGet(
                 BOM_STORAGE_KEY,
+                null,
             );
 
         if (!stored) {
-            localStorage.setItem(
+            tenantSet(
                 BOM_STORAGE_KEY,
-                JSON.stringify(
-                    INITIAL_BOMS,
-                ),
+                [],
             );
 
-            return INITIAL_BOMS;
+            return [];
         }
 
-        return JSON.parse(stored);
+        return stored;
     } catch {
-        return INITIAL_BOMS;
+        return [];
     }
 };
 
 export const saveBoms = (boms) => {
-    localStorage.setItem(
+    tenantSet(
         BOM_STORAGE_KEY,
-        JSON.stringify(boms),
+        boms,
     );
 };
 
 export const createBom = (bom) => {
+    const remoteBom = syncApiRequest("/manufacturing/boms", {
+        method: "POST",
+        body: bom,
+    });
+    if (remoteBom?.id) {
+        const boms = getStoredBoms();
+        saveBoms([remoteBom, ...boms.filter((item) => item.id !== remoteBom.id)]);
+        return remoteBom;
+    }
     const boms = getStoredBoms();
 
     const newBom = {
@@ -140,7 +151,7 @@ export const createBom = (bom) => {
 
         createdAt:
             new Date().toLocaleString(
-                "uz-UZ",
+                getLocale(),
             ),
     };
 
@@ -155,6 +166,15 @@ export const createBom = (bom) => {
 export const updateBom = (
     updatedBom,
 ) => {
+    const remoteBom = updatedBom?.id ? syncApiRequest(`/manufacturing/boms/${updatedBom.id}`, {
+        method: "PATCH",
+        body: updatedBom,
+    }) : null;
+    if (remoteBom?.id) {
+        const boms = getStoredBoms();
+        saveBoms(boms.map((bom) => (bom.id === remoteBom.id ? remoteBom : bom)));
+        return remoteBom;
+    }
     const boms = getStoredBoms();
 
     const updated = boms.map(
@@ -174,47 +194,60 @@ export const updateBom = (
 
 export const getStoredProductionOrders =
     () => {
+        const remoteOrders = unwrapList(syncApiRequest("/manufacturing/orders"), ["orders", "productionOrders"]);
+        if (Array.isArray(remoteOrders)) {
+            tenantSet(PRODUCTION_STORAGE_KEY, remoteOrders);
+            return remoteOrders.map(normalizeProductionOrder);
+        }
         try {
             const stored =
-                localStorage.getItem(
+                tenantGet(
                     PRODUCTION_STORAGE_KEY,
+                    null,
                 );
 
             if (!stored) {
-                localStorage.setItem(
+                tenantSet(
                     PRODUCTION_STORAGE_KEY,
-                    JSON.stringify(
-                        INITIAL_PRODUCTION_ORDERS,
-                    ),
+                    [],
                 );
 
-            return INITIAL_PRODUCTION_ORDERS.map(
-                normalizeProductionOrder,
-            );
+            return [];
         }
 
-            return JSON.parse(stored).map(
+            return stored.map(
                 normalizeProductionOrder,
             );
         } catch {
-            return INITIAL_PRODUCTION_ORDERS.map(
-                normalizeProductionOrder,
-            );
+            return [];
         }
     };
 
 export const saveProductionOrders = (
     orders,
 ) => {
-    localStorage.setItem(
+    tenantSet(
         PRODUCTION_STORAGE_KEY,
-        JSON.stringify(orders),
+        orders,
+    );
+
+    window.dispatchEvent(
+        new Event("manufacturing:changed"),
     );
 };
 
 export const createProductionOrder = (
     order,
 ) => {
+    const remoteOrder = syncApiRequest("/manufacturing/orders", {
+        method: "POST",
+        body: order,
+    });
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders([remoteOrder, ...orders.filter((item) => item.id !== remoteOrder.id)]);
+        return normalizeProductionOrder(remoteOrder);
+    }
     const orders =
         getStoredProductionOrders();
 
@@ -275,7 +308,7 @@ export const createProductionOrder = (
 
         createdAt:
             new Date().toLocaleString(
-                "uz-UZ",
+                getLocale(),
             ),
 
         stages:
@@ -306,6 +339,23 @@ export const getProductionOrderById = (
 export const updateProductionOrder = (
     updatedOrder,
 ) => {
+    const remoteOrder = updatedOrder?.status === "IN_PROGRESS"
+        ? syncApiRequest(`/manufacturing/orders/${updatedOrder.id}/start`, {
+            method: "POST",
+            body: updatedOrder,
+        })
+        : updatedOrder?.status === "COMPLETED"
+            ? syncApiRequest(`/manufacturing/orders/${updatedOrder.id}/complete`, {
+                method: "POST",
+                body: updatedOrder,
+            })
+            : null;
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders(orders.map((order) => (order.id === remoteOrder.id ? remoteOrder : order)));
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return normalizeProductionOrder(remoteOrder);
+    }
     const orders =
         getStoredProductionOrders();
 
@@ -327,6 +377,16 @@ export const updateProductionOrder = (
 export const startProductionOrder = (
     orderId,
 ) => {
+    const remoteOrder = syncApiRequest(`/manufacturing/orders/${orderId}/start`, {
+        method: "POST",
+        body: {},
+    });
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders(orders.map((order) => (order.id === remoteOrder.id ? remoteOrder : order)));
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return normalizeProductionOrder(remoteOrder);
+    }
     const orders =
         getStoredProductionOrders();
 

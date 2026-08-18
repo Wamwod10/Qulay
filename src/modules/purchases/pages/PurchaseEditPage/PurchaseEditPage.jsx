@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { translateText } from "../../../../localization/i18n";import { ArrowLeft } from "lucide-react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -22,30 +22,30 @@ const PurchaseEditPage = () => {
   if (!purchase) {
     return (
       <PageContainer
-        title="Xarid topilmadi"
-        description="Tahrirlamoqchi bo‘lgan xarid mavjud emas."
-      >
-        <Button variant="secondary" onClick={() => navigate("/purchases")}>
-          Xaridlarga qaytish
+        title={translateText("Xarid topilmadi")}
+        description={translateText("Tahrirlamoqchi bo‘lgan xarid mavjud emas.")}>
+        
+        <Button variant="secondary" onClick={() => navigate("/purchases")}>{translateText("Xaridlarga qaytish")}
+
         </Button>
-      </PageContainer>
-    );
+      </PageContainer>);
+
   }
 
   if (purchase.status === "RECEIVED" || purchase.status === "CANCELLED") {
     return (
       <PageContainer
-        title="Xaridni tahrirlab bo‘lmaydi"
-        description="Qabul qilingan yoki bekor qilingan xarid o‘zgartirilmaydi."
-      >
+        title={translateText("Xaridni tahrirlab bo‘lmaydi")}
+        description={translateText("Qabul qilingan yoki bekor qilingan xarid o‘zgartirilmaydi.")}>
+        
         <Button
           variant="secondary"
-          onClick={() => navigate(`/purchases/${purchase.id}`)}
-        >
-          Xaridga qaytish
+          onClick={() => navigate(`/purchases/${purchase.id}`)}>{translateText("Xaridga qaytish")}
+
+
         </Button>
-      </PageContainer>
-    );
+      </PageContainer>);
+
   }
 
   const handleSubmit = (values) => {
@@ -55,7 +55,7 @@ const PurchaseEditPage = () => {
 
       id: purchase.id,
 
-      number: purchase.number,
+      number: purchase.number
     });
 
     navigate(`/purchases/${updated.id}`);
@@ -63,28 +63,28 @@ const PurchaseEditPage = () => {
 
   return (
     <PageContainer
-      title="Xaridni tahrirlash"
-      description={`${purchase.number} · ${purchase.supplierName}`}
-    >
+      title={translateText("Xaridni tahrirlash")}
+      description={`${purchase.number} · ${purchase.supplierName}`}>
+      
       <div className="purchase-edit-page">
         <div className="purchase-edit-page__top">
           <Button
             variant="secondary"
             leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate(`/purchases/${purchase.id}`)}
-          >
-            Ortga
+            onClick={() => navigate(`/purchases/${purchase.id}`)}>{translateText("Ortga")}
+
+
           </Button>
         </div>
 
         <PurchaseForm
           initialValues={purchase}
           onSubmit={handleSubmit}
-          onCancel={() => navigate(`/purchases/${purchase.id}`)}
-        />
+          onCancel={() => navigate(`/purchases/${purchase.id}`)} />
+        
       </div>
-    </PageContainer>
-  );
+    </PageContainer>);
+
 };
 
 export default PurchaseEditPage;

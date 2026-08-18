@@ -1,8 +1,10 @@
+import { getLocale, translateText } from "../../../localization/i18n";
+
 export const formatManufacturingMoney = (
     value,
 ) => {
     return new Intl.NumberFormat(
-        "uz-UZ",
+        getLocale(),
     ).format(Number(value) || 0);
 };
 
@@ -11,16 +13,16 @@ export const getProductionStatusLabel = (
 ) => {
     switch (status) {
         case "PLANNED":
-            return "Rejalashtirilgan";
+            return translateText("Rejalashtirilgan");
 
         case "IN_PROGRESS":
-            return "Jarayonda";
+            return translateText("Jarayonda");
 
         case "COMPLETED":
-            return "Tugallangan";
+            return translateText("Tugallangan");
 
         case "CANCELLED":
-            return "Bekor qilingan";
+            return translateText("Bekor qilingan");
 
         default:
             return status || "—";

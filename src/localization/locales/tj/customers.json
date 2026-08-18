@@ -1,0 +1,13 @@
+{
+  "customers": {
+    "title": "Мизоҷон",
+    "customerScore": "Арзёбии мизоҷ",
+    "creditLimit": "Лимити қарз",
+    "followUp": "Пайгирӣ",
+    "newSale": "Фурӯши нав",
+    "receivePayment": "Қабули пардохт",
+    "lastSale": "Фурӯши охирин",
+    "averageReceipt": "Чеки миёна",
+    "risky": "Хавфнок"
+  }
+}

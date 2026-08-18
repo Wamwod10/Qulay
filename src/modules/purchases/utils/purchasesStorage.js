@@ -1,36 +1,41 @@
-import {
-    INITIAL_PURCHASES,
-} from "../constants/purchasesMock";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 const STORAGE_KEY =
-    "universal_erp_purchases";
+    "purchases";
 
 export const getStoredPurchases = () => {
+    const remotePurchases = unwrapList(syncApiRequest("/purchases"), ["purchases"]);
+
+    if (Array.isArray(remotePurchases)) {
+        tenantSet(STORAGE_KEY, remotePurchases);
+        return remotePurchases;
+    }
+
     try {
         const stored =
-            localStorage.getItem(
+            tenantGet(
                 STORAGE_KEY,
+                null,
             );
 
         if (!stored) {
-            localStorage.setItem(
+            tenantSet(
                 STORAGE_KEY,
-                JSON.stringify(
-                    INITIAL_PURCHASES,
-                ),
+                [],
             );
 
-            return INITIAL_PURCHASES;
+            return [];
         }
 
-        return JSON.parse(stored);
+        return stored;
     } catch (error) {
         console.error(
             "Purchases storage read error:",
             error,
         );
 
-        return INITIAL_PURCHASES;
+        return [];
     }
 };
 
@@ -38,9 +43,13 @@ export const savePurchases = (
     purchases,
 ) => {
     try {
-        localStorage.setItem(
+        tenantSet(
             STORAGE_KEY,
-            JSON.stringify(purchases),
+            purchases,
+        );
+
+        window.dispatchEvent(
+            new Event("purchases:changed"),
         );
     } catch (error) {
         console.error(
@@ -62,6 +71,17 @@ export const getPurchaseById = (
 export const createPurchase = (
     purchase,
 ) => {
+    const remotePurchase = syncApiRequest("/purchases", {
+        method: "POST",
+        body: purchase,
+    });
+
+    if (remotePurchase?.id) {
+        const purchases = getStoredPurchases();
+        savePurchases([remotePurchase, ...purchases.filter((item) => item.id !== remotePurchase.id)]);
+        return remotePurchase;
+    }
+
     const purchases =
         getStoredPurchases();
 
@@ -96,6 +116,17 @@ export const createPurchase = (
 export const updatePurchase = (
     updatedPurchase,
 ) => {
+    const remotePurchase = syncApiRequest(`/purchases/${updatedPurchase.id}`, {
+        method: "PATCH",
+        body: updatedPurchase,
+    });
+
+    if (remotePurchase?.id) {
+        const purchases = getStoredPurchases();
+        savePurchases(purchases.map((purchase) => (purchase.id === remotePurchase.id ? remotePurchase : purchase)));
+        return remotePurchase;
+    }
+
     const purchases =
         getStoredPurchases();
 
@@ -119,6 +150,18 @@ export const updatePurchase = (
 export const markPurchaseReceived = (
     purchaseId,
 ) => {
+    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/receive`, {
+        method: "POST",
+        idempotencyKey: `purchase-receive:${purchaseId}`,
+        body: { idempotencyKey: `purchase-receive:${purchaseId}` },
+    });
+
+    if (remotePurchase?.id) {
+        const purchases = getStoredPurchases();
+        savePurchases(purchases.map((purchase) => (purchase.id === remotePurchase.id ? remotePurchase : purchase)));
+        return remotePurchase;
+    }
+
     const purchases =
         getStoredPurchases();
 
@@ -168,6 +211,17 @@ export const markPurchaseReceived = (
 export const cancelPurchase = (
     purchaseId,
 ) => {
+    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/cancel`, {
+        method: "POST",
+        body: {},
+    });
+
+    if (remotePurchase?.id) {
+        const purchases = getStoredPurchases();
+        savePurchases(purchases.map((purchase) => (purchase.id === remotePurchase.id ? remotePurchase : purchase)));
+        return remotePurchase;
+    }
+
     const purchases =
         getStoredPurchases();
 
@@ -222,6 +276,25 @@ export const updatePurchasePayment = ({
     purchaseId,
     paidAmount,
 }) => {
+    const currentPurchase = getStoredPurchases().find((purchase) => purchase.id === purchaseId);
+    const currentPaid = Number(currentPurchase?.paidAmount || 0);
+    const nextPaid = Number(paidAmount || 0);
+    const remotePurchase = syncApiRequest(`/purchases/${purchaseId}/payment`, {
+        method: "POST",
+        idempotencyKey: `purchase-payment:${purchaseId}:${Math.max(nextPaid - currentPaid, 0)}`,
+        body: {
+            amount: Math.max(nextPaid - currentPaid, 0),
+            paidAmount: nextPaid,
+            idempotencyKey: `purchase-payment:${purchaseId}:${Math.max(nextPaid - currentPaid, 0)}`,
+        },
+    });
+
+    if (remotePurchase?.id) {
+        const purchases = getStoredPurchases();
+        savePurchases(purchases.map((purchase) => (purchase.id === remotePurchase.id ? remotePurchase : purchase)));
+        return remotePurchase;
+    }
+
     const purchases =
         getStoredPurchases();
 

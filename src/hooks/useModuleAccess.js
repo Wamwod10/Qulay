@@ -5,6 +5,9 @@ const useModuleAccess = () => {
     const enabledModules = useSelector(
         (state) => state.modules.enabledModules,
     );
+    const isInitialized = useSelector(
+        (state) => state.modules.isInitialized,
+    );
 
     const hasModule = useCallback(
         (moduleKey) => {
@@ -12,13 +15,14 @@ const useModuleAccess = () => {
                 return true;
             }
 
-            return enabledModules.includes(moduleKey);
+            return isInitialized && enabledModules.includes(moduleKey);
         },
-        [enabledModules],
+        [enabledModules, isInitialized],
     );
 
     return {
         enabledModules,
+        isInitialized,
         hasModule,
     };
 };

@@ -1,6 +1,7 @@
 import { Pencil, Plus, Power, Warehouse } from "lucide-react";
 
 import { Badge, Button, Card, EmptyState } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import "./WarehouseManager.scss";
 
@@ -14,22 +15,22 @@ const WarehouseManager = ({
     <Card padding="md" className="warehouse-manager">
       <div className="warehouse-manager__header">
         <div>
-          <h3>Omborlar</h3>
+          <h3>{translateText("Omborlar")}</h3>
 
-          <p>Kompaniyadagi omborlarni boshqarish.</p>
+          <p>{translateText("Kompaniyadagi omborlarni boshqarish.")}</p>
         </div>
 
         <Button size="sm" leftIcon={<Plus size={16} />} onClick={onCreate}>
-          Yangi ombor
+          {translateText("Yangi ombor")}
         </Button>
       </div>
 
       {!warehouses.length ? (
         <EmptyState
           icon={Warehouse}
-          title="Ombor mavjud emas"
-          description="Birinchi omborni yaratib ishni boshlang."
-          actionLabel="Ombor yaratish"
+          title={translateText("Ombor mavjud emas")}
+          description={translateText("Birinchi omborni yaratib ishni boshlang.")}
+          actionLabel={translateText("Ombor yaratish")}
           onAction={onCreate}
         />
       ) : (
@@ -50,14 +51,18 @@ const WarehouseManager = ({
                       warehouse.status === "ACTIVE" ? "success" : "neutral"
                     }
                   >
-                    {warehouse.status === "ACTIVE" ? "Faol" : "Faol emas"}
+                    {translateText(
+                      warehouse.status === "ACTIVE" ? "Faol" : "Faol emas",
+                    )}
                   </Badge>
                 </div>
 
-                <span>{warehouse.branch || "Filial yo‘q"}</span>
+                <span>{warehouse.branch || translateText("Filial yo‘q")}</span>
 
                 {warehouse.responsible && (
-                  <small>Mas’ul: {warehouse.responsible}</small>
+                  <small>
+                    {translateText("Mas’ul:")} {warehouse.responsible}
+                  </small>
                 )}
               </div>
 
@@ -65,7 +70,7 @@ const WarehouseManager = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  title="Tahrirlash"
+                  title={translateText("Tahrirlash")}
                   onClick={() => onEdit?.(warehouse)}
                 >
                   <Pencil size={15} />
@@ -74,7 +79,7 @@ const WarehouseManager = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  title="Statusni o‘zgartirish"
+                  title={translateText("Statusni o‘zgartirish")}
                   onClick={() => onToggleStatus?.(warehouse)}
                 >
                   <Power size={15} />

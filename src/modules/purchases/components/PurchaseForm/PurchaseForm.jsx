@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useMemo, useState } from "react";
 
 import { Plus, Trash2 } from "lucide-react";
 
@@ -8,14 +8,14 @@ import {
   DatePicker,
   Input,
   Select,
-  Textarea,
-} from "../../../../shared/ui";
+  Textarea } from
+"../../../../shared/ui";
 
 import {
   formatPurchaseMoney,
   getLastPurchasePrice,
-  getPriceDifference,
-} from "../../utils/purchaseHelpers";
+  getPriceDifference } from
+"../../utils/purchaseHelpers";
 
 import { getStoredPurchases } from "../../utils/purchasesStorage";
 
@@ -32,38 +32,38 @@ const createEmptyItem = () => ({
   id: `item-${Date.now()}-${Math.random()}`,
   productId: "",
   quantity: "",
-  purchasePrice: "",
+  purchasePrice: ""
 });
 
 const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
   const products = useMemo(
     () =>
-      getStoredProducts().filter(
-        (product) => product.status === "ACTIVE" && product.type !== "SERVICE",
-      ),
-    [],
+    getStoredProducts().filter(
+      (product) => product.status === "ACTIVE" && product.type !== "SERVICE"
+    ),
+    []
   );
 
   const warehouses = useMemo(
     () =>
-      getStoredWarehouses().filter(
-        (warehouse) => warehouse.status === "ACTIVE",
-      ),
-    [],
+    getStoredWarehouses().filter(
+      (warehouse) => warehouse.status === "ACTIVE"
+    ),
+    []
   );
 
   const [supplierId, setSupplierId] = useState(initialValues?.supplierId || "");
 
   const [warehouseId, setWarehouseId] = useState(
-    initialValues?.warehouseId || warehouses[0]?.id || "",
+    initialValues?.warehouseId || warehouses[0]?.id || ""
   );
 
   const [orderDate, setOrderDate] = useState(
-    initialValues?.orderDate || getToday(),
+    initialValues?.orderDate || getToday()
   );
 
   const [expectedDate, setExpectedDate] = useState(
-    initialValues?.expectedDate || "",
+    initialValues?.expectedDate || ""
   );
 
   const [status, setStatus] = useState(initialValues?.status || "ORDERED");
@@ -76,47 +76,47 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
   const suppliers = useMemo(
     () =>
-      getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
-    [],
+    getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
+    []
   );
 
   const [items, setItems] = useState(
-    initialValues?.items?.length
-      ? initialValues.items.map((item) => ({
-          id: item.id || `item-${Date.now()}-${Math.random()}`,
+    initialValues?.items?.length ?
+    initialValues.items.map((item) => ({
+      id: item.id || `item-${Date.now()}-${Math.random()}`,
 
-          productId: item.productId,
+      productId: item.productId,
 
-          quantity: item.quantity,
+      quantity: item.quantity,
 
-          purchasePrice: item.purchasePrice,
-        }))
-      : [createEmptyItem()],
+      purchasePrice: item.purchasePrice
+    })) :
+    [createEmptyItem()]
   );
 
   const [errors, setErrors] = useState({});
 
   const productOptions = products.map((product) => ({
     value: product.id,
-    label: `${product.name} · ${product.sku}`,
+    label: `${product.name} · ${product.sku}`
   }));
 
   const warehouseOptions = warehouses.map((warehouse) => ({
     value: warehouse.id,
-    label: warehouse.name,
+    label: warehouse.name
   }));
 
   const supplierOptions = suppliers.map((supplier) => ({
     value: supplier.id,
 
-    label: supplier.name,
+    label: supplier.name
   }));
 
   const subtotal = useMemo(() => {
     return items.reduce(
       (total, item) =>
-        total + Number(item.quantity || 0) * Number(item.purchasePrice || 0),
-      0,
+      total + Number(item.quantity || 0) * Number(item.purchasePrice || 0),
+      0
     );
   }, [items]);
 
@@ -126,14 +126,14 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
   const handleItemChange = (itemId, field, value) => {
     setItems((current) =>
-      current.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
+    current.map((item) =>
+    item.id === itemId ?
+    {
+      ...item,
+      [field]: value
+    } :
+    item
+    )
     );
   };
 
@@ -151,38 +151,38 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
         status,
         paidAmount,
         note,
-        items,
+        items
       });
     }, 500);
 
     return () => clearTimeout(timer);
   }, [
-    supplierId,
-    warehouseId,
-    orderDate,
-    expectedDate,
-    status,
-    paidAmount,
-    note,
-    items,
-    onDraftChange,
-  ]);
+  supplierId,
+  warehouseId,
+  orderDate,
+  expectedDate,
+  status,
+  paidAmount,
+  note,
+  items,
+  onDraftChange]
+  );
 
   const handleProductSelect = (itemId, productId) => {
     const product = products.find((item) => item.id === productId);
 
     setItems((current) =>
-      current.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
+    current.map((item) =>
+    item.id === itemId ?
+    {
+      ...item,
 
-              productId,
+      productId,
 
-              purchasePrice: product?.cost ?? item.purchasePrice,
-            }
-          : item,
-      ),
+      purchasePrice: product?.cost ?? item.purchasePrice
+    } :
+    item
+    )
     );
   };
 
@@ -211,9 +211,9 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
     const hasInvalidItem = items.some(
       (item) =>
-        !item.productId ||
-        Number(item.quantity) <= 0 ||
-        Number(item.purchasePrice) < 0,
+      !item.productId ||
+      Number(item.quantity) <= 0 ||
+      Number(item.purchasePrice) < 0
     );
 
     if (hasInvalidItem) {
@@ -246,7 +246,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
     const preparedItems = items.map((item) => {
       const product = products.find(
-        (productItem) => productItem.id === item.productId,
+        (productItem) => productItem.id === item.productId
       );
 
       const quantity = Number(item.quantity);
@@ -266,13 +266,13 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
         quantity,
 
-        receivedQuantity: initialValues
-          ? Number(item.receivedQuantity || 0)
-          : 0,
+        receivedQuantity: initialValues ?
+        Number(item.receivedQuantity || 0) :
+        0,
 
         purchasePrice,
 
-        total: quantity * purchasePrice,
+        total: quantity * purchasePrice
       };
     });
 
@@ -309,7 +309,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
       debtAmount: debt,
 
-      note: note.trim(),
+      note: note.trim()
     };
 
     onSubmit?.(purchase);
@@ -320,51 +320,51 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
       <Card padding="lg" className="purchase-form__section">
         <div className="purchase-form__section-header">
           <div>
-            <h3>Xarid ma’lumotlari</h3>
+            <h3>{translateText("Xarid ma’lumotlari")}</h3>
 
-            <p>Yetkazib beruvchi va qabul qiluvchi ombor.</p>
+            <p>{translateText("Yetkazib beruvchi va qabul qiluvchi ombor.")}</p>
           </div>
         </div>
 
         <div className="purchase-form__grid">
           <Select
-            label="Yetkazib beruvchi"
+            label={translateText("Yetkazib beruvchi")}
             value={supplierId}
-            placeholder="Tanlang"
+            placeholder={translateText("Tanlang")}
             options={supplierOptions}
             error={errors.supplier}
-            onChange={(event) => setSupplierId(event.target.value)}
-          />
+            onChange={(event) => setSupplierId(event.target.value)} />
+          
 
           <Select
-            label="Qabul qiluvchi ombor"
+            label={translateText("Qabul qiluvchi ombor")}
             value={warehouseId}
-            placeholder="Ombor tanlang"
+            placeholder={translateText("Ombor tanlang")}
             options={warehouseOptions}
             error={errors.warehouse}
-            onChange={(event) => setWarehouseId(event.target.value)}
-          />
+            onChange={(event) => setWarehouseId(event.target.value)} />
+          
 
           <DatePicker
-            label="Buyurtma sanasi"
+            label={translateText("Buyurtma sanasi")}
             value={orderDate}
-            onChange={(event) => setOrderDate(event.target.value)}
-          />
+            onChange={(event) => setOrderDate(event.target.value)} />
+          
 
           <DatePicker
-            label="Kutilayotgan sana"
+            label={translateText("Kutilayotgan sana")}
             value={expectedDate}
-            onChange={(event) => setExpectedDate(event.target.value)}
-          />
+            onChange={(event) => setExpectedDate(event.target.value)} />
+          
         </div>
       </Card>
 
       <Card padding="lg" className="purchase-form__section">
         <div className="purchase-form__section-header">
           <div>
-            <h3>Mahsulotlar</h3>
+            <h3>{translateText("Mahsulotlar")}</h3>
 
-            <p>Xarid qilinayotgan mahsulot yoki xomashyolar.</p>
+            <p>{translateText("Xarid qilinayotgan mahsulot yoki xomashyolar.")}</p>
           </div>
 
           <Button
@@ -372,32 +372,32 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
             variant="secondary"
             size="sm"
             leftIcon={<Plus size={16} />}
-            onClick={handleAddItem}
-          >
-            Mahsulot qo‘shish
+            onClick={handleAddItem}>{translateText("Mahsulot qo‘shish")}
+
+
           </Button>
         </div>
 
         <div className="purchase-form__items">
           {items.map((item, index) => {
             const product = products.find(
-              (productItem) => productItem.id === item.productId,
+              (productItem) => productItem.id === item.productId
             );
 
             const rowTotal =
-              Number(item.quantity || 0) * Number(item.purchasePrice || 0);
+            Number(item.quantity || 0) * Number(item.purchasePrice || 0);
 
-            const lastPurchasePrice = item.productId
-              ? getLastPurchasePrice({
-                  purchases,
-                  productId: item.productId,
-                  excludePurchaseId: initialValues?.id,
-                })
-              : null;
+            const lastPurchasePrice = item.productId ?
+            getLastPurchasePrice({
+              purchases,
+              productId: item.productId,
+              excludePurchaseId: initialValues?.id
+            }) :
+            null;
 
             const priceDifference = getPriceDifference(
               item.purchasePrice,
-              lastPurchasePrice,
+              lastPurchasePrice
             );
 
             return (
@@ -406,79 +406,79 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
                 <div className="purchase-form__item-product">
                   <Select
-                    label="Mahsulot"
+                    label={translateText("Mahsulot")}
                     value={item.productId}
-                    placeholder="Mahsulot tanlang"
+                    placeholder={translateText("Mahsulot tanlang")}
                     options={productOptions}
                     onChange={(event) =>
-                      handleProductSelect(item.id, event.target.value)
-                    }
-                  />
+                    handleProductSelect(item.id, event.target.value)
+                    } />
+                  
                 </div>
 
                 <Input
-                  label="Miqdor"
+                  label={translateText("Miqdor")}
                   type="number"
                   min="0"
                   value={item.quantity}
                   placeholder="0"
                   onChange={(event) =>
-                    handleItemChange(item.id, "quantity", event.target.value)
-                  }
-                />
+                  handleItemChange(item.id, "quantity", event.target.value)
+                  } />
+                
 
                 <Input
-                  label="Xarid narxi"
+                  label={translateText("Xarid narxi")}
                   type="number"
                   min="0"
                   value={item.purchasePrice}
                   placeholder="0"
                   onChange={(event) =>
-                    handleItemChange(
-                      item.id,
-                      "purchasePrice",
-                      event.target.value,
-                    )
-                  }
-                />
-                {lastPurchasePrice !== null && (
-                  <div className="purchase-form__last-price">
-                    <span>
-                      Oxirgi xarid:{" "}
+                  handleItemChange(
+                    item.id,
+                    "purchasePrice",
+                    event.target.value
+                  )
+                  } />
+                
+                {lastPurchasePrice !== null &&
+                <div className="purchase-form__last-price">
+                    <span>{translateText("Oxirgi xarid:")}
+                    {" "}
                       <strong>
-                        {formatPurchaseMoney(lastPurchasePrice)} so‘m
-                      </strong>
+                        {formatPurchaseMoney(lastPurchasePrice)}{translateText("so‘m")}
+                    </strong>
                     </span>
 
-                    {priceDifference && Number(item.purchasePrice) > 0 && (
-                      <small
-                        className={
-                          priceDifference.amount > 0
-                            ? "purchase-form__last-price-diff purchase-form__last-price-diff--up"
-                            : priceDifference.amount < 0
-                              ? "purchase-form__last-price-diff purchase-form__last-price-diff--down"
-                              : "purchase-form__last-price-diff"
-                        }
-                      >
+                    {priceDifference && Number(item.purchasePrice) > 0 &&
+                  <small
+                    className={
+                    priceDifference.amount > 0 ?
+                    "purchase-form__last-price-diff purchase-form__last-price-diff--up" :
+                    priceDifference.amount < 0 ?
+                    "purchase-form__last-price-diff purchase-form__last-price-diff--down" :
+                    "purchase-form__last-price-diff"
+                    }>
+                    
                         {priceDifference.amount > 0 ? "+" : ""}
-                        {formatPurchaseMoney(priceDifference.amount)} so‘m
-                        {priceDifference.percent !== null && (
-                          <>
+                        {formatPurchaseMoney(priceDifference.amount)}{translateText("so‘m")}
+                    {priceDifference.percent !== null &&
+                    <>
                             {" "}
                             ({priceDifference.percent > 0 ? "+" : ""}
                             {priceDifference.percent.toFixed(1)}
                             %)
                           </>
-                        )}
+                    }
                       </small>
-                    )}
+                  }
                   </div>
-                )}
+                }
 
                 <div className="purchase-form__item-total">
-                  <span>Jami</span>
+                  <span>{translateText("Jami")}</span>
 
-                  <strong>{formatPurchaseMoney(rowTotal)} so‘m</strong>
+                  <strong>{formatPurchaseMoney(rowTotal)}{translateText("so‘m")}</strong>
 
                   {product && <small>{product.unit}</small>}
                 </div>
@@ -487,120 +487,120 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  title="Olib tashlash"
+                  title={translateText("Olib tashlash")}
                   disabled={items.length <= 1}
-                  onClick={() => handleRemoveItem(item.id)}
-                >
+                  onClick={() => handleRemoveItem(item.id)}>
+                  
                   <Trash2 size={16} />
                 </Button>
-              </div>
-            );
+              </div>);
+
           })}
         </div>
 
-        {errors.items && (
-          <div className="purchase-form__error">{errors.items}</div>
-        )}
+        {errors.items &&
+        <div className="purchase-form__error">{errors.items}</div>
+        }
       </Card>
 
       <div className="purchase-form__bottom-grid">
         <Card padding="lg" className="purchase-form__section">
           <div className="purchase-form__section-header">
             <div>
-              <h3>To‘lov</h3>
+              <h3>{translateText("To‘lov")}</h3>
 
-              <p>To‘langan va qarz summasi.</p>
+              <p>{translateText("To‘langan va qarz summasi.")}</p>
             </div>
           </div>
 
           <div className="purchase-form__payment">
             <Input
-              label="To‘langan summa"
+              label={translateText("To‘langan summa")}
               type="number"
               min="0"
               value={paidAmount}
               placeholder="0"
-              onChange={(event) => setPaidAmount(event.target.value)}
-            />
+              onChange={(event) => setPaidAmount(event.target.value)} />
+            
 
             <div className="purchase-form__payment-summary">
               <SummaryRow
-                label="Jami"
-                value={`${formatPurchaseMoney(subtotal)} so‘m`}
-              />
+                label={translateText("Jami")}
+                value={`${formatPurchaseMoney(subtotal)} so‘m`} />
+              
 
               <SummaryRow
-                label="To‘langan"
-                value={`${formatPurchaseMoney(paid)} so‘m`}
-              />
+                label={translateText("To‘langan")}
+                value={`${formatPurchaseMoney(paid)} so‘m`} />
+              
 
               <SummaryRow
-                label="Qarz"
+                label={translateText("Qarz")}
                 value={`${formatPurchaseMoney(debt)} so‘m`}
-                strong
-              />
+                strong />
+              
             </div>
 
-            {errors.payment && (
-              <div className="purchase-form__error">{errors.payment}</div>
-            )}
+            {errors.payment &&
+            <div className="purchase-form__error">{errors.payment}</div>
+            }
           </div>
         </Card>
 
         <Card padding="lg" className="purchase-form__section">
           <div className="purchase-form__section-header">
             <div>
-              <h3>Holat</h3>
+              <h3>{translateText("Holat")}</h3>
 
-              <p>Buyurtmaning joriy holati.</p>
+              <p>{translateText("Buyurtmaning joriy holati.")}</p>
             </div>
           </div>
 
           <Select
-            label="Status"
+            label={translateText("Status")}
             value={status}
             options={[
-              {
-                value: "DRAFT",
-                label: "Qoralama",
-              },
-              {
-                value: "ORDERED",
-                label: "Buyurtma berilgan",
-              },
-            ]}
-            onChange={(event) => setStatus(event.target.value)}
-          />
+            {
+              value: "DRAFT",
+              label: translateText("Qoralama")
+            },
+            {
+              value: "ORDERED",
+              label: translateText("Buyurtma berilgan")
+            }]
+            }
+            onChange={(event) => setStatus(event.target.value)} />
+          
 
           <Textarea
-            label="Izoh"
-            placeholder="Xarid bo‘yicha qo‘shimcha ma’lumot..."
+            label={translateText("Izoh")}
+            placeholder={translateText("Xarid bo‘yicha qo‘shimcha ma’lumot...")}
             value={note}
-            onChange={(event) => setNote(event.target.value)}
-          />
+            onChange={(event) => setNote(event.target.value)} />
+          
         </Card>
       </div>
 
       <div className="purchase-form__actions">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Bekor qilish
+        <Button type="button" variant="secondary" onClick={onCancel}>{translateText("Bekor qilish")}
+
         </Button>
 
         <Button type="submit">
           {initialValues ? "O‘zgarishlarni saqlash" : "Xarid yaratish"}
         </Button>
       </div>
-    </form>
-  );
+    </form>);
+
 };
 
-const SummaryRow = ({ label, value, strong = false }) => (
-  <div className="purchase-form__summary-row">
+const SummaryRow = ({ label, value, strong = false }) =>
+<div className="purchase-form__summary-row">
     <span>{label}</span>
 
     <strong className={strong ? "purchase-form__summary-row--strong" : ""}>
       {value}
     </strong>
-  </div>
-);
+  </div>;
+
 export default PurchaseForm;

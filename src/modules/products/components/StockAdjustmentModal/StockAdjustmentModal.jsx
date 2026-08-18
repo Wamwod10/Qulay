@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useState } from "react";
 
 import { Button, Input, Modal, Textarea } from "../../../../shared/ui";
 
@@ -23,14 +23,14 @@ const StockAdjustmentModal = ({ product, open, onClose, onSubmit }) => {
     const parsedStock = Number(stock);
 
     if (!Number.isFinite(parsedStock) || parsedStock < 0) {
-      setError("Yangi qoldiq manfiy yoki noto'g'ri bo'lishi mumkin emas.");
+      setError(translateText("Yangi qoldiq manfiy yoki noto'g'ri bo'lishi mumkin emas."));
       return;
     }
 
     onSubmit?.({
       productId: product.id,
       newStock: parsedStock,
-      reason,
+      reason
     });
   };
 
@@ -38,19 +38,19 @@ const StockAdjustmentModal = ({ product, open, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="Qoldiqni tuzatish"
+      title={translateText("Qoldiqni tuzatish")}
       description={product.name}
-      size="sm"
-    >
+      size="sm">
+      
       <div className="products-page__modal-form">
         <Input
-          label="Hozirgi qoldiq"
+          label={translateText("Hozirgi qoldiq")}
           value={`${product.stock} ${product.unit}`}
-          disabled
-        />
+          disabled />
+        
 
         <Input
-          label="Yangi qoldiq"
+          label={translateText("Yangi qoldiq")}
           type="number"
           min="0"
           value={stock}
@@ -58,26 +58,26 @@ const StockAdjustmentModal = ({ product, open, onClose, onSubmit }) => {
           onChange={(event) => {
             setStock(event.target.value);
             setError("");
-          }}
-        />
+          }} />
+        
 
         <Textarea
-          label="Sabab"
-          placeholder="Masalan: inventarizatsiya natijasi..."
+          label={translateText("Sabab")}
+          placeholder={translateText("Masalan: inventarizatsiya natijasi...")}
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
+          onChange={(event) => setReason(event.target.value)} />
+        
 
         <div className="products-page__modal-actions">
-          <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+          <Button variant="secondary" onClick={onClose}>{translateText("Bekor qilish")}
+
           </Button>
 
-          <Button onClick={handleSubmit}>Saqlash</Button>
+          <Button onClick={handleSubmit}>{translateText("Saqlash")}</Button>
         </div>
       </div>
-    </Modal>
-  );
+    </Modal>);
+
 };
 
 export default StockAdjustmentModal;

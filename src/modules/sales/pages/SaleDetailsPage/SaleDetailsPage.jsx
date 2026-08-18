@@ -227,8 +227,8 @@ const SaleDetailsPage = () => {
         <div className="sale-details__totals">
           <span>Subtotal <b>{formatSaleMoney(sale.subtotal)} so'm</b></span>
           <span>Discount <b>-{formatSaleMoney(sale.discount)} so'm</b></span>
-          <span>Returned <b>-{formatSaleMoney(sale.returnedAmount)} so'm</b></span>
-          <strong>Net total <b>{formatSaleMoney(sale.netTotal)} so'm</b></strong>
+          <span>Qaytarilgan <b>-{formatSaleMoney(sale.returnedAmount)} so'm</b></span>
+          <strong>Sof jami <b>{formatSaleMoney(sale.netTotal)} so'm</b></strong>
         </div>
         {sale.note && <p className="sale-details__note">{sale.note}</p>}
       </Card>

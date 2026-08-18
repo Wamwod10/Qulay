@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { X } from "lucide-react";
+import { translateText } from "../../../localization/i18n";
 
 import "./Modal.scss";
 
@@ -56,20 +57,20 @@ const Modal = ({
         className={`ui-modal__dialog ui-modal__dialog--${size}`}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={translateText(title)}
       >
         <header className="ui-modal__header">
           <div>
-            {title && <h2>{title}</h2>}
+            {title && <h2>{translateText(title)}</h2>}
 
-            {description && <p>{description}</p>}
+            {description && <p>{translateText(description)}</p>}
           </div>
 
           <button
             type="button"
             className="ui-modal__close"
             onClick={onClose}
-            aria-label="Yopish"
+            aria-label={translateText("Yopish")}
           >
             <X size={18} strokeWidth={1.8} />
           </button>

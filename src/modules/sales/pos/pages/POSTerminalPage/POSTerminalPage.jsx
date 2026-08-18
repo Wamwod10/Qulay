@@ -39,6 +39,15 @@ import ReceiptPreview from "../../components/ReceiptPreview/ReceiptPreview";
 import { calculateSaleTotals, roundMoney } from "../../../utils/salesCalculations";
 import { completeSale, getStoredSales, holdSale } from "../../../utils/salesStorage";
 import { formatSaleMoney } from "../../../utils/salesHelpers";
+import {
+  useDefaultSettings,
+  useNotificationSettings,
+  usePosSettings,
+} from "../../../../settings/selectors/settingsSelectors";
+import {
+  translateOptions,
+  translateText,
+} from "../../../../../localization/i18n";
 
 import "./POSTerminalPage.scss";
 
@@ -50,11 +59,20 @@ const PAYMENT_METHODS = [
   { value: "DEBT", label: "Qarz" },
 ];
 
+const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+
 const DECIMAL_UNITS = ["kg", "l", "litr", "metr"];
 
-const emptyPayment = () => ({ id: `${Date.now()}-${Math.random()}`, method: "CASH", amount: "" });
+const emptyPayment = (method = "CASH") => ({
+  id: `${Date.now()}-${Math.random()}`,
+  method: method || "CASH",
+  amount: "",
+});
 
 const POSTerminalPage = () => {
+  const defaults = useDefaultSettings();
+  const posSettings = usePosSettings();
+  const notifications = useNotificationSettings();
   const [searchParams] = useSearchParams();
   const searchRef = useRef(null);
   const completingRef = useRef(false);
@@ -72,9 +90,18 @@ const POSTerminalPage = () => {
     getStoredAgents().filter((agent) => agent.status === "ACTIVE"),
   );
 
-  const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || "");
-  const [customerId, setCustomerId] = useState("");
-  const [agentId, setAgentId] = useState("");
+  const [warehouseId, setWarehouseId] = useState(
+    posSettings.defaultWarehouseId ||
+      defaults.warehouseId ||
+      warehouses[0]?.id ||
+      "",
+  );
+  const [customerId, setCustomerId] = useState(
+    posSettings.defaultCustomerId || defaults.customerId || "",
+  );
+  const [agentId, setAgentId] = useState(
+    posSettings.defaultAgentId || defaults.agentId || "",
+  );
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [cart, setCart] = useState([]);
@@ -86,12 +113,20 @@ const POSTerminalPage = () => {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
   const [receiptSale, setReceiptSale] = useState(null);
-  const [payments, setPayments] = useState([emptyPayment()]);
+  const [payments, setPayments] = useState([
+    emptyPayment(posSettings.defaultPaymentMethod || defaults.paymentMethod),
+  ]);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (receiptSale && posSettings.autoPrintReceipt) {
+      window.print();
+    }
+  }, [posSettings.autoPrintReceipt, receiptSale]);
 
   useEffect(() => {
     const preselectedCustomerId = searchParams.get("customerId");
@@ -286,7 +321,7 @@ const POSTerminalPage = () => {
   };
 
   const handleSearchKeyDown = (event) => {
-    if (event.key !== "Enter") {
+    if (event.key !== "Enter" || !posSettings.barcodeEnterAutoAdd) {
       return;
     }
 
@@ -313,13 +348,21 @@ const POSTerminalPage = () => {
   const validateDiscount = () => {
     const discount = Number(discountValue || 0);
 
+    if (!posSettings.allowDiscount && discount > 0) {
+      setError("Chegirma Settings orqali o'chirilgan.");
+      return false;
+    }
+
     if (!Number.isFinite(discount) || discount < 0) {
       setError("Chegirma manfiy bo'lmasin.");
       return false;
     }
 
-    if (discountType === "PERCENT" && discount > 100) {
-      setError("Foiz chegirma 100% dan oshmasin.");
+    if (
+      discountType === "PERCENT" &&
+      discount > Number(posSettings.maxDiscountPercent || 0)
+    ) {
+      setError(`Foiz chegirma ${posSettings.maxDiscountPercent}% dan oshmasin.`);
       return false;
     }
 
@@ -372,7 +415,12 @@ const POSTerminalPage = () => {
         return current;
       }
 
-      return [{ ...emptyPayment(), amount: totals.total }];
+      return [
+        {
+          ...emptyPayment(posSettings.defaultPaymentMethod || defaults.paymentMethod),
+          amount: totals.total,
+        },
+      ];
     });
     setPaymentOpen(true);
   };
@@ -396,7 +444,15 @@ const POSTerminalPage = () => {
         throw new Error("To'lov summasi totaldan oshmasin.");
       }
 
-      if (totals.total - paymentTotal > 0 && !selectedCustomer) {
+      if (!posSettings.allowDebtSales && totals.total - paymentTotal > 0) {
+        throw new Error("Qarzga savdo Settings orqali o'chirilgan.");
+      }
+
+      if (
+        posSettings.requireCustomerForDebt &&
+        totals.total - paymentTotal > 0 &&
+        !selectedCustomer
+      ) {
         throw new Error("Qarz qolsa mijoz tanlanishi shart.");
       }
 
@@ -410,7 +466,7 @@ const POSTerminalPage = () => {
 
         if (!credit.allowed) {
           throw new Error(
-            `Credit limit oshadi. Limit: ${formatSaleMoney(credit.creditLimit)} so'm, mavjud: ${formatSaleMoney(credit.availableCredit)} so'm.`,
+            `Credit limit oshadi. Limit: ${moneyText(credit.creditLimit)}, mavjud: ${moneyText(credit.availableCredit)}.`,
           );
         }
       }
@@ -421,7 +477,9 @@ const POSTerminalPage = () => {
       setCart([]);
       setDiscountType("AMOUNT");
       setDiscountValue("");
-      setPayments([emptyPayment()]);
+      setPayments([
+        emptyPayment(posSettings.defaultPaymentMethod || defaults.paymentMethod),
+      ]);
       setActiveDraft(null);
       setNote("");
       setPaymentOpen(false);
@@ -474,10 +532,16 @@ const POSTerminalPage = () => {
   };
 
   const clearCart = () => {
-    if (!cart.length || window.confirm("Savatchani tozalaysizmi?")) {
+    if (
+      !cart.length ||
+      !posSettings.clearCartConfirmation ||
+      window.confirm("Savatchani tozalaysizmi?")
+    ) {
       setCart([]);
       setDiscountValue("");
-      setPayments([emptyPayment()]);
+      setPayments([
+        emptyPayment(posSettings.defaultPaymentMethod || defaults.paymentMethod),
+      ]);
       setActiveDraft(null);
       setError("");
     }
@@ -487,7 +551,7 @@ const POSTerminalPage = () => {
     <div className="pos-terminal">
       <section className="pos-terminal__controls">
         <Select
-          label="Ombor"
+          label={translateText("Ombor")}
           value={warehouseId}
           options={warehouses.map((warehouse) => ({
             value: warehouse.id,
@@ -499,11 +563,11 @@ const POSTerminalPage = () => {
           }}
         />
         <Select
-          label="Mijoz"
+          label={translateText("Mijoz")}
           value={customerId}
-          placeholder="Mijozsiz savdo"
+          placeholder={translateText("Mijozsiz savdo")}
           options={[
-            { value: "", label: "Mijozsiz savdo" },
+            { value: "", label: translateText("Mijozsiz savdo") },
             ...customers.map((customer) => ({
               value: customer.id,
               label: customer.name || customer.phone || customer.id,
@@ -515,11 +579,11 @@ const POSTerminalPage = () => {
           }}
         />
         <Select
-          label="Agent"
+          label={translateText("Agent")}
           value={agentId}
-          placeholder="Agent tanlanmagan"
+          placeholder={translateText("Agent tanlanmagan")}
           options={[
-            { value: "", label: "Agent tanlanmagan" },
+            { value: "", label: translateText("Agent tanlanmagan") },
             ...agents.map((agent) => ({
               value: agent.id,
               label: agent.name || agent.phone || agent.id,
@@ -544,14 +608,14 @@ const POSTerminalPage = () => {
               value={query}
               leftIcon={<Search size={17} />}
               rightIcon={<Barcode size={17} />}
-              placeholder="Mahsulot nomi, SKU yoki barcode..."
+              placeholder={translateText("Mahsulot nomi, SKU yoki barcode...")}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleSearchKeyDown}
             />
             <Select
               value={category}
-              placeholder="Barcha kategoriyalar"
-              options={[{ value: "", label: "Barcha kategoriyalar" }, ...categories]}
+              placeholder={translateText("Barcha kategoriyalar")}
+              options={[{ value: "", label: translateText("Barcha kategoriyalar") }, ...categories]}
               onChange={(event) => setCategory(event.target.value)}
             />
           </Card>
@@ -586,16 +650,16 @@ const POSTerminalPage = () => {
                       {product.barcode ? ` / ${product.barcode}` : ""}
                     </small>
                     <b>
-                      {formatSaleMoney(product.salePrice)} so'm / {product.unit}
+                      {moneyText(product.salePrice)} / {translateText(product.unit)}
                     </b>
                   </span>
                   <span className="pos-terminal__product-stock">
-                    {available <= 0 ? (
+                    {available <= 0 && notifications.outOfStockWarning ? (
                       <Badge variant="danger">
                         <LiveIcon icon={Ban} motion="danger-breathe" size={13} />
-                        OUT OF STOCK
+                        {translateText("OUT OF STOCK")}
                       </Badge>
-                    ) : lowStock ? (
+                    ) : lowStock && notifications.lowStockWarning ? (
                       <Badge variant="warning">
                         <LiveIcon icon={AlertTriangle} motion="warning-glow" size={13} />
                         {available} {product.unit}
@@ -613,8 +677,8 @@ const POSTerminalPage = () => {
             {!sellableProducts.length && (
               <Card padding="lg" className="pos-terminal__empty-products">
                 <Package size={26} />
-                <strong>Mahsulot topilmadi</strong>
-                <span>Faol, narxi bor va tanlangan omborda mavjud mahsulotlar chiqadi.</span>
+                <strong>{translateText("Mahsulot topilmadi")}</strong>
+                <span>{translateText("Faol, narxi bor va tanlangan omborda mavjud mahsulotlar chiqadi.")}</span>
               </Card>
             )}
           </div>
@@ -634,6 +698,7 @@ const POSTerminalPage = () => {
             discountType={discountType}
             discountValue={discountValue}
             note={note}
+            allowDiscount={posSettings.allowDiscount}
             onDiscountType={setDiscountType}
             onDiscountValue={setDiscountValue}
             onNote={setNote}
@@ -656,7 +721,7 @@ const POSTerminalPage = () => {
         onClick={() => setMobileCartOpen(true)}
       >
         <ReceiptText size={18} />
-        Savatcha: {cart.length} / {formatSaleMoney(totals.total)} so'm
+        {translateText("Savatcha:")} {cart.length} / {moneyText(totals.total)}
       </button>
 
       <PaymentModal
@@ -668,6 +733,7 @@ const POSTerminalPage = () => {
           0,
         )}
         payments={payments}
+        defaultPaymentMethod={posSettings.defaultPaymentMethod || defaults.paymentMethod}
         onClose={() => setPaymentOpen(false)}
         onPayments={setPayments}
         onComplete={completeCurrentSale}
@@ -675,8 +741,8 @@ const POSTerminalPage = () => {
 
       <Modal
         open={holdOpen}
-        title="Kutilayotgan savdolar"
-        description="Hold qilingan savdolar stockni kamaytirmaydi."
+        title={translateText("Kutilayotgan savdolar")}
+        description={translateText("Hold qilingan savdolar stockni kamaytirmaydi.")}
         size="md"
         onClose={() => setHoldOpen(false)}
       >
@@ -686,25 +752,29 @@ const POSTerminalPage = () => {
               <button key={sale.id} type="button" onClick={() => resumeDraft(sale)}>
                 <span>
                   <strong>{sale.number}</strong>
-                  <small>{sale.customerName || "Mijozsiz"} / {sale.items.length} item</small>
+                  <small>{sale.customerName || translateText("Mijozsiz")} / {sale.items.length} {translateText("item")}</small>
                 </span>
-                <b>{formatSaleMoney(sale.total)} so'm</b>
+                <b>{moneyText(sale.total)}</b>
               </button>
             ))
           ) : (
-            <div className="pos-terminal__draft-empty">Kutilayotgan savdo yo'q.</div>
+            <div className="pos-terminal__draft-empty">{translateText("Kutilayotgan savdo yo'q.")}</div>
           )}
         </div>
       </Modal>
 
       <Modal
         open={Boolean(receiptSale)}
-        title="Savdo yakunlandi"
-        description="Receipt tayyor. Print qilish mumkin."
+        title={translateText("Savdo yakunlandi")}
+        description={translateText("Receipt tayyor. Print qilish mumkin.")}
         size="sm"
         onClose={() => setReceiptSale(null)}
       >
-        <ReceiptPreview sale={receiptSale} onPrint={() => window.print()} />
+        <ReceiptPreview
+          sale={receiptSale}
+          settings={posSettings}
+          onPrint={() => window.print()}
+        />
       </Modal>
     </div>
   );
@@ -716,6 +786,7 @@ const CartPanel = ({
   discountType,
   discountValue,
   note,
+  allowDiscount,
   onDiscountType,
   onDiscountValue,
   onNote,
@@ -732,8 +803,8 @@ const CartPanel = ({
   <Card padding="md" className="pos-terminal__cart-card">
     <div className="pos-terminal__cart-head">
       <div>
-        <h3>Savatcha</h3>
-        <span>{cart.length} ta pozitsiya</span>
+        <h3>{translateText("Savatcha")}</h3>
+        <span>{cart.length} {translateText("ta pozitsiya")}</span>
       </div>
       <button type="button" className="pos-terminal__cart-close" onClick={onCloseMobile}>
         <X size={17} />
@@ -747,7 +818,7 @@ const CartPanel = ({
             <div className="pos-terminal__cart-item-main">
               <strong>{item.productName}</strong>
               <span>
-                {formatSaleMoney(item.price)} so'm / {item.unit}
+                {moneyText(item.price)} / {translateText(item.unit)}
               </span>
             </div>
             <div className="pos-terminal__qty">
@@ -762,7 +833,7 @@ const CartPanel = ({
                 <Plus size={14} />
               </button>
             </div>
-            <strong>{formatSaleMoney(item.subtotal)} so'm</strong>
+            <strong>{moneyText(item.subtotal)}</strong>
             <button type="button" className="pos-terminal__remove" onClick={() => onRemove(item.productId)}>
               <Trash2 size={15} />
             </button>
@@ -771,69 +842,71 @@ const CartPanel = ({
       ) : (
         <div className="pos-terminal__empty-cart">
           <ReceiptText size={28} />
-          <strong>Savatcha bo'sh</strong>
-          <span>Mahsulot kartasini bosing yoki barcode/SKU kiriting.</span>
+          <strong>{translateText("Savatcha bo'sh")}</strong>
+          <span>{translateText("Mahsulot kartasini bosing yoki barcode/SKU kiriting.")}</span>
         </div>
       )}
     </div>
 
     <div className="pos-terminal__discount">
       <Select
-        label="Chegirma"
+        label={translateText("Chegirma")}
         value={discountType}
+        disabled={!allowDiscount}
         options={[
-          { value: "AMOUNT", label: "Summa" },
-          { value: "PERCENT", label: "Foiz" },
+          { value: "AMOUNT", label: translateText("Summa") },
+          { value: "PERCENT", label: translateText("Foiz") },
         ]}
         onChange={(event) => onDiscountType(event.target.value)}
       />
       <Input
-        label="Qiymat"
+        label={translateText("Qiymat")}
         value={discountValue}
         inputMode="decimal"
         placeholder="0"
+        disabled={!allowDiscount}
         onChange={(event) => onDiscountValue(event.target.value)}
       />
     </div>
 
     <Textarea
-      label="Izoh"
+      label={translateText("Izoh")}
       value={note}
       rows={2}
-      placeholder="Ixtiyoriy"
+      placeholder={translateText("Ixtiyoriy")}
       onChange={(event) => onNote(event.target.value)}
     />
 
     <div className="pos-terminal__summary">
       <span>
-        Subtotal <b>{formatSaleMoney(totals.subtotal)} so'm</b>
+        {translateText("Subtotal")} <b>{moneyText(totals.subtotal)}</b>
       </span>
       <span>
-        Discount <b>-{formatSaleMoney(totals.discount)} so'm</b>
+        {translateText("Discount")} <b>-{moneyText(totals.discount)}</b>
       </span>
       <strong>
-        Total <b>{formatSaleMoney(totals.total)} so'm</b>
+        {translateText("Total")} <b>{moneyText(totals.total)}</b>
       </strong>
       <span>
-        Paid <b>{formatSaleMoney(totals.paidAmount)} so'm</b>
+        {translateText("To'langan")} <b>{moneyText(totals.paidAmount)}</b>
       </span>
       <span>
-        Debt <b>{formatSaleMoney(totals.debtAmount)} so'm</b>
+        {translateText("Qarz")} <b>{moneyText(totals.debtAmount)}</b>
       </span>
     </div>
 
     <div className="pos-terminal__cart-actions">
       <Button variant="secondary" leftIcon={<PauseCircle size={17} />} onClick={onHold} disabled={!cart.length}>
-        Hold
+        {translateText("Hold")}
       </Button>
       <Button variant="secondary" leftIcon={<Warehouse size={17} />} onClick={onOpenHold}>
-        Resume
+        {translateText("Resume")}
       </Button>
       <Button variant="danger" leftIcon={<Trash2 size={17} />} onClick={onClear} disabled={!cart.length}>
-        Clear
+        {translateText("Clear")}
       </Button>
       <Button leftIcon={<ReceiptText size={17} />} onClick={onPayment} disabled={!cart.length}>
-        Payment
+        {translateText("Payment")}
       </Button>
     </div>
   </Card>
@@ -844,6 +917,7 @@ const PaymentModal = ({
   total,
   paid,
   payments,
+  defaultPaymentMethod,
   onClose,
   onPayments,
   onComplete,
@@ -857,7 +931,7 @@ const PaymentModal = ({
   };
 
   const addPayment = () => {
-    onPayments((current) => [...current, emptyPayment()]);
+    onPayments((current) => [...current, emptyPayment(defaultPaymentMethod)]);
   };
 
   const removePayment = (id) => {
@@ -867,29 +941,29 @@ const PaymentModal = ({
   return (
     <Modal
       open={open}
-      title="To'lov"
-      description="Split payment qo'llab-quvvatlanadi. Qarz qolsa customer tanlangan bo'lishi shart."
+      title={translateText("To'lov")}
+      description={translateText("Split payment qo'llab-quvvatlanadi. Qarz qolsa customer tanlangan bo'lishi shart.")}
       size="md"
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor
+            {translateText("Bekor")}
           </Button>
-          <Button onClick={onComplete}>Savdoni yakunlash</Button>
+          <Button onClick={onComplete}>{translateText("Savdoni yakunlash")}</Button>
         </>
       }
     >
       <div className="pos-terminal__payment">
         <div className="pos-terminal__payment-summary">
           <span>
-            Total <b>{formatSaleMoney(total)} so'm</b>
+            {translateText("Total")} <b>{moneyText(total)}</b>
           </span>
           <span>
-            Paid <b>{formatSaleMoney(paid)} so'm</b>
+            {translateText("Paid")} <b>{moneyText(paid)}</b>
           </span>
           <span>
-            Debt <b>{formatSaleMoney(debt)} so'm</b>
+            {translateText("Debt")} <b>{moneyText(debt)}</b>
           </span>
         </div>
 
@@ -897,7 +971,7 @@ const PaymentModal = ({
           <div key={payment.id} className="pos-terminal__payment-row">
             <Select
               value={payment.method}
-              options={PAYMENT_METHODS}
+              options={translateOptions(PAYMENT_METHODS)}
               onChange={(event) => updatePayment(payment.id, { method: event.target.value })}
             />
             <Input
@@ -914,7 +988,7 @@ const PaymentModal = ({
         ))}
 
         <Button variant="secondary" leftIcon={<Plus size={16} />} onClick={addPayment}>
-          To'lov qo'shish
+          {translateText("To'lov qo'shish")}
         </Button>
       </div>
     </Modal>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useMemo, useState } from "react";
 
 import { CheckCircle2, Clock3, Plus, ReceiptText, Wallet } from "lucide-react";
 
@@ -12,8 +12,8 @@ import {
   EmptyState,
   LiveIcon,
   Select,
-  TableToolbar,
-} from "../../../../shared/ui";
+  TableToolbar } from
+"../../../../shared/ui";
 
 import PurchasePaymentModal from "../../components/PurchasePaymentModal/PurchasePaymentModal";
 import PurchaseTable from "../../components/PurchaseTable/PurchaseTable";
@@ -24,15 +24,15 @@ import {
   cancelPurchase,
   duplicatePurchase,
   getStoredPurchases,
-  updatePurchasePayment,
-} from "../../utils/purchasesStorage";
+  updatePurchasePayment } from
+"../../utils/purchasesStorage";
 
 import { receivePurchaseIntoWarehouse } from "../../utils/receivePurchase";
 
 import {
   applyPurchaseReceipt,
-  formatPurchaseMoney,
-} from "../../utils/purchaseHelpers";
+  formatPurchaseMoney } from
+"../../utils/purchaseHelpers";
 
 import "./PurchasesPage.scss";
 
@@ -78,7 +78,7 @@ const PurchasesPage = () => {
 
     return Array.from(map.entries()).map(([value, label]) => ({
       value,
-      label,
+      label
     }));
   }, [purchases]);
 
@@ -95,23 +95,23 @@ const PurchasesPage = () => {
       const warehouseName = purchase.warehouseName?.toLowerCase() || "";
 
       const productNames =
-        purchase.items
-          ?.map((item) => item.productName)
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase() || "";
+      purchase.items?.
+      map((item) => item.productName).
+      filter(Boolean).
+      join(" ").
+      toLowerCase() || "";
 
       const matchesSearch =
-        !normalizedSearch ||
-        purchaseNumber.includes(normalizedSearch) ||
-        supplierName.includes(normalizedSearch) ||
-        warehouseName.includes(normalizedSearch) ||
-        productNames.includes(normalizedSearch);
+      !normalizedSearch ||
+      purchaseNumber.includes(normalizedSearch) ||
+      supplierName.includes(normalizedSearch) ||
+      warehouseName.includes(normalizedSearch) ||
+      productNames.includes(normalizedSearch);
 
       const matchesStatus = !statusFilter || purchase.status === statusFilter;
 
       const matchesSupplier =
-        !supplierFilter || purchase.supplierId === supplierFilter;
+      !supplierFilter || purchase.supplierId === supplierFilter;
 
       const hasDebt = Number(purchase.debtAmount || 0) > 0;
 
@@ -119,17 +119,17 @@ const PurchasesPage = () => {
         purchase.expectedDate &&
         purchase.expectedDate < today &&
         purchase.status !== "RECEIVED" &&
-        purchase.status !== "CANCELLED",
+        purchase.status !== "CANCELLED"
       );
 
       const matchesQuickFilter =
-        !quickFilter ||
-        (quickFilter === "DEBT" && hasDebt) ||
-        (quickFilter === "LATE" && isLate);
+      !quickFilter ||
+      quickFilter === "DEBT" && hasDebt ||
+      quickFilter === "LATE" && isLate;
 
       return (
-        matchesSearch && matchesStatus && matchesSupplier && matchesQuickFilter
-      );
+        matchesSearch && matchesStatus && matchesSupplier && matchesQuickFilter);
+
     });
   }, [purchases, search, statusFilter, supplierFilter, quickFilter]);
 
@@ -140,17 +140,17 @@ const PurchasesPage = () => {
   const stats = useMemo(() => {
     const pending = purchases.filter(
       (purchase) =>
-        purchase.status === "ORDERED" ||
-        purchase.status === "PARTIALLY_RECEIVED",
+      purchase.status === "ORDERED" ||
+      purchase.status === "PARTIALLY_RECEIVED"
     ).length;
 
     const received = purchases.filter(
-      (purchase) => purchase.status === "RECEIVED",
+      (purchase) => purchase.status === "RECEIVED"
     ).length;
 
     const totalAmount = purchases.reduce(
       (total, purchase) => total + Number(purchase.total || 0),
-      0,
+      0
     );
 
     return {
@@ -158,13 +158,13 @@ const PurchasesPage = () => {
 
       pending,
       received,
-      totalAmount,
+      totalAmount
     };
   }, [purchases]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredPurchases.length / PAGE_SIZE),
+    Math.ceil(filteredPurchases.length / PAGE_SIZE)
   );
 
   const safePage = Math.min(page, totalPages);
@@ -172,11 +172,11 @@ const PurchasesPage = () => {
   const paginatedPurchases = filteredPurchases.slice(
     (safePage - 1) * PAGE_SIZE,
 
-    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE
   );
 
   const hasFilters = Boolean(
-    search || statusFilter || supplierFilter || quickFilter,
+    search || statusFilter || supplierFilter || quickFilter
   );
 
   const handleClearFilters = () => {
@@ -218,7 +218,7 @@ const PurchasesPage = () => {
 
     try {
       const currentPurchase = getStoredPurchases().find(
-        (purchase) => purchase.id === receivePurchase.id,
+        (purchase) => purchase.id === receivePurchase.id
       );
 
       if (!currentPurchase) {
@@ -226,22 +226,22 @@ const PurchasesPage = () => {
       }
 
       if (
-        currentPurchase.status === "RECEIVED" ||
-        currentPurchase.status === "CANCELLED"
-      ) {
+      currentPurchase.status === "RECEIVED" ||
+      currentPurchase.status === "CANCELLED")
+      {
         throw new Error("Bu xaridni qabul qilib bo‘lmaydi.");
       }
 
       receivePurchaseIntoWarehouse({
         purchase: currentPurchase,
 
-        receivedItems,
+        receivedItems
       });
 
       applyPurchaseReceipt({
         purchaseId: currentPurchase.id,
 
-        receivedItems,
+        receivedItems
       });
 
       setReceivePurchase(null);
@@ -270,196 +270,200 @@ const PurchasesPage = () => {
 
   return (
     <PageContainer
-      title="Xaridlar"
-      description="Yetkazib beruvchilardan mahsulot va xomashyo xaridlarini boshqarish."
-    >
+      title={translateText("Xaridlar")}
+      description={translateText("Yetkazib beruvchilardan mahsulot va xomashyo xaridlarini boshqarish.")}>
+      
       <div className="purchases-page">
         <section className="purchases-page__stats">
           <PurchaseStat
             icon={<ReceiptText size={21} />}
-            label="Jami buyurtmalar"
-            value={stats.total}
-          />
+            label={translateText("Jami buyurtmalar")}
+            value={stats.total} />
+          
 
           <PurchaseStat
             icon={
-              <LiveIcon
-                icon={Clock3}
-                motion="pulse-soft"
-                active={stats.pending > 0}
-                size={21}
-              />
+            <LiveIcon
+              icon={Clock3}
+              motion="pulse-soft"
+              active={stats.pending > 0}
+              size={21} />
+
             }
-            label="Kutilayotgan"
+            label={translateText("Kutilayotgan")}
             value={stats.pending}
-            variant="warning"
-          />
+            variant="warning" />
+          
 
           <PurchaseStat
             icon={
-              <LiveIcon
-                icon={CheckCircle2}
-                motion="success-pop"
-                active={stats.received > 0}
-                size={21}
-              />
+            <LiveIcon
+              icon={CheckCircle2}
+              motion="success-pop"
+              active={stats.received > 0}
+              size={21} />
+
             }
-            label="Qabul qilingan"
+            label={translateText("Qabul qilingan")}
             value={stats.received}
-            variant="success"
-          />
+            variant="success" />
+          
 
           <PurchaseStat
             icon={<Wallet size={21} />}
-            label="Umumiy xarid"
-            value={`${formatPurchaseMoney(stats.totalAmount)} so‘m`}
-          />
+            label={translateText("Umumiy xarid")}
+            value={`${formatPurchaseMoney(stats.totalAmount)} so‘m`} />
+          
         </section>
 
         <Card padding="md" className="purchases-page__workspace">
           <TableToolbar
             searchValue={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Buyurtma, supplier, ombor yoki mahsulot..."
-            actionLabel="Yangi xarid"
+            searchPlaceholder={translateText("Buyurtma, supplier, ombor yoki mahsulot...")}
+            actionLabel={translateText("Yangi xarid")}
             actionIcon={<Plus size={17} />}
-            onAction={() => navigate("/purchases/create")}
-          />
+            onAction={() => navigate("/purchases/create")} />
+          
 
           <div className="purchases-page__filters">
             <div className="purchases-page__filter">
               <Select
                 value={supplierFilter}
-                placeholder="Barcha yetkazib beruvchilar"
+                placeholder={translateText("Barcha yetkazib beruvchilar")}
                 options={supplierOptions}
-                onChange={(event) => setSupplierFilter(event.target.value)}
-              />
+                onChange={(event) => setSupplierFilter(event.target.value)} />
+              
             </div>
 
             <div className="purchases-page__filter">
               <Select
                 value={statusFilter}
-                placeholder="Barcha holatlar"
+                placeholder={translateText("Barcha holatlar")}
                 options={PURCHASE_STATUS_OPTIONS}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              />
+                onChange={(event) => setStatusFilter(event.target.value)} />
+              
             </div>
 
             <div className="purchases-page__filter">
               <Select
                 value={quickFilter}
-                placeholder="Barcha xaridlar"
+                placeholder={translateText("Barcha xaridlar")}
                 options={[
-                  {
-                    value: "DEBT",
-                    label: "Faqat qarzdor",
-                  },
-                  {
-                    value: "LATE",
-                    label: "Kechikayotgan",
-                  },
-                ]}
-                onChange={(event) => setQuickFilter(event.target.value)}
-              />
+                {
+                  value: "DEBT",
+                  label: translateText("Faqat qarzdor")
+                },
+                {
+                  value: "LATE",
+                  label: translateText("Kechikayotgan")
+                }]
+                }
+                onChange={(event) => setQuickFilter(event.target.value)} />
+              
             </div>
 
-            {hasFilters && (
-              <button
-                type="button"
-                className="purchases-page__clear-filters"
-                onClick={handleClearFilters}
-              >
-                Filtrlarni tozalash
-              </button>
-            )}
+            {hasFilters &&
+            <button
+              type="button"
+              className="purchases-page__clear-filters"
+              onClick={handleClearFilters}>{translateText("Filtrlarni tozalash")}
+
+
+            </button>
+            }
           </div>
 
           <div className="purchases-page__result">
-            <span>{filteredPurchases.length} ta buyurtma</span>
+            <span>
+              {filteredPurchases.length} {translateText("ta buyurtma")}
+            </span>
 
-            {totalPages > 1 && (
-              <span>
-                Sahifa {safePage} / {totalPages}
+            {totalPages > 1 &&
+            <span>{translateText("Sahifa")}
+              {safePage} / {totalPages}
               </span>
-            )}
+            }
           </div>
 
-          {filteredPurchases.length === 0 ? (
-            <EmptyState
-              title="Xarid topilmadi"
-              description={
-                hasFilters
-                  ? "Qidiruv yoki filterlarga mos xarid mavjud emas."
-                  : "Hozircha xarid buyurtmalari mavjud emas."
-              }
-              actionLabel={hasFilters ? "Filtrlarni tozalash" : "Yangi xarid"}
-              onAction={
-                hasFilters
-                  ? handleClearFilters
-                  : () => navigate("/purchases/create")
-              }
-            />
-          ) : (
-            <>
-              <PurchaseTable
-                purchases={paginatedPurchases}
-                onView={(purchase) => navigate(`/purchases/${purchase.id}`)}
-                onEdit={(purchase) =>
-                  navigate(`/purchases/${purchase.id}/edit`)
-                }
-                onPayment={(purchase) => setPaymentPurchase(purchase)}
-                onReceive={(purchase) => setReceivePurchase(purchase)}
-                onCancel={(purchase) => setCancelPurchaseItem(purchase)}
-                onDuplicate={handleDuplicate}
-              />
+          {filteredPurchases.length === 0 ?
+          <EmptyState
+            title={translateText("Xarid topilmadi")}
+            description={
+            hasFilters ?
+            translateText("Qidiruv yoki filterlarga mos xarid mavjud emas.") :
+            translateText("Hozircha xarid buyurtmalari mavjud emas.")
+            }
+            actionLabel={
+            hasFilters ? translateText("Filtrlarni tozalash") : translateText("Yangi xarid")
+            }
+            onAction={
+            hasFilters ?
+            handleClearFilters :
+            () => navigate("/purchases/create")
+            } /> :
 
-              {totalPages > 1 && (
-                <div className="purchases-page__pagination">
+
+          <>
+              <PurchaseTable
+              purchases={paginatedPurchases}
+              onView={(purchase) => navigate(`/purchases/${purchase.id}`)}
+              onEdit={(purchase) =>
+              navigate(`/purchases/${purchase.id}/edit`)
+              }
+              onPayment={(purchase) => setPaymentPurchase(purchase)}
+              onReceive={(purchase) => setReceivePurchase(purchase)}
+              onCancel={(purchase) => setCancelPurchaseItem(purchase)}
+              onDuplicate={handleDuplicate} />
+            
+
+              {totalPages > 1 &&
+            <div className="purchases-page__pagination">
                   <button
-                    type="button"
-                    disabled={safePage <= 1}
-                    onClick={() =>
-                      setPage((current) => Math.max(current - 1, 1))
-                    }
-                  >
-                    Oldingi
-                  </button>
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() =>
+                setPage((current) => Math.max(current - 1, 1))
+                }>{translateText("Oldingi")}
+
+
+              </button>
 
                   <div className="purchases-page__pagination-pages">
                     {Array.from(
-                      {
-                        length: totalPages,
-                      },
-                      (_, index) => index + 1,
-                    ).map((pageNumber) => (
-                      <button
-                        key={pageNumber}
-                        type="button"
-                        className={
-                          pageNumber === safePage
-                            ? "purchases-page__pagination-page purchases-page__pagination-page--active"
-                            : "purchases-page__pagination-page"
-                        }
-                        onClick={() => setPage(pageNumber)}
-                      >
+                  {
+                    length: totalPages
+                  },
+                  (_, index) => index + 1
+                ).map((pageNumber) =>
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={
+                  pageNumber === safePage ?
+                  "purchases-page__pagination-page purchases-page__pagination-page--active" :
+                  "purchases-page__pagination-page"
+                  }
+                  onClick={() => setPage(pageNumber)}>
+                  
                         {pageNumber}
                       </button>
-                    ))}
+                )}
                   </div>
 
                   <button
-                    type="button"
-                    disabled={safePage >= totalPages}
-                    onClick={() =>
-                      setPage((current) => Math.min(current + 1, totalPages))
-                    }
-                  >
-                    Keyingi
-                  </button>
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() =>
+                setPage((current) => Math.min(current + 1, totalPages))
+                }>{translateText("Keyingi")}
+
+
+              </button>
                 </div>
-              )}
+            }
             </>
-          )}
+          }
         </Card>
       </div>
 
@@ -467,24 +471,24 @@ const PurchasesPage = () => {
         open={Boolean(paymentPurchase)}
         purchase={paymentPurchase}
         onClose={() => setPaymentPurchase(null)}
-        onSubmit={handlePaymentUpdate}
-      />
+        onSubmit={handlePaymentUpdate} />
+      
 
       <ConfirmDialog
         open={Boolean(cancelPurchaseItem)}
-        title="Xaridni bekor qilish"
+        title={translateText("Xaridni bekor qilish")}
         description={
-          cancelPurchaseItem
-            ? `"${cancelPurchaseItem.number}" xarid buyurtmasi bekor qilinadi.`
-            : ""
+        cancelPurchaseItem ?
+        `"${cancelPurchaseItem.number}" ${translateText("xarid buyurtmasi bekor qilinadi.")}` :
+        ""
         }
-        confirmText="Bekor qilish"
+        confirmText={translateText("Bekor qilish")}
         danger
         onClose={() => setCancelPurchaseItem(null)}
-        onConfirm={handleCancel}
-      />
-    </PageContainer>
-  );
+        onConfirm={handleCancel} />
+      
+    </PageContainer>);
+
 };
 
 const PurchaseStat = ({ icon, label, value, variant }) => {
@@ -492,13 +496,13 @@ const PurchaseStat = ({ icon, label, value, variant }) => {
     <Card variant="soft" padding="md" className="purchases-page__stat">
       <div
         className={[
-          "purchases-page__stat-icon",
+        "purchases-page__stat-icon",
 
-          variant ? `purchases-page__stat-icon--${variant}` : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
+        variant ? `purchases-page__stat-icon--${variant}` : ""].
+
+        filter(Boolean).
+        join(" ")}>
+        
         {icon}
       </div>
 
@@ -507,8 +511,8 @@ const PurchaseStat = ({ icon, label, value, variant }) => {
 
         <strong>{value}</strong>
       </div>
-    </Card>
-  );
+    </Card>);
+
 };
 
 export default PurchasesPage;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useState } from "react";
 
 import { Button, Input, Modal } from "../../../../shared/ui";
 
@@ -31,13 +31,13 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
 
   const handleSubmit = () => {
     if (paid < 0) {
-      setError("To‘lov manfiy bo‘lishi mumkin emas.");
+      setError(translateText("To‘lov manfiy bo‘lishi mumkin emas."));
 
       return;
     }
 
     if (paid > total) {
-      setError("To‘lov jami summadan katta bo‘lishi mumkin emas.");
+      setError(translateText("To‘lov jami summadan katta bo‘lishi mumkin emas."));
 
       return;
     }
@@ -45,7 +45,7 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
     onSubmit?.({
       purchaseId: purchase.id,
 
-      paidAmount: paid,
+      paidAmount: paid
     });
   };
 
@@ -53,93 +53,93 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="To‘lovni yangilash"
+      title={translateText("To‘lovni yangilash")}
       description={`${purchase.number} · ${purchase.supplierName}`}
-      size="sm"
-    >
+      size="sm">
+      
       <div
         style={{
           display: "grid",
-          gap: 18,
-        }}
-      >
+          gap: 18
+        }}>
+        
         <Input
-          label="Jami xarid"
+          label={translateText("Jami xarid")}
           value={`${formatPurchaseMoney(total)} so‘m`}
-          disabled
-        />
+          disabled />
+        
 
         <Input
-          label="To‘langan summa"
+          label={translateText("To‘langan summa")}
           type="number"
           min="0"
           max={total}
           value={paidAmount}
-          onChange={(event) => setPaidAmount(event.target.value)}
-        />
+          onChange={(event) => setPaidAmount(event.target.value)} />
+        
 
         <div
           style={{
             padding: 15,
             borderRadius: "var(--radius-md)",
-            boxShadow: "var(--shadow-inset)",
-          }}
-        >
+            boxShadow: "var(--shadow-inset)"
+          }}>
+          
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              gap: 14,
-            }}
-          >
+              gap: 14
+            }}>
+            
             <span
               style={{
                 color: "var(--color-text-muted)",
-                fontSize: 11,
-              }}
-            >
-              Qolgan qarz
+                fontSize: 11
+              }}>{translateText("Qolgan qarz")}
+
+
             </span>
 
             <strong
               style={{
                 color:
-                  debt > 0 ? "var(--color-warning)" : "var(--color-success)",
-                fontSize: 14,
-              }}
-            >
-              {formatPurchaseMoney(debt)} so‘m
+                debt > 0 ? "var(--color-warning)" : "var(--color-success)",
+                fontSize: 14
+              }}>
+              
+              {formatPurchaseMoney(debt)}{translateText("so‘m")}
             </strong>
           </div>
         </div>
 
-        {error && (
-          <div
-            style={{
-              color: "var(--color-danger)",
-              fontSize: 12,
-            }}
-          >
+        {error &&
+        <div
+          style={{
+            color: "var(--color-danger)",
+            fontSize: 12
+          }}>
+          
             {error}
           </div>
-        )}
+        }
 
         <div
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            gap: 10,
-          }}
-        >
-          <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            gap: 10
+          }}>
+          
+          <Button variant="secondary" onClick={onClose}>{translateText("Bekor qilish")}
+
           </Button>
 
-          <Button onClick={handleSubmit}>Saqlash</Button>
+          <Button onClick={handleSubmit}>{translateText("Saqlash")}</Button>
         </div>
       </div>
-    </Modal>
-  );
+    </Modal>);
+
 };
 
 export default PurchasePaymentModal;

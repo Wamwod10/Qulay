@@ -6,6 +6,7 @@ import {
   getSupplierStatusLabel,
   getSupplierStatusVariant,
 } from "../../utils/supplierHelpers";
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 import SupplierActionsMenu from "../SupplierActionsMenu/SupplierActionsMenu";
 import "./SupplierTable.scss";
 
@@ -144,9 +145,11 @@ const SupplierTable = ({
     },
   ];
 
+  const configuredColumns = useConfiguredColumns("suppliers", columns);
+
   return (
     <Table
-      columns={columns}
+      columns={configuredColumns}
       data={suppliers}
       rowKey="id"
       emptyText="Yetkazib beruvchi topilmadi."

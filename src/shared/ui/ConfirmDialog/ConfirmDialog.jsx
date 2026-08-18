@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 
 import Button from "../Button/Button";
 import Modal from "../Modal/Modal";
+import { translateText } from "../../../localization/i18n";
 
 const ConfirmDialog = ({
   open,
@@ -19,12 +20,12 @@ const ConfirmDialog = ({
       open={open}
       onClose={onClose}
       size="sm"
-      title={title}
-      description={description}
+      title={translateText(title)}
+      description={translateText(description)}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={loading}>
-            {cancelText}
+            {translateText(cancelText)}
           </Button>
 
           <Button
@@ -32,7 +33,7 @@ const ConfirmDialog = ({
             onClick={onConfirm}
             loading={loading}
           >
-            {confirmText}
+            {translateText(confirmText)}
           </Button>
         </>
       }

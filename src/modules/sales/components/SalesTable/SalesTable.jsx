@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Ban, Eye, MoreVertical, Printer, ReceiptText, RotateCcw } from "lucide-react";
+import {
+  Ban,
+  Eye,
+  MoreVertical,
+  Printer,
+  ReceiptText,
+  RotateCcw,
+} from "lucide-react";
 
 import { Badge, Button, LiveIcon, Table } from "../../../../shared/ui";
 
@@ -13,64 +20,79 @@ import {
   getSaleStatusVariant,
 } from "../../utils/salesHelpers";
 
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
+import { translateText } from "../../../../localization/i18n";
+
 import "./SalesTable.scss";
 
-const SalesTable = ({ sales = [], onView, onReceipt, onPrint, onReturn, onCancel }) => {
+const SalesTable = ({
+  sales = [],
+  onView,
+  onReceipt,
+  onPrint,
+  onReturn,
+  onCancel,
+}) => {
+  const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
   const columns = [
     {
       key: "number",
-      title: "Sotuv",
+      title: translateText("Sotuv"),
       render: (value, sale) => (
         <div className="sales-table__sale">
           <strong>{value}</strong>
-          <span>{formatSaleDate(sale.completedAt || sale.orderDate || sale.createdAt)}</span>
+          <span>
+            {formatSaleDate(
+              sale.completedAt || sale.orderDate || sale.createdAt,
+            )}
+          </span>
         </div>
       ),
     },
     {
       key: "customerName",
-      title: "Mijoz",
-      render: (value) => value || "Mijozsiz",
+      title: translateText("Mijoz"),
+      render: (value) => value || translateText("Mijozsiz"),
     },
     {
       key: "agentName",
-      title: "Agent",
+      title: translateText("Agent"),
       render: (value) => value || "-",
     },
     {
       key: "warehouseName",
-      title: "Ombor",
+      title: translateText("Ombor"),
       render: (value) => value || "-",
     },
     {
       key: "total",
-      title: "Jami",
-      render: (value) => `${formatSaleMoney(value)} so'm`,
+      title: translateText("Jami"),
+      render: (value) => moneyText(value),
     },
     {
       key: "paidAmount",
-      title: "Paid",
-      render: (value) => `${formatSaleMoney(value)} so'm`,
+      title: translateText("To'langan"),
+      render: (value) => moneyText(value),
     },
     {
       key: "debtAmount",
-      title: "Qarz",
+      title: translateText("Qarz"),
       render: (value) => {
         const debt = Number(value || 0);
 
         return debt > 0 ? (
           <Badge variant="warning">
             <LiveIcon icon={ReceiptText} motion="pulse-soft" size={13} />
-            {formatSaleMoney(debt)} so'm
+            {moneyText(debt)}
           </Badge>
         ) : (
-          <Badge variant="success">Yo'q</Badge>
+          <Badge variant="success">{translateText("Yo'q")}</Badge>
         );
       },
     },
     {
       key: "paymentStatus",
-      title: "To'lov",
+      title: translateText("To'lov"),
       render: (status) => (
         <Badge variant={getPaymentStatusVariant(status)}>
           {getPaymentStatusLabel(status)}
@@ -79,10 +101,12 @@ const SalesTable = ({ sales = [], onView, onReceipt, onPrint, onReturn, onCancel
     },
     {
       key: "status",
-      title: "Holat",
+      title: translateText("Holat"),
       render: (status) => (
         <Badge variant={getSaleStatusVariant(status)}>
-          {status === "DRAFT" && <LiveIcon icon={ReceiptText} motion="pulse-soft" size={13} />}
+          {status === "DRAFT" && (
+            <LiveIcon icon={ReceiptText} motion="pulse-soft" size={13} />
+          )}
           {getSaleStatusLabel(status)}
         </Badge>
       ),
@@ -104,17 +128,19 @@ const SalesTable = ({ sales = [], onView, onReceipt, onPrint, onReturn, onCancel
     },
   ];
 
-  return (
-    <Table
-      columns={columns}
-      data={sales}
-      rowKey="id"
-      emptyText="Sotuvlar mavjud emas."
-    />
-  );
+  const configuredColumns = useConfiguredColumns("sales", columns);
+
+  return <Table columns={configuredColumns} data={sales} rowKey="id" />;
 };
 
-const SaleActions = ({ sale, onView, onReceipt, onPrint, onReturn, onCancel }) => {
+const SaleActions = ({
+  sale,
+  onView,
+  onReceipt,
+  onPrint,
+  onReturn,
+  onCancel,
+}) => {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
   const completed = sale.status === "COMPLETED";
@@ -143,7 +169,7 @@ const SaleActions = ({ sale, onView, onReceipt, onPrint, onReturn, onCancel }) =
         size="sm"
         variant="ghost"
         className="sales-table__menu-trigger"
-        aria-label="Sotuv amallari"
+        aria-label={translateText("Sotuv amallari")}
         onClick={() => setOpen((current) => !current)}
       >
         <MoreVertical size={17} />
@@ -153,23 +179,39 @@ const SaleActions = ({ sale, onView, onReceipt, onPrint, onReturn, onCancel }) =
         <div className="sales-table__menu-list">
           <button type="button" onClick={() => run(onView)}>
             <Eye size={15} />
-            Ko'rish
+            {translateText("Ko'rish")}
           </button>
-          <button type="button" disabled={sale.status === "DRAFT"} onClick={() => run(onReceipt)}>
+          <button
+            type="button"
+            disabled={sale.status === "DRAFT"}
+            onClick={() => run(onReceipt)}
+          >
             <ReceiptText size={15} />
-            Receipt
+            {translateText("Chek")}
           </button>
-          <button type="button" disabled={sale.status === "DRAFT"} onClick={() => run(onPrint)}>
+          <button
+            type="button"
+            disabled={sale.status === "DRAFT"}
+            onClick={() => run(onPrint)}
+          >
             <Printer size={15} />
-            Print
+            {translateText("Chop etish")}
           </button>
-          <button type="button" disabled={!completed} onClick={() => run(onReturn)}>
+          <button
+            type="button"
+            disabled={!completed}
+            onClick={() => run(onReturn)}
+          >
             <RotateCcw size={15} />
-            Return
+            {translateText("Qaytarish")}
           </button>
-          <button type="button" disabled={!completed || cancelled} onClick={() => run(onCancel)}>
+          <button
+            type="button"
+            disabled={!completed || cancelled}
+            onClick={() => run(onCancel)}
+          >
             <Ban size={15} />
-            Cancel
+            {translateText("Bekor qilish")}
           </button>
         </div>
       )}

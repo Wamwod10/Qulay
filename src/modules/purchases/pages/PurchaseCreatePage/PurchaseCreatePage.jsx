@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { translateText } from "../../../../localization/i18n";import { ArrowLeft } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -16,8 +16,8 @@ import { useState } from "react";
 import {
   clearPurchaseDraft,
   getPurchaseDraft,
-  savePurchaseDraft,
-} from "../../utils/purchaseDraftStorage";
+  savePurchaseDraft } from
+"../../utils/purchaseDraftStorage";
 
 import { ConfirmDialog } from "../../../../shared/ui";
 
@@ -31,7 +31,7 @@ const PurchaseCreatePage = () => {
   const [draft, setDraft] = useState(existingDraft);
 
   const [draftPromptOpen, setDraftPromptOpen] = useState(
-    Boolean(existingDraft),
+    Boolean(existingDraft)
   );
 
   const [searchParams] = useSearchParams();
@@ -59,44 +59,44 @@ const PurchaseCreatePage = () => {
 
   return (
     <PageContainer
-      title="Yangi xarid"
-      description="Yetkazib beruvchidan mahsulot yoki xomashyo xaridini yaratish."
-    >
+      title={translateText("Yangi xarid")}
+      description={translateText("Yetkazib beruvchidan mahsulot yoki xomashyo xaridini yaratish.")}>
+      
       <div className="purchase-create-page">
         <div className="purchase-create-page__top">
           <Button
             variant="secondary"
             leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate("/purchases")}
-          >
-            Xaridlarga qaytish
+            onClick={() => navigate("/purchases")}>{translateText("Xaridlarga qaytish")}
+
+
           </Button>
         </div>
 
-        {!draftPromptOpen && (
-          <PurchaseForm
-            initialValues={
-              supplierId
-                ? {
-                    supplierId,
-                  }
-                : undefined
-            }
-            onSubmit={handleSubmit}
-            onCancel={() => navigate("/purchases")}
-          />
-        )}
+        {!draftPromptOpen &&
+        <PurchaseForm
+          initialValues={
+          supplierId ?
+          {
+            supplierId
+          } :
+          undefined
+          }
+          onSubmit={handleSubmit}
+          onCancel={() => navigate("/purchases")} />
+
+        }
 
         <ConfirmDialog
           open={draftPromptOpen}
-          title="Saqlanmagan qoralama"
+          title={translateText("Saqlanmagan qoralama")}
           description={
-            draft?.savedAt
-              ? `Oldingi xarid qoralamasi mavjud. Oxirgi saqlangan vaqt: ${draft.savedAt}`
-              : "Oldingi xarid qoralamasi mavjud."
+          draft?.savedAt ?
+          `${translateText("Oldingi xarid qoralamasi mavjud. Oxirgi saqlangan vaqt:")} ${draft.savedAt}` :
+          translateText("Oldingi xarid qoralamasi mavjud.")
           }
-          confirmText="Davom ettirish"
-          cancelText="Qoralamani o‘chirish"
+          confirmText={translateText("Davom ettirish")}
+          cancelText={translateText("Qoralamani o‘chirish")}
           onConfirm={() => {
             setUseDraft(true);
             setDraftPromptOpen(false);
@@ -108,11 +108,11 @@ const PurchaseCreatePage = () => {
             setUseDraft(false);
 
             setDraftPromptOpen(false);
-          }}
-        />
+          }} />
+        
       </div>
-    </PageContainer>
-  );
+    </PageContainer>);
+
 };
 
 export default PurchaseCreatePage;

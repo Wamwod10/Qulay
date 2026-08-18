@@ -11,15 +11,16 @@
 
   &__scroll {
     width: 100%;
+
     overflow-x: auto;
   }
 
   table {
     width: 100%;
 
-    border-collapse: collapse;
-
     min-width: 720px;
+
+    border-collapse: collapse;
   }
 
   th,
@@ -34,17 +35,21 @@
   th {
     color: var(--color-text-muted);
 
-    font-size: 11px;
-    font-weight: 700;
+    font-size: calc(var(--app-table-font-size, 13px) * 0.85);
+
+    font-weight: var(--app-heading-font-weight, 700);
 
     text-transform: uppercase;
+
     letter-spacing: 0.06em;
   }
 
   td {
     color: var(--color-text-primary);
 
-    font-size: 13px;
+    font-size: var(--app-table-font-size, 13px);
+
+    font-weight: var(--app-body-font-weight, 400);
   }
 
   tbody {
@@ -69,5 +74,57 @@
     text-align: center !important;
 
     color: var(--color-text-muted) !important;
+  }
+}
+
+/*
+ * TABLE DENSITY
+ */
+
+:root[data-density="compact"] {
+  .ui-table {
+    th,
+    td {
+      padding: 10px 14px;
+    }
+  }
+}
+
+:root[data-density="normal"] {
+  .ui-table {
+    th,
+    td {
+      padding: 16px 18px;
+    }
+  }
+}
+
+:root[data-density="comfortable"] {
+  .ui-table {
+    th,
+    td {
+      padding: 20px 20px;
+    }
+  }
+}
+
+.ui-table--compact {
+  th,
+  td {
+    padding: 10px 14px !important;
+  }
+}
+
+.ui-table--normal {
+  th,
+  td {
+    padding: 16px 18px !important;
+  }
+}
+
+.ui-table--comfortable {
+  th,
+  td {
+    padding: 20px 20px !important;
   }
 }

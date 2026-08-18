@@ -73,8 +73,10 @@ import {
 } from "../../production-orders/utils/productionStages";
 
 import { updateProductionOrderStages } from "../../utils/manufacturingStorage";
+import { useManufacturingSettings } from "../../../settings/selectors/settingsSelectors";
 
 const ProductionOrderDetailsPage = () => {
+  const manufacturingSettings = useManufacturingSettings();
   const navigate = useNavigate();
   const { orderId } = useParams();
 
@@ -153,7 +155,7 @@ const ProductionOrderDetailsPage = () => {
 
       setOrder(updated);
     } catch (error) {
-      alert(error.message || "Quality Control saqlashda xatolik.");
+      alert(error.message || "Sifat nazoratini saqlashda xatolik.");
     }
   };
 
@@ -163,7 +165,7 @@ const ProductionOrderDetailsPage = () => {
 
       setOrder(updated);
     } catch (error) {
-      alert(error.message || "Overhead xarajatlarini saqlashda xatolik.");
+      alert(error.message || "Qo'shimcha xarajatlarni saqlashda xatolik.");
     }
   };
 
@@ -262,19 +264,22 @@ const ProductionOrderDetailsPage = () => {
       (stage) => stage.status === "COMPLETED",
     );
 
-    if (!allStagesCompleted) {
+    if (manufacturingSettings.productionStagesRequired && !allStagesCompleted) {
       alert("Avval barcha ishlab chiqarish bosqichlarini tugating.");
 
       return;
     }
 
-    if (!order.qualityControl) {
-      alert("Avval Quality Control tekshiruvini bajaring.");
+    if (manufacturingSettings.qualityControlRequired && !order.qualityControl) {
+      alert("Avval sifat nazorati tekshiruvini bajaring.");
 
       return;
     }
 
-    if (order.qualityControl.result === "FAIL") {
+    if (
+      manufacturingSettings.blockCompletionIfQcFail &&
+      order.qualityControl?.result === "FAIL"
+    ) {
       alert(
         "Quality Control natijasi rad etilgan. Ishlab chiqarishni yakunlab bo‘lmaydi.",
       );
@@ -423,7 +428,7 @@ const ProductionOrderDetailsPage = () => {
 
             <Card>
               <div className="production-order-details__section-title">
-                <h3>Plan vs Actual</h3>
+                <h3>Reja va amalda</h3>
 
                 <p>Reja va real ishlab chiqarish natijasini solishtirish.</p>
               </div>
@@ -481,7 +486,7 @@ const ProductionOrderDetailsPage = () => {
                 </div>
 
                 <div>
-                  <span>Overhead</span>
+                  <span>Qo'shimcha xarajat</span>
 
                   <strong>
                     {formatManufacturingMoney(completedOverheadCost)} so'm
@@ -497,7 +502,7 @@ const ProductionOrderDetailsPage = () => {
                 </div>
 
                 <div>
-                  <span>Plan vs actual cost difference</span>
+                  <span>Reja va amaldagi tannarx farqi</span>
 
                   <strong
                     className={
@@ -517,7 +522,7 @@ const ProductionOrderDetailsPage = () => {
 
             <Card>
               <div className="production-order-details__section-title">
-                <h3>Production History</h3>
+                <h3>Ishlab chiqarish tarixi</h3>
 
                 <p>Buyurtmaning asosiy ishlab chiqarish voqealari.</p>
               </div>
@@ -565,7 +570,7 @@ const ProductionOrderDetailsPage = () => {
           <div className="production-order-details__section-header">
             <div>
               <h3>Buyurtma holati</h3>
-              <p>Start Production faqat yetarli real qoldiq bo'lsa ishlaydi.</p>
+              <p>Ishlab chiqarishni boshlash faqat real qoldiq yetarli bo'lsa ishlaydi.</p>
             </div>
 
             <div className="production-order-details__badges">

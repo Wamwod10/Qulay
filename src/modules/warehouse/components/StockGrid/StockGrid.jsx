@@ -1,6 +1,7 @@
 import { Boxes } from "lucide-react";
 
 import { EmptyState } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import StockCard from "../StockCard/StockCard";
 
@@ -11,8 +12,10 @@ const StockGrid = ({ items = [], onView }) => {
     return (
       <EmptyState
         icon={Boxes}
-        title="Omborda mahsulot topilmadi"
-        description="Tanlangan ombor yoki filterlar bo‘yicha mahsulot mavjud emas."
+        title={translateText("Omborda mahsulot topilmadi")}
+        description={translateText(
+          "Tanlangan ombor yoki filterlar bo‘yicha mahsulot mavjud emas.",
+        )}
       />
     );
   }

@@ -1,0 +1,137 @@
+.auth-form {
+  display: grid;
+  gap: 16px;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  &__section {
+    display: grid;
+    gap: 12px;
+
+    > span {
+      color: var(--color-accent);
+      font-size: var(--font-size-xs);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+  }
+
+  &__error,
+  &__success,
+  &__notice {
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+  }
+
+  &__error {
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+  }
+
+  &__success {
+    color: var(--color-success);
+    background: var(--color-success-soft);
+  }
+
+  &__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: var(--color-warning);
+    background: var(--color-warning-soft);
+
+    strong,
+    p {
+      display: block;
+      margin: 0;
+    }
+
+    p {
+      margin-top: 6px;
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-xs);
+      font-weight: 500;
+      line-height: 1.55;
+    }
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+
+  &__link {
+    justify-self: center;
+    color: var(--color-accent);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  &__select {
+    display: grid;
+    gap: 7px;
+
+    span {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+    }
+
+    select {
+      height: 44px;
+      padding: 0 13px;
+      border: 0;
+      border-radius: var(--radius-lg);
+      outline: 0;
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      box-shadow: var(--shadow-inset);
+      font: inherit;
+    }
+  }
+
+  &__strength {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+
+    i {
+      height: 5px;
+      border-radius: var(--radius-full);
+      background: var(--color-border);
+    }
+
+    small {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+      white-space: nowrap;
+    }
+
+    &[data-score="1"] i:nth-child(-n + 1),
+    &[data-score="2"] i:nth-child(-n + 2),
+    &[data-score="3"] i:nth-child(-n + 3),
+    &[data-score="4"] i:nth-child(-n + 4) {
+      background: var(--color-accent);
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .auth-form {
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

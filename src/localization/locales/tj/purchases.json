@@ -1,0 +1,12 @@
+{
+  "purchases": {
+    "title": "Харидҳо",
+    "supplier": "Таъминкунанда",
+    "ordered": "Фармоиш дода шудааст",
+    "partiallyReceived": "Қисман қабулшуда",
+    "received": "Қабулшуда",
+    "cancelled": "Бекоршуда",
+    "receive": "Қабул кардан",
+    "payment": "Пардохт"
+  }
+}

@@ -287,7 +287,7 @@ const SupplierDetailsPage = () => {
               <SupplierScoreIcon variant={supplierScore.variant} />
             </div>
 
-            <span>Supplier Score</span>
+            <span>Yetkazib beruvchi reytingi</span>
 
             <div className="supplier-details__score-value">
               <strong>{supplierScore.score}</strong>
@@ -333,7 +333,7 @@ const SupplierDetailsPage = () => {
           {riskAlerts.length > 0 && (
             <Card className="supplier-details__risk-card">
               <SectionTitle
-                title="Risk Alert"
+                title="Risk ogohlantirishi"
                 description="Tizim aniqlagan e’tibor talab qiladigan holatlar."
               />
 
@@ -561,25 +561,25 @@ const SupplierDetailsPage = () => {
 
         <Card>
           <SectionTitle
-            title="Payment history"
-            description="Purchases paidAmount va Finance supplier paymentlari birlashtirilgan."
+            title="To'lov tarixi"
+            description="Xaridlardagi to'langan summa va moliyadagi yetkazib beruvchi to'lovlari birlashtirilgan."
           />
 
           <Table
             columns={[
-              { key: "date", title: "Date", render: formatFinanceDate },
-              { key: "source", title: "Source" },
-              { key: "paymentMethod", title: "Method", render: getPaymentMethodLabel },
+              { key: "date", title: "Sana", render: formatFinanceDate },
+              { key: "source", title: "Manba" },
+              { key: "paymentMethod", title: "To'lov turi", render: getPaymentMethodLabel },
               {
                 key: "amount",
-                title: "Amount",
+                title: "Summa",
                 render: (value) => `${formatFinanceMoney(value)} so'm`,
               },
-              { key: "note", title: "Note", render: (value) => value || "-" },
+              { key: "note", title: "Izoh", render: (value) => value || "-" },
             ]}
             data={supplierPayments}
             rowKey="id"
-            emptyText="Supplier payment mavjud emas."
+            emptyText="Yetkazib beruvchi to'lovi mavjud emas."
           />
         </Card>
 

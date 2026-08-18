@@ -1,12 +1,13 @@
 import { Inbox } from "lucide-react";
 
+import { translateText } from "../../../localization/i18n";
 import Button from "../Button/Button";
 
 import "./EmptyState.scss";
 
 const EmptyState = ({
   icon,
-  title = "Ma’lumot mavjud emas",
+  title = "Ma'lumot mavjud emas",
   description,
   actionLabel,
   onAction,
@@ -19,13 +20,13 @@ const EmptyState = ({
         <Icon size={28} strokeWidth={1.6} />
       </div>
 
-      <h3>{title}</h3>
+      <h3>{translateText(title)}</h3>
 
-      {description && <p>{description}</p>}
+      {description && <p>{translateText(description)}</p>}
 
       {actionLabel && (
         <Button variant="primary" onClick={onAction}>
-          {actionLabel}
+          {translateText(actionLabel)}
         </Button>
       )}
     </div>

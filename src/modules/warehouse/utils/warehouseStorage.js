@@ -1,34 +1,40 @@
-import {
-    INITIAL_WAREHOUSE_STOCK,
-} from "../constants/warehouseMock";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { getLocale } from "../../../localization/i18n";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 const STORAGE_KEY =
-    "universal_erp_warehouse_stock";
+    "warehouse_stock";
 
 const MOVEMENTS_KEY =
-    "universal_erp_warehouse_movements";
+    "warehouse_movements";
 
 export const getStoredWarehouseStock = () => {
+    const remoteStock = unwrapList(syncApiRequest("/inventory/stock"), ["stock"]);
+
+    if (Array.isArray(remoteStock)) {
+        tenantSet(STORAGE_KEY, remoteStock);
+        return remoteStock;
+    }
+
     try {
         const stored =
-            localStorage.getItem(
+            tenantGet(
                 STORAGE_KEY,
+                null,
             );
 
         if (!stored) {
-            localStorage.setItem(
+            tenantSet(
                 STORAGE_KEY,
-                JSON.stringify(
-                    INITIAL_WAREHOUSE_STOCK,
-                ),
+                [],
             );
 
-            return INITIAL_WAREHOUSE_STOCK;
+            return [];
         }
 
-        return JSON.parse(stored);
+        return stored;
     } catch {
-        return INITIAL_WAREHOUSE_STOCK;
+        return [];
     }
 };
 
@@ -36,9 +42,9 @@ export const saveWarehouseStock = (
     stock,
 ) => {
     try {
-        localStorage.setItem(
+        tenantSet(
             STORAGE_KEY,
-            JSON.stringify(stock),
+            stock,
         );
     } catch {
         return false;
@@ -47,12 +53,15 @@ export const saveWarehouseStock = (
 
 export const getWarehouseMovements =
     () => {
+        const remoteMovements = unwrapList(syncApiRequest("/inventory/movements"), ["movements"]);
+
+        if (Array.isArray(remoteMovements)) {
+            tenantSet(MOVEMENTS_KEY, remoteMovements);
+            return remoteMovements;
+        }
+
         try {
-            return JSON.parse(
-                localStorage.getItem(
-                    MOVEMENTS_KEY,
-                ) || "[]",
-            );
+            return tenantGet(MOVEMENTS_KEY, []);
         } catch {
             return [];
         }
@@ -69,18 +78,18 @@ export const addWarehouseMovement = (
 
         createdAt:
             new Date().toLocaleString(
-                "uz-UZ",
+                getLocale(),
             ),
 
         ...movement,
     };
 
-    localStorage.setItem(
+    tenantSet(
         MOVEMENTS_KEY,
-        JSON.stringify([
+        [
             newMovement,
             ...movements,
-        ]),
+        ],
     );
 
     return newMovement;
@@ -94,6 +103,21 @@ export const stockIn = ({
     source,
     note,
 }) => {
+    const remoteResult = syncApiRequest("/inventory/stock/in", {
+        method: "POST",
+        idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}`,
+        body: { warehouseId, productId, quantity, cost, source, note, idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}` },
+    });
+
+    if (remoteResult) {
+        const remoteStock = unwrapList(remoteResult, ["stock"]);
+        if (Array.isArray(remoteStock)) {
+            saveWarehouseStock(remoteStock);
+        }
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return remoteStock?.find((item) => item.warehouseId === warehouseId && item.productId === productId) || remoteResult;
+    }
+
     const stock =
         getStoredWarehouseStock();
 
@@ -185,6 +209,21 @@ export const stockOut = ({
     reason,
     note,
 }) => {
+    const remoteResult = syncApiRequest("/inventory/stock/out", {
+        method: "POST",
+        idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}`,
+        body: { warehouseId, productId, quantity, reason, note, idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}` },
+    });
+
+    if (remoteResult) {
+        const remoteStock = unwrapList(remoteResult, ["stock"]);
+        if (Array.isArray(remoteStock)) {
+            saveWarehouseStock(remoteStock);
+        }
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return remoteStock?.find((item) => item.warehouseId === warehouseId && item.productId === productId) || remoteResult;
+    }
+
     const stock =
         getStoredWarehouseStock();
 
@@ -279,6 +318,22 @@ export const transferStock = ({
     quantity,
     note,
 }) => {
+    const remoteResult = syncApiRequest("/inventory/stock/transfer", {
+        method: "POST",
+        idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}`,
+        body: { fromWarehouseId, toWarehouseId, productId, quantity, note, idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}` },
+    });
+
+    if (remoteResult) {
+        const remoteStock = unwrapList(remoteResult, ["stock"]);
+        if (Array.isArray(remoteStock)) {
+            saveWarehouseStock(remoteStock);
+            window.dispatchEvent(new Event("warehouse:changed"));
+            return remoteStock;
+        }
+        return remoteResult;
+    }
+
     if (fromWarehouseId === toWarehouseId) {
         throw new Error(
             "Mahsulotni bir xil ombor ichida ko‘chirib bo‘lmaydi.",
@@ -443,6 +498,16 @@ export const inventoryAdjustStock = ({
     reason,
     note,
 }) => {
+    const remoteProduct = syncApiRequest(`/products/${productId}/stock`, {
+        method: "PATCH",
+        body: { warehouseId, newStock: countedQuantity, reason, note },
+    });
+
+    if (remoteProduct) {
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return remoteProduct;
+    }
+
     const stock =
         getStoredWarehouseStock();
 

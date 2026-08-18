@@ -1,4 +1,5 @@
 import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { getLocale } from "../../../../localization/i18n";
 
 const roundQuantity = (value) => Math.round((Number(value) || 0) * 1000000) / 1000000;
 
@@ -10,7 +11,7 @@ const getProductMap = () =>
 export const formatProductionQuantity = (value) => {
   const number = roundQuantity(value);
 
-  return new Intl.NumberFormat("uz-UZ", {
+  return new Intl.NumberFormat(getLocale(), {
     maximumFractionDigits: 6,
   }).format(number);
 };

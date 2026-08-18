@@ -1,10 +1,12 @@
+import { getLocale, translateText } from "../../../localization/i18n";
+
 export const formatAgentMoney = (
   value,
 ) => {
   const number = Number(value);
 
   return new Intl.NumberFormat(
-    "uz-UZ",
+    getLocale(),
   ).format(
     Number.isFinite(number) ? number : 0,
   );
@@ -14,8 +16,8 @@ export const getAgentStatusLabel = (
   status,
 ) => {
   return status === "ACTIVE"
-    ? "Faol"
-    : "Faol emas";
+    ? translateText("Faol")
+    : translateText("Faol emas");
 };
 
 export const getAgentStatusVariant = (
@@ -28,7 +30,7 @@ export const getAgentStatusVariant = (
 
 export const formatAgentDate = (value) => {
   if (!value) {
-    return "Ma'lumot yo'q";
+    return translateText("Ma'lumot yo'q");
   }
 
   const date = new Date(value);
@@ -37,7 +39,7 @@ export const formatAgentDate = (value) => {
     return String(value);
   }
 
-  return date.toLocaleDateString("uz-UZ");
+  return date.toLocaleDateString(getLocale());
 };
 
 export const getAgentInitials = (name = "") => {

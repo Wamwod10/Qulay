@@ -1,0 +1,16 @@
+{
+  "manufacturing": {
+    "title": "Истеҳсолот",
+    "bom": "BOM",
+    "recipe": "Ретсепт",
+    "productionOrder": "Фармоиши истеҳсолӣ",
+    "rawMaterial": "Ашёи хом",
+    "plan": "Нақша",
+    "actualConsumption": "Масрафи воқеӣ",
+    "defect": "Нуқсон",
+    "waste": "Талафот",
+    "cost": "Арзиши аслӣ",
+    "start": "Оғоз кардан",
+    "complete": "Анҷом додан"
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useEffect, useState } from "react";
 
 import { Button, Input, Modal } from "../../../../shared/ui";
 
@@ -19,7 +19,7 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
     purchase.items.forEach((item) => {
       const remaining = Math.max(
         Number(item.quantity || 0) - Number(item.receivedQuantity || 0),
-        0,
+        0
       );
 
       next[item.id] = String(remaining);
@@ -39,13 +39,13 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
 
       const remaining = Math.max(
         Number(item.quantity || 0) - Number(item.receivedQuantity || 0),
-        0,
+        0
       );
 
       if (quantity > remaining) {
         return {
           error: true,
-          productName: item.productName,
+          productName: item.productName
         };
       }
 
@@ -54,7 +54,7 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
 
         productId: item.productId,
 
-        quantity,
+        quantity
       };
     });
 
@@ -67,11 +67,11 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
     }
 
     const validItems = receivedItems.filter(
-      (item) => Number(item.quantity) > 0,
+      (item) => Number(item.quantity) > 0
     );
 
     if (!validItems.length) {
-      setError("Kamida bitta mahsulot uchun qabul miqdorini kiriting.");
+      setError(translateText("Kamida bitta mahsulot uchun qabul miqdorini kiriting."));
 
       return;
     }
@@ -83,21 +83,21 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title="Mahsulotlarni qabul qilish"
+      title={translateText("Mahsulotlarni qabul qilish")}
       description={`${purchase.number} · ${purchase.supplierName}`}
-      size="lg"
-    >
+      size="lg">
+      
       <div className="purchase-receive-modal">
         <div className="purchase-receive-modal__header">
-          <span>Mahsulot</span>
+          <span>{translateText("Mahsulot")}</span>
 
-          <span>Buyurtma</span>
+          <span>{translateText("Buyurtma")}</span>
 
-          <span>Oldin qabul</span>
+          <span>{translateText("Oldin qabul")}</span>
 
-          <span>Hozir qabul</span>
+          <span>{translateText("Hozir qabul")}</span>
 
-          <span>Qoladi</span>
+          <span>{translateText("Qoladi")}</span>
         </div>
 
         <div className="purchase-receive-modal__items">
@@ -132,34 +132,34 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
                   max={ordered - received}
                   value={quantities[item.id] || ""}
                   onChange={(event) =>
-                    setQuantities((current) => ({
-                      ...current,
+                  setQuantities((current) => ({
+                    ...current,
 
-                      [item.id]: event.target.value,
-                    }))
-                  }
-                />
+                    [item.id]: event.target.value
+                  }))
+                  } />
+                
 
                 <strong>
                   {remaining} {item.unit}
                 </strong>
-              </div>
-            );
+              </div>);
+
           })}
         </div>
 
         {error && <div className="purchase-receive-modal__error">{error}</div>}
 
         <div className="purchase-receive-modal__actions">
-          <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+          <Button variant="secondary" onClick={onClose}>{translateText("Bekor qilish")}
+
           </Button>
 
-          <Button onClick={handleSubmit}>Qabul qilish</Button>
+          <Button onClick={handleSubmit}>{translateText("Qabul qilish")}</Button>
         </div>
       </div>
-    </Modal>
-  );
+    </Modal>);
+
 };
 
 export default PurchaseReceiveModal;

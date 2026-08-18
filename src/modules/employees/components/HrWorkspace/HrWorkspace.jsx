@@ -79,6 +79,11 @@ import {
 
 import { getStoredCashboxes, PAYMENT_METHODS } from "../../../finance/utils/financeStorage";
 import { formatFinanceMoney, getPaymentMethodLabel } from "../../../finance/utils/financeSelectors";
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
+import {
+  useDefaultSettings,
+  useHrSettings,
+} from "../../../settings/selectors/settingsSelectors";
 
 import "./HrWorkspace.scss";
 
@@ -90,21 +95,28 @@ const salaryTypeLabels = {
 
 const statusLabels = {
   ACTIVE: "Faol",
-  INACTIVE: "Inactive",
-  ON_LEAVE: "Tatilda",
+  INACTIVE: "Faol emas",
+  ON_LEAVE: "Ta'tilda",
   PRESENT: "Ishda",
   ABSENT: "Kelmagan",
   LATE: "Kechikkan",
   DAY_OFF: "Dam",
-  LEAVE: "Tatil",
-  REQUESTED: "Sorov",
-  APPROVED: "Tasdiq",
+  LEAVE: "Ta'til",
+  REQUESTED: "So'rov",
+  APPROVED: "Tasdiqlangan",
   REJECTED: "Rad",
-  COMPLETED: "Tugagan",
-  DRAFT: "Draft",
+  COMPLETED: "Yakunlangan",
+  DRAFT: "Qoralama",
   CALCULATED: "Hisoblangan",
   PARTIAL: "Qisman",
-  PAID: "Tolangan",
+  PAID: "To'langan",
+};
+
+const leaveTypeLabels = {
+  ANNUAL: "Yillik ta'til",
+  SICK: "Kasallik ta'tili",
+  UNPAID: "To'lanmaydigan ta'til",
+  OTHER: "Boshqa",
 };
 
 const roleOptions = ["", "Admin", "Kassir", "Sotuvchi", "Omborchi", "Buxgalter", "Xodim"].map(
@@ -250,13 +262,13 @@ const HrWorkspace = ({ view = "overview", mode = "list" }) => {
       <div className="hr-workspace">
         <nav className="hr-workspace__nav" aria-label="HR navigation">
           <NavLink to="/hr" end>
-            Dashboard
+            Boshqaruv paneli
           </NavLink>
           <NavLink to="/hr/employees">Xodimlar</NavLink>
           <NavLink to="/hr/attendance">Davomat</NavLink>
           <NavLink to="/hr/shifts">Smenalar</NavLink>
-          <NavLink to="/hr/payroll">Payroll</NavLink>
-          <NavLink to="/hr/leave">Tatil</NavLink>
+          <NavLink to="/hr/payroll">Oylik hisob-kitobi</NavLink>
+          <NavLink to="/hr/leave">Ta'til</NavLink>
         </nav>
 
         {content()}
@@ -312,7 +324,7 @@ const HrDashboard = ({ data }) => {
           }))}
         />
         <SignalPanel
-          title="Upcoming leave"
+          title="Yaqinlashayotgan ta'tillar"
           rows={summary.upcomingLeave.map((leave) => ({
             id: leave.id,
             name: data.employees.find((employee) => employee.id === leave.employeeId)?.fullName || "-",
@@ -320,7 +332,7 @@ const HrDashboard = ({ data }) => {
           }))}
         />
         <SignalPanel
-          title="Birthday"
+          title="Tug'ilgan kunlar"
           rows={birthdays.slice(0, 5).map((employee) => ({
             id: employee.id,
             name: employee.fullName,
@@ -364,6 +376,72 @@ const EmployeeList = ({ data, refresh }) => {
     );
   });
 
+  const employeeColumns = useConfiguredColumns("hr-employees", [
+    {
+      key: "fullName",
+      title: "Xodim",
+      render: (_, employee) => (
+        <Link className="hr-workspace__name-link" to={`/hr/employees/${employee.id}`}>
+          {employee.fullName}
+          <small>{employee.phone}</small>
+        </Link>
+      ),
+    },
+    { key: "position", title: "Lavozim" },
+    { key: "department", title: "Bolim" },
+    {
+      key: "baseSalary",
+      title: "Ish haqi",
+      render: (_, employee) =>
+        employee.salaryType === "HOURLY"
+          ? `${money(employee.hourlyRate)} / soat`
+          : `${money(employee.baseSalary)} / ${salaryTypeLabels[employee.salaryType]}`,
+    },
+    {
+      key: "today",
+      title: "Bugungi holat",
+      render: (_, employee) => (
+        <StatusBadge
+          status={
+            todayAttendance.find((record) => record.employeeId === employee.id)?.status ||
+            "ABSENT"
+          }
+        />
+      ),
+    },
+    {
+      key: "shiftId",
+      title: "Smena",
+      render: (value) => {
+        const shift = data.shifts.find((item) => item.id === value);
+
+        return shift ? `${shift.startTime}-${shift.endTime}` : "-";
+      },
+    },
+    {
+      key: "status",
+      title: "Holat",
+      render: (value) => <StatusBadge status={value} />,
+    },
+    {
+      key: "actions",
+      title: "Amallar",
+      render: (_, employee) => (
+        <div className="hr-workspace__row-actions">
+          <Link to={`/hr/employees/${employee.id}`} aria-label="Korish">
+            <Eye size={16} />
+          </Link>
+          <Link to={`/hr/employees/${employee.id}/edit`} aria-label="Tahrirlash">
+            <Edit3 size={16} />
+          </Link>
+          <button type="button" onClick={() => handleDelete(employee)} aria-label="Ochirish">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ]);
+
   const handleDelete = (employee) => {
     try {
       if (hasEmployeeHistory(employee.id)) {
@@ -392,20 +470,20 @@ const EmployeeList = ({ data, refresh }) => {
 
       <Card padding="lg" className="hr-workspace__filters">
         <Input
-          label="Search"
+          label="Qidirish"
           value={filters.search}
           leftIcon={<Search size={16} />}
           placeholder="Ism, telefon, lavozim"
           onChange={(event) => setFilters({ ...filters, search: event.target.value })}
         />
         <Select
-          label="Status"
+          label="Holat"
           value={filters.status}
           options={optionize(EMPLOYEE_STATUSES, "Barcha statuslar")}
           onChange={(event) => setFilters({ ...filters, status: event.target.value })}
         />
         <Select
-          label="Role"
+          label="Rol"
           value={filters.role}
           options={roleOptions}
           onChange={(event) => setFilters({ ...filters, role: event.target.value })}
@@ -417,7 +495,7 @@ const EmployeeList = ({ data, refresh }) => {
           onChange={(event) => setFilters({ ...filters, department: event.target.value })}
         />
         <Select
-          label="Branch"
+          label="Filial"
           value={filters.branchId}
           options={optionize(branches, "Barcha branchlar")}
           onChange={(event) => setFilters({ ...filters, branchId: event.target.value })}
@@ -439,71 +517,7 @@ const EmployeeList = ({ data, refresh }) => {
 
       <Card padding="lg">
         <Table
-          columns={[
-            {
-              key: "fullName",
-              title: "Xodim",
-              render: (_, employee) => (
-                <Link className="hr-workspace__name-link" to={`/hr/employees/${employee.id}`}>
-                  {employee.fullName}
-                  <small>{employee.phone}</small>
-                </Link>
-              ),
-            },
-            { key: "position", title: "Lavozim" },
-            { key: "department", title: "Bolim" },
-            {
-              key: "baseSalary",
-              title: "Ish haqi",
-              render: (_, employee) =>
-                employee.salaryType === "HOURLY"
-                  ? `${money(employee.hourlyRate)} / soat`
-                  : `${money(employee.baseSalary)} / ${salaryTypeLabels[employee.salaryType]}`,
-            },
-            {
-              key: "today",
-              title: "Bugungi holat",
-              render: (_, employee) => (
-                <StatusBadge
-                  status={
-                    todayAttendance.find((record) => record.employeeId === employee.id)?.status ||
-                    "ABSENT"
-                  }
-                />
-              ),
-            },
-            {
-              key: "shiftId",
-              title: "Smena",
-              render: (value) => {
-                const shift = data.shifts.find((item) => item.id === value);
-
-                return shift ? `${shift.startTime}-${shift.endTime}` : "-";
-              },
-            },
-            {
-              key: "status",
-              title: "Status",
-              render: (value) => <StatusBadge status={value} />,
-            },
-            {
-              key: "actions",
-              title: "Actions",
-              render: (_, employee) => (
-                <div className="hr-workspace__row-actions">
-                  <Link to={`/hr/employees/${employee.id}`} aria-label="Korish">
-                    <Eye size={16} />
-                  </Link>
-                  <Link to={`/hr/employees/${employee.id}/edit`} aria-label="Tahrirlash">
-                    <Edit3 size={16} />
-                  </Link>
-                  <button type="button" onClick={() => handleDelete(employee)} aria-label="Ochirish">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ),
-            },
-          ]}
+          columns={employeeColumns}
           data={rows}
           rowKey="id"
           emptyText="Xodim topilmadi."
@@ -514,6 +528,7 @@ const EmployeeList = ({ data, refresh }) => {
 };
 
 const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
+  const hrSettings = useHrSettings();
   const [form, setForm] = useState(
     employee || {
       fullName: "",
@@ -523,13 +538,13 @@ const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
       department: "Umumiy",
       role: "Xodim",
       hireDate: todayIso(),
-      salaryType: "MONTHLY",
+      salaryType: hrSettings.defaultSalaryType || "MONTHLY",
       baseSalary: 0,
       hourlyRate: 0,
       address: "",
       status: "ACTIVE",
       note: "",
-      shiftId: DEFAULT_SHIFT_ID,
+      shiftId: hrSettings.defaultShiftId || DEFAULT_SHIFT_ID,
     },
   );
   const [error, setError] = useState("");
@@ -601,7 +616,7 @@ const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
           onChange={(event) => update("shiftId", event.target.value)}
         />
         <Select
-          label="Status"
+          label="Holat"
           value={form.status}
           options={EMPLOYEE_STATUSES.map((value) => ({ value, label: statusLabels[value] }))}
           onChange={(event) => update("status", event.target.value)}
@@ -656,7 +671,7 @@ const EmployeeDetails = ({ employee, data, refresh }) => {
           Jarima
         </Button>
         <Button leftIcon={<CalendarDays size={16} />} onClick={() => setModal("leave")}>
-          Tatil
+          Ta'til
         </Button>
         <Link className="hr-workspace__create-link" to={`/hr/employees/${employee.id}/edit`}>
           <Edit3 size={16} />
@@ -667,35 +682,35 @@ const EmployeeDetails = ({ employee, data, refresh }) => {
       <div className="hr-workspace__detail-grid">
         <DetailSection title="Kontaktlar" rows={[["Telefon", employee.phone], ["Email", employee.email || "-"], ["Manzil", employee.address || "-"]]} />
         <DetailSection
-          title="Attendance"
+          title="Davomat"
           rows={[
             ["Joriy oy yozuvlari", attendance.length],
             ["Kechikish", attendance.filter((record) => record.status === "LATE").length],
             ["Kelmagan", attendance.filter((record) => record.status === "ABSENT").length],
           ]}
         />
-        <DetailSection title="Shift" rows={[["Smena", shift?.name || "-"], ["Vaqt", shift ? `${shift.startTime}-${shift.endTime}` : "-"], ["Break", `${shift?.breakMinutes || 0} min`]]} />
-        <DetailSection title="Salary / Payroll" rows={[["Maosh turi", salaryTypeLabels[employee.salaryType]], ["Jami qarz", money(debt)], ["Oxirgi tolov", lastPayment ? money(lastPayment.amount) : "-"]]} />
-        <DetailSection title="Advances" rows={getEmployeeAdvances(employee.id, monthIso()).map((item) => [item.date, money(item.amount)])} />
-        <DetailSection title="Bonuses" rows={getEmployeeBonuses(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
-        <DetailSection title="Penalties" rows={getEmployeePenalties(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
-        <DetailSection title="Leave" rows={data.leaves.filter((leave) => leave.employeeId === employee.id).map((leave) => [leave.type, `${leave.startDate} - ${leave.endDate}`])} />
-        <DetailSection title="Payment history" rows={payments.map((payment) => [payment.date, `${money(payment.amount)} / ${getPaymentMethodLabel(payment.method)}`])} />
-        <DetailSection title="Notes" rows={[["Izoh", employee.note || "-"]]} />
+        <DetailSection title="Smena" rows={[["Smena", shift?.name || "-"], ["Vaqt", shift ? `${shift.startTime}-${shift.endTime}` : "-"], ["Tanaffus", `${shift?.breakMinutes || 0} min`]]} />
+        <DetailSection title="Maosh / oylik hisob-kitobi" rows={[["Maosh turi", salaryTypeLabels[employee.salaryType]], ["Jami qarz", money(debt)], ["Oxirgi to'lov", lastPayment ? money(lastPayment.amount) : "-"]]} />
+        <DetailSection title="Avanslar" rows={getEmployeeAdvances(employee.id, monthIso()).map((item) => [item.date, money(item.amount)])} />
+        <DetailSection title="Bonuslar" rows={getEmployeeBonuses(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
+        <DetailSection title="Jarimalar" rows={getEmployeePenalties(employee.id, monthIso()).map((item) => [item.reason, money(item.amount)])} />
+        <DetailSection title="Ta'tillar" rows={data.leaves.filter((leave) => leave.employeeId === employee.id).map((leave) => [leaveTypeLabels[leave.type] || leave.type, `${leave.startDate} - ${leave.endDate}`])} />
+        <DetailSection title="To'lov tarixi" rows={payments.map((payment) => [payment.date, `${money(payment.amount)} / ${getPaymentMethodLabel(payment.method)}`])} />
+        <DetailSection title="Izohlar" rows={[["Izoh", employee.note || "-"]]} />
       </div>
 
       <Card padding="lg">
         <Table
           columns={[
             { key: "month", title: "Oy" },
-            { key: "netAmount", title: "Net", render: (value) => money(value) },
-            { key: "paidAmount", title: "Tolangan", render: (value) => money(value) },
+            { key: "netAmount", title: "Sof oylik", render: (value) => money(value) },
+            { key: "paidAmount", title: "To'langan", render: (value) => money(value) },
             { key: "debtAmount", title: "Qarz", render: (value) => money(value) },
-            { key: "status", title: "Status", render: (value) => <StatusBadge status={value} /> },
+            { key: "status", title: "Holat", render: (value) => <StatusBadge status={value} /> },
           ]}
           data={payrolls}
           rowKey="id"
-          emptyText="Payroll tarixi yoq."
+          emptyText="Oylik hisob-kitobi tarixi yo'q."
         />
       </Card>
 
@@ -740,7 +755,7 @@ const AttendanceManager = ({ data, refresh }) => {
         <DatePicker label="Sana" value={filters.date} onChange={(event) => setFilters({ ...filters, date: event.target.value })} />
         <Select label="Xodim" value={filters.employeeId} options={[{ value: "", label: "Barcha xodimlar" }, ...data.employees.map((employee) => ({ value: employee.id, label: employee.fullName }))]} onChange={(event) => setFilters({ ...filters, employeeId: event.target.value })} />
         <Select label="Bolim" value={filters.department} options={optionize(departments, "Barcha bolimlar")} onChange={(event) => setFilters({ ...filters, department: event.target.value })} />
-        <Select label="Status" value={filters.status} options={optionize(ATTENDANCE_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
+        <Select label="Holat" value={filters.status} options={optionize(ATTENDANCE_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
         <Button leftIcon={<Plus size={16} />} onClick={() => setModal("attendance")}>
           Davomat belgilash
         </Button>
@@ -753,7 +768,7 @@ const AttendanceManager = ({ data, refresh }) => {
             { key: "date", title: "Sana" },
             { key: "checkIn", title: "Kirish" },
             { key: "checkOut", title: "Chiqish" },
-            { key: "status", title: "Status", render: (value) => <StatusBadge status={value} /> },
+            { key: "status", title: "Holat", render: (value) => <StatusBadge status={value} /> },
             { key: "lateMinutes", title: "Kechikish", render: (value) => `${value} min` },
             { key: "workedMinutes", title: "Ish vaqti", render: (value) => `${(value / 60).toFixed(1)} soat` },
             { key: "note", title: "Izoh" },
@@ -792,13 +807,13 @@ const ShiftManager = ({ data, refresh }) => {
         <Table
           columns={[
             { key: "name", title: "Smena" },
-            { key: "startTime", title: "Start" },
-            { key: "endTime", title: "End" },
-            { key: "breakMinutes", title: "Break", render: (value) => `${value} min` },
-            { key: "active", title: "Active", render: (value) => (value ? "Ha" : "Yoq") },
+            { key: "startTime", title: "Boshlanish" },
+            { key: "endTime", title: "Tugash" },
+            { key: "breakMinutes", title: "Tanaffus", render: (value) => `${value} min` },
+            { key: "active", title: "Faol", render: (value) => (value ? "Ha" : "Yo'q") },
             {
               key: "actions",
-              title: "Actions",
+              title: "Amallar",
               render: (_, shift) => (
                 <button className="hr-workspace__icon-action" type="button" onClick={() => setForm(shift)}>
                   <Edit3 size={16} />
@@ -813,10 +828,10 @@ const ShiftManager = ({ data, refresh }) => {
       <Card padding="lg">
         <form className="hr-workspace__form hr-workspace__form--single" onSubmit={save}>
           <Input label="Nomi" required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          <Input label="Start" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} />
-          <Input label="End" type="time" value={form.endTime} onChange={(event) => setForm({ ...form, endTime: event.target.value })} />
-          <Input label="Break min" type="number" min="0" value={form.breakMinutes} onChange={(event) => setForm({ ...form, breakMinutes: event.target.value })} />
-          <Select label="Active" value={form.active ? "YES" : "NO"} options={[{ value: "YES", label: "Ha" }, { value: "NO", label: "Yoq" }]} onChange={(event) => setForm({ ...form, active: event.target.value === "YES" })} />
+          <Input label="Boshlanish" type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} />
+          <Input label="Tugash" type="time" value={form.endTime} onChange={(event) => setForm({ ...form, endTime: event.target.value })} />
+          <Input label="Tanaffus daqiqasi" type="number" min="0" value={form.breakMinutes} onChange={(event) => setForm({ ...form, breakMinutes: event.target.value })} />
+          <Select label="Faol" value={form.active ? "YES" : "NO"} options={[{ value: "YES", label: "Ha" }, { value: "NO", label: "Yo'q" }]} onChange={(event) => setForm({ ...form, active: event.target.value === "YES" })} />
           <Button type="submit">Smenani saqlash</Button>
         </form>
       </Card>
@@ -846,47 +861,49 @@ const PayrollManager = ({ data, refresh }) => {
     refresh();
   };
 
+  const payrollColumns = useConfiguredColumns("payroll", [
+    { key: "employeeId", title: "Xodim", render: (value) => employeeMap.get(value)?.fullName || "-" },
+    { key: "baseAmount", title: "Asos", render: (value, row) => `${money(value)} ${row.attendanceAdjustment ? `(${money(row.attendanceAdjustment)})` : ""}` },
+    { key: "bonuses", title: "Bonus", render: (value) => money(value) },
+    { key: "advances", title: "Avans", render: (value) => money(value) },
+    { key: "penalties", title: "Jarima", render: (value) => money(value) },
+    { key: "netAmount", title: "Sof oylik", render: (value) => money(value) },
+    { key: "paidAmount", title: "To'langan", render: (value) => money(value) },
+    { key: "debtAmount", title: "Qarz", render: (value) => money(value) },
+    { key: "status", title: "Holat", render: (value) => <StatusBadge status={value} /> },
+    {
+      key: "actions",
+      title: "Amallar",
+      render: (_, payroll) => (
+        <div className="hr-workspace__row-actions">
+          <button type="button" onClick={() => { saveCalculatedPayroll(payroll.employeeId, payroll.month); refresh(); }}>
+            <Clock3 size={16} />
+          </button>
+          <button type="button" disabled={payroll.debtAmount <= 0} onClick={() => setPaying(payroll)}>
+            <HandCoins size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ]);
+
   return (
     <>
       <Card padding="lg" className="hr-workspace__filters">
         <Input label="Oy" type="month" value={filters.month} onChange={(event) => setFilters({ ...filters, month: event.target.value || monthIso() })} />
         <Select label="Bolim" value={filters.department} options={optionize(departments, "Barcha bolimlar")} onChange={(event) => setFilters({ ...filters, department: event.target.value })} />
-        <Select label="Status" value={filters.status} options={optionize(PAYROLL_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
+        <Select label="Holat" value={filters.status} options={optionize(PAYROLL_STATUSES, "Barcha statuslar").map((option) => ({ ...option, label: statusLabels[option.value] || option.label }))} onChange={(event) => setFilters({ ...filters, status: event.target.value })} />
         <Button leftIcon={<Banknote size={16} />} onClick={calculateAll}>
-          Bulk calculate
+          Barchasini hisoblash
         </Button>
       </Card>
 
       <Card padding="lg">
         <Table
-          columns={[
-            { key: "employeeId", title: "Employee", render: (value) => employeeMap.get(value)?.fullName || "-" },
-            { key: "baseAmount", title: "Base", render: (value, row) => `${money(value)} ${row.attendanceAdjustment ? `(${money(row.attendanceAdjustment)})` : ""}` },
-            { key: "bonuses", title: "Bonus", render: (value) => money(value) },
-            { key: "advances", title: "Advance", render: (value) => money(value) },
-            { key: "penalties", title: "Penalty", render: (value) => money(value) },
-            { key: "netAmount", title: "Net salary", render: (value) => money(value) },
-            { key: "paidAmount", title: "Paid", render: (value) => money(value) },
-            { key: "debtAmount", title: "Debt", render: (value) => money(value) },
-            { key: "status", title: "Status", render: (value) => <StatusBadge status={value} /> },
-            {
-              key: "actions",
-              title: "Actions",
-              render: (_, payroll) => (
-                <div className="hr-workspace__row-actions">
-                  <button type="button" onClick={() => { saveCalculatedPayroll(payroll.employeeId, payroll.month); refresh(); }}>
-                    <Clock3 size={16} />
-                  </button>
-                  <button type="button" disabled={payroll.debtAmount <= 0} onClick={() => setPaying(payroll)}>
-                    <HandCoins size={16} />
-                  </button>
-                </div>
-              ),
-            },
-          ]}
+          columns={payrollColumns}
           data={rows}
           rowKey="id"
-          emptyText="Payroll topilmadi. Bulk calculate bosing."
+          emptyText="Oylik hisob-kitobi topilmadi. Barchasini hisoblash tugmasini bosing."
         />
       </Card>
 
@@ -903,18 +920,18 @@ const LeaveManager = ({ data, refresh }) => {
     <>
       <Card padding="lg" className="hr-workspace__toolbar">
         <Button leftIcon={<Plus size={16} />} onClick={() => setModal("leave")}>
-          Tatil qoshish
+          Ta'til qo'shish
         </Button>
       </Card>
       <Card padding="lg">
         <Table
           columns={[
             { key: "employeeId", title: "Xodim", render: (value) => employeeMap.get(value)?.fullName || "-" },
-            { key: "type", title: "Type" },
-            { key: "startDate", title: "Start" },
-            { key: "endDate", title: "End" },
-            { key: "paid", title: "Paid", render: (value) => (value ? "Ha" : "Yoq") },
-            { key: "status", title: "Status", render: (value) => <StatusBadge status={value} /> },
+            { key: "type", title: "Turi", render: (value) => leaveTypeLabels[value] || value },
+            { key: "startDate", title: "Boshlanish" },
+            { key: "endDate", title: "Tugash" },
+            { key: "paid", title: "To'lanadi", render: (value) => (value ? "Ha" : "Yo'q") },
+            { key: "status", title: "Holat", render: (value) => <StatusBadge status={value} /> },
             { key: "note", title: "Izoh" },
           ]}
           data={data.leaves}
@@ -1000,9 +1017,9 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
   const titleMap = {
     attendance: "Davomat belgilash",
     advance: "Avans berish",
-    bonus: "Bonus qoshish",
-    penalty: "Jarima qoshish",
-    leave: "Tatil qoshish",
+    bonus: "Bonus qo'shish",
+    penalty: "Jarima qo'shish",
+    leave: "Ta'til qo'shish",
   };
 
   return (
@@ -1030,7 +1047,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
             <DatePicker label="Sana" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} />
             <Input label="Kirish" type="time" value={form.checkIn} onChange={(event) => setForm({ ...form, checkIn: event.target.value })} />
             <Input label="Chiqish" type="time" value={form.checkOut} onChange={(event) => setForm({ ...form, checkOut: event.target.value })} />
-            <Select label="Status" value={form.status} options={ATTENDANCE_STATUSES.map((value) => ({ value, label: statusLabels[value] }))} onChange={(event) => setForm({ ...form, status: event.target.value })} />
+            <Select label="Holat" value={form.status} options={ATTENDANCE_STATUSES.map((value) => ({ value, label: statusLabels[value] }))} onChange={(event) => setForm({ ...form, status: event.target.value })} />
           </>
         )}
         {["advance", "bonus", "penalty"].includes(type) && (
@@ -1041,7 +1058,7 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
         )}
         {type === "advance" && (
           <>
-            <Select label="Tolov turi" value={form.paymentMethod} options={paymentMethodOptions} onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })} />
+            <Select label="To'lov turi" value={form.paymentMethod} options={paymentMethodOptions} onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })} />
             <Select label="Kassa" value={form.cashboxId} options={[{ value: "", label: "Default kassa" }, ...cashboxes.map((cashbox) => ({ value: cashbox.id, label: cashbox.name }))]} onChange={(event) => setForm({ ...form, cashboxId: event.target.value })} />
           </>
         )}
@@ -1051,11 +1068,11 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
         )}
         {type === "leave" && (
           <>
-            <Select label="Type" value={form.type} options={LEAVE_TYPES.map((value) => ({ value, label: value }))} onChange={(event) => setForm({ ...form, type: event.target.value })} />
-            <DatePicker label="Start" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
-            <DatePicker label="End" value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
-            <Select label="Status" value={form.leaveStatus} options={LEAVE_STATUSES.map((value) => ({ value, label: statusLabels[value] }))} onChange={(event) => setForm({ ...form, leaveStatus: event.target.value })} />
-            <Select label="Paid" value={form.paid ? "YES" : "NO"} options={[{ value: "YES", label: "Ha" }, { value: "NO", label: "Yoq" }]} onChange={(event) => setForm({ ...form, paid: event.target.value === "YES" })} />
+            <Select label="Turi" value={form.type} options={LEAVE_TYPES.map((value) => ({ value, label: leaveTypeLabels[value] || value }))} onChange={(event) => setForm({ ...form, type: event.target.value })} />
+            <DatePicker label="Boshlanish" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+            <DatePicker label="Tugash" value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
+            <Select label="Holat" value={form.leaveStatus} options={LEAVE_STATUSES.map((value) => ({ value, label: statusLabels[value] }))} onChange={(event) => setForm({ ...form, leaveStatus: event.target.value })} />
+            <Select label="To'lanadi" value={form.paid ? "YES" : "NO"} options={[{ value: "YES", label: "Ha" }, { value: "NO", label: "Yo'q" }]} onChange={(event) => setForm({ ...form, paid: event.target.value === "YES" })} />
           </>
         )}
         <Textarea label="Izoh" value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} />
@@ -1065,11 +1082,13 @@ const ActionModal = ({ type, employee, employees = [], cashboxes = [], onClose, 
 };
 
 const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
+  const defaults = useDefaultSettings();
+  const hrSettings = useHrSettings();
   const [form, setForm] = useState({
     amount: payroll?.debtAmount || "",
-    method: "CASH",
+    method: defaults.paymentMethod || "CASH",
     date: todayIso(),
-    cashboxId: "",
+    cashboxId: defaults.cashboxId || "",
     note: "",
   });
   const [error, setError] = useState("");
@@ -1085,6 +1104,13 @@ const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
   const submit = () => {
     setError("");
     try {
+      if (
+        hrSettings.payrollPaymentConfirmation &&
+        !window.confirm("Oylik to'lovi tasdiqlansinmi?")
+      ) {
+        return;
+      }
+
       payPayroll({ payrollId: payroll.id, ...form });
       onDone();
     } catch (caughtError) {
@@ -1095,7 +1121,7 @@ const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
   return (
     <Modal
       open
-      title="Payroll payment"
+      title="Oylik to'lovi"
       description={`Qarz: ${money(payroll.debtAmount)}`}
       onClose={onClose}
       footer={
@@ -1103,14 +1129,14 @@ const PaymentModal = ({ payroll, cashboxes, onClose, onDone }) => {
           <Button variant="secondary" onClick={onClose}>
             Bekor qilish
           </Button>
-          <Button onClick={submit}>Tolash</Button>
+          <Button onClick={submit}>To'lash</Button>
         </>
       }
     >
       <div className="hr-workspace__form">
         {error && <div className="hr-workspace__error">{error}</div>}
         <Input label="Summa" type="number" min="1" max={payroll.debtAmount} value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} />
-        <Select label="Tolov turi" value={form.method} options={paymentMethodOptions} onChange={(event) => setForm({ ...form, method: event.target.value })} />
+        <Select label="To'lov turi" value={form.method} options={paymentMethodOptions} onChange={(event) => setForm({ ...form, method: event.target.value })} />
         <DatePicker label="Sana" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} />
         <Select label="Kassa" value={form.cashboxId} options={[{ value: "", label: "Default kassa" }, ...cashboxes.map((cashbox) => ({ value: cashbox.id, label: cashbox.name }))]} onChange={(event) => setForm({ ...form, cashboxId: event.target.value })} />
         <Textarea label="Izoh" value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} />

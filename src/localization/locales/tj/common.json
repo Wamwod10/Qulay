@@ -1,0 +1,27 @@
+{
+  "common": {
+    "save": "Сабт кардан",
+    "cancel": "Бекор кардан",
+    "edit": "Таҳрир",
+    "delete": "Нест кардан",
+    "search": "Ҷустуҷӯ",
+    "status": "Ҳолат",
+    "total": "Ҳамагӣ",
+    "empty": "Маълумот ёфт нашуд."
+  },
+  "navigation": {
+    "dashboard": "Саҳифаи асосӣ",
+    "sales": "Фурӯш",
+    "products": "Маҳсулотҳо",
+    "customers": "Мизоҷон",
+    "warehouse": "Анбор",
+    "purchases": "Харидҳо",
+    "suppliers": "Таъминкунандагон",
+    "manufacturing": "Истеҳсолот",
+    "finance": "Молия",
+    "employees": "Кормандон",
+    "reports": "Ҳисоботҳо",
+    "agents": "Агентҳо",
+    "settings": "Танзимот"
+  }
+}

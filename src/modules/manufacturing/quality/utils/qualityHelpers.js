@@ -1,3 +1,5 @@
+import { translateText } from "../../../../localization/i18n";
+
 export const QUALITY_STATUS = {
     NOT_CHECKED: "NOT_CHECKED",
     PASS: "PASS",
@@ -10,16 +12,16 @@ export const getQualityStatusLabel = (
 ) => {
     switch (status) {
         case "PASS":
-            return "Qabul qilindi";
+            return translateText("Qabul qilindi");
 
         case "PARTIAL":
-            return "Qisman qabul";
+            return translateText("Qisman qabul");
 
         case "FAIL":
-            return "Rad etildi";
+            return translateText("Rad etildi");
 
         default:
-            return "Tekshirilmagan";
+            return translateText("Tekshirilmagan");
     }
 };
 

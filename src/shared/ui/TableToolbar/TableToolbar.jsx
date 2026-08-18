@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 
 import Button from "../Button/Button";
+import { translateText } from "../../../localization/i18n";
 
 import "./TableToolbar.scss";
 
@@ -22,7 +23,7 @@ const TableToolbar = ({
           type="search"
           value={searchValue}
           onChange={(event) => onSearchChange?.(event.target.value)}
-          placeholder={searchPlaceholder}
+          placeholder={translateText(searchPlaceholder)}
         />
       </div>
 
@@ -31,7 +32,7 @@ const TableToolbar = ({
 
         {actionLabel && (
           <Button leftIcon={actionIcon} onClick={onAction}>
-            {actionLabel}
+            {translateText(actionLabel)}
           </Button>
         )}
       </div>

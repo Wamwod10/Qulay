@@ -1,11 +1,10 @@
-import { productsMock } from "../constants/productsMock";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
-const STORAGE_KEY = "universal_erp_products";
-const HISTORY_KEY = "universal_erp_product_history";
+const STORAGE_KEY = "products";
+const HISTORY_KEY = "product_history";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
-
-const cloneMockProducts = () => productsMock.map((product) => ({ ...product }));
 
 const readJson = (key, fallback) => {
   if (!canUseStorage()) {
@@ -13,13 +12,7 @@ const readJson = (key, fallback) => {
   }
 
   try {
-    const storedValue = window.localStorage.getItem(key);
-
-    if (!storedValue) {
-      return fallback;
-    }
-
-    return JSON.parse(storedValue);
+    return tenantGet(key, fallback);
   } catch {
     return fallback;
   }
@@ -31,7 +24,7 @@ const writeJson = (key, value) => {
   }
 
   try {
-    window.localStorage.setItem(key, JSON.stringify(value));
+    tenantSet(key, value);
 
     return true;
   } catch {
@@ -120,13 +113,19 @@ export const generateUniqueSku = (excludedProductId = null) => {
 };
 
 export const getStoredProducts = () => {
-  const fallbackProducts = cloneMockProducts();
+  const remoteProducts = unwrapList(syncApiRequest("/products"), ["products"]);
+
+  if (Array.isArray(remoteProducts)) {
+    writeJson(STORAGE_KEY, remoteProducts);
+    return remoteProducts.map(normalizeProduct);
+  }
+
   const storedProducts = readJson(STORAGE_KEY, null);
 
   if (!Array.isArray(storedProducts)) {
-    writeJson(STORAGE_KEY, fallbackProducts);
+    writeJson(STORAGE_KEY, []);
 
-    return fallbackProducts;
+    return [];
   }
 
   return storedProducts.map(normalizeProduct);
@@ -137,7 +136,13 @@ export const saveProducts = (products) => {
     return false;
   }
 
-  return writeJson(STORAGE_KEY, products.map(normalizeProduct));
+  const saved = writeJson(STORAGE_KEY, products.map(normalizeProduct));
+
+  if (saved && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("products:changed"));
+  }
+
+  return saved;
 };
 
 export const getStoredProductById = (productId) =>
@@ -172,6 +177,17 @@ export const addProductHistory = (productId, data) => {
 };
 
 export const createStoredProduct = (product) => {
+  const remoteProduct = syncApiRequest("/products", {
+    method: "POST",
+    body: product,
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts([remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)]);
+    return normalizeProduct(remoteProduct);
+  }
+
   const products = getStoredProducts();
   const normalizedProduct = normalizeProduct({
     ...product,
@@ -195,6 +211,19 @@ export const createStoredProduct = (product) => {
 };
 
 export const updateStoredProduct = (updatedProduct) => {
+  const remoteProduct = updatedProduct?.id
+    ? syncApiRequest(`/products/${updatedProduct.id}`, {
+        method: "PATCH",
+        body: updatedProduct,
+      })
+    : null;
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    return normalizeProduct(remoteProduct);
+  }
+
   const products = getStoredProducts();
   const existingProduct = products.find((product) => product.id === updatedProduct.id);
 
@@ -232,6 +261,10 @@ export const updateStoredProduct = (updatedProduct) => {
 };
 
 export const deleteStoredProduct = (productId) => {
+  syncApiRequest(`/products/${productId}`, {
+    method: "DELETE",
+  });
+
   const products = getStoredProducts();
   const product = products.find((item) => item.id === productId);
 
@@ -263,6 +296,13 @@ export const toggleStoredProductStatus = (productId) => {
   saveProducts(updatedProducts);
 
   if (updatedProduct) {
+    syncApiRequest(`/products/${productId}/status`, {
+      method: "PATCH",
+      body: { status: updatedProduct.status },
+    });
+  }
+
+  if (updatedProduct) {
     addProductHistory(productId, {
       type: "STATUS",
       title: "Status o'zgartirildi",
@@ -281,6 +321,17 @@ export const toggleStoredProductStatus = (productId) => {
 };
 
 export const duplicateStoredProduct = (productId) => {
+  const remoteProduct = syncApiRequest(`/products/${productId}/duplicate`, {
+    method: "POST",
+    body: {},
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts([remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)]);
+    return normalizeProduct(remoteProduct);
+  }
+
   const products = getStoredProducts();
   const product = products.find((item) => item.id === productId);
 
@@ -322,6 +373,17 @@ export const duplicateStoredProduct = (productId) => {
 };
 
 export const adjustStoredProductStock = ({ productId, newStock, reason }) => {
+  const remoteProduct = syncApiRequest(`/products/${productId}/stock`, {
+    method: "PATCH",
+    body: { newStock, reason },
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    return normalizeProduct(remoteProduct);
+  }
+
   const parsedStock = Number(newStock);
 
   if (!Number.isFinite(parsedStock) || parsedStock < 0) {
@@ -365,6 +427,17 @@ export const adjustStoredProductStock = ({ productId, newStock, reason }) => {
 };
 
 export const updateStoredProductPrices = ({ productId, cost, salePrice, reason }) => {
+  const remoteProduct = syncApiRequest(`/products/${productId}/prices`, {
+    method: "PATCH",
+    body: { cost, salePrice, reason },
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    return normalizeProduct(remoteProduct);
+  }
+
   const parsedCost = Number(cost);
   const parsedSalePrice =
     salePrice === "" || salePrice === null || salePrice === undefined
@@ -421,6 +494,17 @@ export const updateStoredProductPrices = ({ productId, cost, salePrice, reason }
 };
 
 export const archiveStoredProduct = (productId) => {
+  const remoteProduct = syncApiRequest(`/products/${productId}/status`, {
+    method: "PATCH",
+    body: { status: "ARCHIVED" },
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    return normalizeProduct(remoteProduct);
+  }
+
   const products = getStoredProducts();
   let archivedProduct = null;
   let previousStatus = null;
@@ -458,6 +542,17 @@ export const archiveStoredProduct = (productId) => {
 };
 
 export const restoreStoredProduct = (productId) => {
+  const remoteProduct = syncApiRequest(`/products/${productId}/status`, {
+    method: "PATCH",
+    body: { status: "ACTIVE" },
+  });
+
+  if (remoteProduct?.id) {
+    const products = getStoredProducts();
+    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    return normalizeProduct(remoteProduct);
+  }
+
   const products = getStoredProducts();
   let restoredProduct = null;
 

@@ -1,4 +1,5 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 import Header from "./components/Header/Header";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -6,6 +7,12 @@ import Sidebar from "./components/Sidebar/Sidebar";
 import "./AppLayout.scss";
 
 const AppLayout = () => {
+  const role = useSelector((state) => state.auth.user?.role);
+
+  if (role === "SUPER_ADMIN") {
+    return <Navigate to="/superadmin" replace />;
+  }
+
   return (
     <div className="app-layout">
       <Sidebar />

@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "title": "Саҳифаи асосӣ",
+    "sales": "Фурӯш",
+    "income": "Воридот",
+    "netCashflow": "Ҷараёни софи пул",
+    "customerDebt": "Қарзи мизоҷон",
+    "supplierDebt": "Қарз ба таъминкунандагон",
+    "lowStock": "Қолдиқи кам"
+  }
+}

@@ -71,3 +71,25 @@ a {
   background: var(--color-accent-soft);
   color: var(--color-text-primary);
 }
+
+:root {
+  --app-font-scale: 1;
+  --app-font-weight: 400;
+  --app-heading-weight: 700;
+  --app-table-font-size: 12px;
+}
+
+body {
+  font-size: calc(16px * var(--app-font-scale));
+
+  font-weight: var(--app-font-weight);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--app-heading-weight);
+}

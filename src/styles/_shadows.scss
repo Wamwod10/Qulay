@@ -23,3 +23,29 @@
     0 0 0 3px rgba(89, 109, 145, 0.14), 6px 6px 14px rgba(163, 173, 184, 0.42),
     -6px -6px 14px rgba(255, 255, 255, 0.72);
 }
+
+:root[data-theme="dark"] {
+  --shadow-raised:
+    12px 12px 26px rgba(4, 7, 12, 0.62),
+    -8px -8px 18px rgba(45, 54, 66, 0.18);
+
+  --shadow-raised-sm:
+    6px 6px 14px rgba(4, 7, 12, 0.54),
+    -4px -4px 10px rgba(45, 54, 66, 0.16);
+
+  --shadow-floating:
+    16px 16px 34px rgba(4, 7, 12, 0.68),
+    -8px -8px 20px rgba(45, 54, 66, 0.18);
+
+  --shadow-inset:
+    inset 4px 4px 10px rgba(4, 7, 12, 0.58),
+    inset -4px -4px 9px rgba(45, 54, 66, 0.16);
+
+  --shadow-inset-deep:
+    inset 7px 7px 16px rgba(4, 7, 12, 0.64),
+    inset -5px -5px 12px rgba(45, 54, 66, 0.16);
+
+  --shadow-focus:
+    0 0 0 3px var(--color-accent-soft), 7px 7px 16px rgba(4, 7, 12, 0.54),
+    -4px -4px 10px rgba(45, 54, 66, 0.16);
+}

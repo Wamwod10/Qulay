@@ -1,12 +1,13 @@
 import { Navigate, Outlet } from "react-router-dom";
 
+import GlobalLoader from "../../components/GlobalLoader/GlobalLoader";
 import useAuth from "../../hooks/useAuth";
 
 const AuthGuard = () => {
   const { isAuthenticated, isInitialized } = useAuth();
 
   if (!isInitialized) {
-    return null;
+    return <GlobalLoader />;
   }
 
   if (!isAuthenticated) {

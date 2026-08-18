@@ -9,6 +9,7 @@ import {
   getWarehouseStockStatus,
   getWarehouseStockStatusLabel,
 } from "../../utils/warehouseHelpers";
+import { translateText } from "../../../../localization/i18n";
 
 import "./StockCard.scss";
 
@@ -41,8 +42,8 @@ const StockCard = ({ item, onView }) => {
         <Button
           size="sm"
           variant="ghost"
-          aria-label="Ko‘rish"
-          title="Ko‘rish"
+          aria-label={translateText("Ko‘rish")}
+          title={translateText("Ko‘rish")}
           onClick={() => onView?.(item)}
         >
           <Eye size={16} strokeWidth={1.8} />
@@ -51,12 +52,12 @@ const StockCard = ({ item, onView }) => {
 
       <div className="warehouse-stock-card__numbers">
         <StockNumber
-          label="Jami qoldiq"
+          label={translateText("Jami qoldiq")}
           value={`${item.quantity ?? 0} ${item.unit || ""}`}
         />
 
         <StockNumber
-          label="Rezerv"
+          label={translateText("Rezerv")}
           value={
             <>
               {Number(item.reserved || 0) > 0 && (
@@ -68,7 +69,7 @@ const StockCard = ({ item, onView }) => {
         />
 
         <StockNumber
-          label="Mavjud"
+          label={translateText("Mavjud")}
           value={`${available} ${item.unit || ""}`}
           strong
         />
@@ -82,14 +83,16 @@ const StockCard = ({ item, onView }) => {
           </Badge>
 
           <span>
-            Min: {item.minimumStock ?? 0} {item.unit || ""}
+            {translateText("Min:")} {item.minimumStock ?? 0} {item.unit || ""}
           </span>
         </div>
 
         <div className="warehouse-stock-card__value">
-          <span>Ombor qiymati</span>
+          <span>{translateText("Ombor qiymati")}</span>
 
-          <strong>{formatWarehouseMoney(stockValue)} so‘m</strong>
+          <strong>
+            {formatWarehouseMoney(stockValue)} {translateText("so‘m")}
+          </strong>
         </div>
       </div>
     </Card>

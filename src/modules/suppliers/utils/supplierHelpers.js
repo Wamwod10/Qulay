@@ -1,8 +1,10 @@
+import { getLocale, translateText } from "../../../localization/i18n";
+
 export const formatPurchaseMoney = (
     value,
 ) => {
     return new Intl.NumberFormat(
-        "uz-UZ",
+        getLocale(),
     ).format(
         Number(value) || 0,
     );
@@ -16,13 +18,13 @@ export const getSupplierStatusLabel = (
 ) => {
     switch (status) {
         case "ACTIVE":
-            return "Faol";
+            return translateText("Faol");
 
         case "INACTIVE":
-            return "Faol emas";
+            return translateText("Faol emas");
 
         default:
-            return status || "вЂ”";
+            return status || "—";
     }
 };
 
@@ -46,19 +48,19 @@ export const getPurchaseStatusLabel = (
 ) => {
     switch (status) {
         case "DRAFT":
-            return "Qoralama";
+            return translateText("Qoralama");
 
         case "ORDERED":
-            return "Buyurtma berilgan";
+            return translateText("Buyurtma berilgan");
 
         case "PARTIALLY_RECEIVED":
-            return "Qisman qabul qilingan";
+            return translateText("Qisman qabul qilingan");
 
         case "RECEIVED":
-            return "Qabul qilingan";
+            return translateText("Qabul qilingan");
 
         case "CANCELLED":
-            return "Bekor qilingan";
+            return translateText("Bekor qilingan");
 
         default:
             return status || "—";

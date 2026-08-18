@@ -1,5 +1,24 @@
-export const formatSaleMoney = (value) =>
-  new Intl.NumberFormat("uz-UZ").format(Number(value) || 0);
+import {
+  formatDateWithSettings,
+  formatMoneyWithSettings,
+  formatTimeWithSettings,
+} from "../../settings/utils/formatSettingsHelpers";
+import { loadPlatformSettings } from "../../settings/utils/settingsStorage";
+import { translateText } from "../../../localization/i18n";
+
+const getFormats = () => {
+  try {
+    return loadPlatformSettings().formats || {};
+  } catch {
+    return {};
+  }
+};
+
+export const formatSaleMoney = (value) => {
+  const formatted = formatMoneyWithSettings(value, getFormats());
+
+  return formatted.replace(/\s(so'm|UZS|USD)$/, "");
+};
 
 export const formatSaleDate = (value) => {
   if (!value) {
@@ -12,17 +31,17 @@ export const formatSaleDate = (value) => {
     return value;
   }
 
-  return date.toLocaleString("uz-UZ");
+  return `${formatDateWithSettings(date, getFormats())} ${formatTimeWithSettings(date, getFormats())}`;
 };
 
 export const getSaleStatusLabel = (status) => {
   switch (status) {
     case "DRAFT":
-      return "Qoralama";
+      return translateText("Qoralama");
     case "COMPLETED":
-      return "Yakunlangan";
+      return translateText("Yakunlangan");
     case "CANCELLED":
-      return "Bekor qilingan";
+      return translateText("Bekor qilingan");
     default:
       return status || "-";
   }
@@ -59,11 +78,11 @@ export const getPaymentStatus = ({ total, paidAmount }) => {
 export const getPaymentStatusLabel = (status) => {
   switch (status) {
     case "PAID":
-      return "To'langan";
+      return translateText("To'langan");
     case "PARTIAL":
-      return "Qisman";
+      return translateText("Qisman");
     default:
-      return "To'lanmagan";
+      return translateText("To'lanmagan");
   }
 };
 
@@ -81,26 +100,26 @@ export const getPaymentStatusVariant = (status) => {
 export const getReturnStatusLabel = (status) => {
   switch (status) {
     case "RETURNED":
-      return "To'liq qaytarilgan";
+      return translateText("To'liq qaytarilgan");
     case "PARTIALLY_RETURNED":
-      return "Qisman qaytarilgan";
+      return translateText("Qisman qaytarilgan");
     default:
-      return "Qaytarilmagan";
+      return translateText("Qaytarilmagan");
   }
 };
 
 export const getPaymentMethodLabel = (method) => {
   switch (method) {
     case "CASH":
-      return "Naqd";
+      return translateText("Naqd");
     case "CARD":
-      return "Karta";
+      return translateText("Karta");
     case "BANK":
-      return "Bank";
+      return translateText("Bank");
     case "QR":
       return "QR";
     case "DEBT":
-      return "Qarz";
+      return translateText("Qarz");
     default:
       return method || "-";
   }

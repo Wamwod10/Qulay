@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { translateText } from "../../../../localization/i18n";import { ArrowLeft } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -23,29 +23,29 @@ const ProductCreatePage = () => {
 
   return (
     <PageContainer
-      title="Yangi mahsulot"
-      description="Katalogga yangi xomashyo, tayyor mahsulot, savdo mahsuloti yoki xizmat qo'shish."
-    >
+      title={translateText("Yangi mahsulot")}
+      description={translateText("Katalogga yangi xomashyo, tayyor mahsulot, savdo mahsuloti yoki xizmat qo'shish.")}>
+      
       <div className="product-create-page">
         <div className="product-create-page__actions">
           <Button
             variant="secondary"
             leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate("/products")}
-          >
-            Mahsulotlarga qaytish
+            onClick={() => navigate("/products")}>{translateText("Mahsulotlarga qaytish")}
+
+
           </Button>
         </div>
 
         <Card padding="lg" className="product-create-page__form-card">
           <ProductForm
             onSubmit={handleSubmit}
-            onCancel={() => navigate("/products")}
-          />
+            onCancel={() => navigate("/products")} />
+          
         </Card>
       </div>
-    </PageContainer>
-  );
+    </PageContainer>);
+
 };
 
 export default ProductCreatePage;

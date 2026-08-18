@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 import {
   ArrowDownCircle,
@@ -37,6 +37,11 @@ import { getStoredAgents } from "../../../agents/utils/agentsStorage";
 import { getStoredCustomers } from "../../../customers/utils/customersStorage";
 import { getStoredPurchases } from "../../../purchases/utils/purchasesStorage";
 import { getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
+import {
+  useDefaultSettings,
+  useFinanceSettings,
+} from "../../../settings/selectors/settingsSelectors";
 
 import {
   addAgentCollection,
@@ -68,17 +73,17 @@ import {
 import "./FinanceWorkspace.scss";
 
 const NAV_ITEMS = [
-  { to: "/finance", label: "Overview", end: true },
-  { to: "/finance/cashflow", label: "Cashflow" },
-  { to: "/finance/payments", label: "Payments" },
-  { to: "/finance/expenses", label: "Expenses" },
-  { to: "/finance/debts", label: "Debts" },
-  { to: "/finance/cashboxes", label: "Cashbox" },
-  { to: "/finance/agents", label: "Agents" },
+  { to: "/finance", label: "Umumiy", end: true },
+  { to: "/finance/cashflow", label: "Pul oqimi" },
+  { to: "/finance/payments", label: "To'lovlar" },
+  { to: "/finance/expenses", label: "Xarajatlar" },
+  { to: "/finance/debts", label: "Qarzlar" },
+  { to: "/finance/cashboxes", label: "Kassa" },
+  { to: "/finance/agents", label: "Agentlar" },
 ];
 
 const PAYMENT_OPTIONS = [
-  { value: "", label: "Barcha methodlar" },
+  { value: "", label: "Barcha to'lov turlari" },
   ...PAYMENT_METHODS.map((method) => ({
     value: method,
     label: getPaymentMethodLabel(method),
@@ -135,8 +140,11 @@ const initialForm = () => ({
 });
 
 const FinanceWorkspace = ({ view = "overview" }) => {
+  const location = useLocation();
+  const defaults = useDefaultSettings();
+  const financeSettings = useFinanceSettings();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState(financeSettings.defaultFinancePeriod || "month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [filters, setFilters] = useState({
@@ -150,6 +158,7 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     cashboxId: "",
   });
   const [modal, setModal] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
 
@@ -212,8 +221,8 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     ...reference.customers.map((customer) => makeOption(customer, "Mijoz")),
   ];
   const supplierOptions = [
-    { value: "", label: "Supplier tanlang" },
-    ...reference.suppliers.map((supplier) => makeOption(supplier, "Supplier")),
+    { value: "", label: "Yetkazib beruvchi tanlang" },
+    ...reference.suppliers.map((supplier) => makeOption(supplier, "Yetkazib beruvchi")),
   ];
   const agentOptions = [
     { value: "", label: "Agent tanlang" },
@@ -226,23 +235,55 @@ const FinanceWorkspace = ({ view = "overview" }) => {
   const selectedSupplierPurchases = reference.purchases.filter(
     (purchase) => purchase.supplierId === form.supplierId && purchase.status !== "CANCELLED",
   );
+  const requestedModal = useMemo(
+    () => new URLSearchParams(location.search).get("modal"),
+    [location.search],
+  );
 
   const openModal = (name, seed = {}) => {
-    setForm({ ...initialForm(), ...seed });
+    setForm({
+      ...initialForm(),
+      paymentMethod:
+        financeSettings.defaultPaymentMethod ||
+        defaults.paymentMethod ||
+        "CASH",
+      cashboxId:
+        financeSettings.defaultCashboxId ||
+        defaults.cashboxId ||
+        "cashbox-main",
+      fromCashboxId:
+        financeSettings.defaultCashboxId ||
+        defaults.cashboxId ||
+        "cashbox-main",
+      ...seed,
+    });
     setError("");
+    setIsSubmitting(false);
     setModal(name);
   };
 
   const closeModal = () => {
     setModal(null);
     setError("");
+    setIsSubmitting(false);
   };
+
+  useEffect(() => {
+    if (requestedModal === "expense") {
+      openModal("expense");
+    }
+  }, [requestedModal]);
 
   const updateForm = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
   const submitModal = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       if (modal === "customer-payment") {
         addCustomerPayment(form);
@@ -264,16 +305,17 @@ const FinanceWorkspace = ({ view = "overview" }) => {
       setRefreshKey((current) => current + 1);
     } catch (submitError) {
       setError(submitError.message || "Operatsiyani saqlab bo'lmadi.");
+      setIsSubmitting(false);
     }
   };
 
   return (
     <PageContainer
       title="Moliya"
-      description="Sales, Purchases, Customers, Suppliers va Agents bilan real integratsiyadagi Finance MVP."
+      description="Savdo, xarid, mijoz, yetkazib beruvchi va agentlar bilan real integratsiyadagi moliya moduli."
     >
       <div className="finance-workspace">
-        <nav className="finance-workspace__nav" aria-label="Finance navigation">
+        <nav className="finance-workspace__nav" aria-label="Moliya navigatsiyasi">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}>
               {item.label}
@@ -342,12 +384,13 @@ const FinanceWorkspace = ({ view = "overview" }) => {
           <AgentsView agentBalances={reference.agentBalances} openModal={openModal} />
         )}
 
-        <FinanceModal
-          modal={modal}
+      <FinanceModal
+        modal={modal}
           form={form}
           error={error}
           closeModal={closeModal}
-          submitModal={submitModal}
+        submitModal={submitModal}
+        isSubmitting={isSubmitting}
           updateForm={updateForm}
           customerOptions={customerOptions}
           supplierOptions={supplierOptions}
@@ -366,13 +409,13 @@ const FinanceQuickActions = ({ openModal }) => (
       Mijoz to'lovi
     </Button>
     <Button variant="secondary" leftIcon={<HandCoins size={16} />} onClick={() => openModal("supplier-payment")}>
-      Supplierga to'lash
+      Yetkazib beruvchiga to'lash
     </Button>
     <Button variant="secondary" leftIcon={<ReceiptText size={16} />} onClick={() => openModal("expense")}>
       Xarajat
     </Button>
     <Button variant="secondary" leftIcon={<Wallet size={16} />} onClick={() => openModal("agent-collection")}>
-      Agent collection
+      Agentdan pul olish
     </Button>
   </div>
 );
@@ -385,22 +428,22 @@ const OverviewView = ({ summary, report, openModal }) => (
       <Kpi icon={<TrendingUp size={20} />} label="Sof pul oqimi" value={summary.netCashflow} variant={summary.netCashflow >= 0 ? "success" : "danger"} />
       <Kpi icon={<WalletCards size={20} />} label="Kassadagi pul" value={summary.cashboxBalance} />
       <Kpi icon={<LiveIcon icon={Wallet} motion="warning-glow" active={summary.customerDebt > 0} size={20} />} label="Mijozlardan qarz" value={summary.customerDebt} variant="warning" />
-      <Kpi icon={<Landmark size={20} />} label="Supplierlarga qarz" value={summary.supplierDebt} variant="warning" />
+      <Kpi icon={<Landmark size={20} />} label="Yetkazib beruvchilarga qarz" value={summary.supplierDebt} variant="warning" />
       <Kpi icon={<LiveIcon icon={HandCoins} motion="warning-glow" active={summary.agentBalance > 0} size={20} />} label="Agentlardagi pul" value={summary.agentBalance} variant="warning" />
       <Kpi icon={<Banknote size={20} />} label="Bugungi kirim" value={summary.todayIncome} />
       <Kpi icon={<CreditCard size={20} />} label="Bugungi chiqim" value={summary.todayExpense} variant="danger" />
     </section>
 
     <section className="finance-workspace__dashboard-grid">
-      <FinancePanel title="Recent transactions">
+      <FinancePanel title="Oxirgi operatsiyalar">
         <TransactionTable rows={summary.recentTransactions} compact />
       </FinancePanel>
 
-      <FinancePanel title="Biggest expenses">
+      <FinancePanel title="Eng katta xarajatlar">
         <MiniBars rows={summary.biggestExpenses} valueKey="amount" emptyText="Xarajatlar yo'q." />
       </FinancePanel>
 
-      <FinancePanel title="Biggest debts">
+      <FinancePanel title="Eng katta qarzlar">
         <MiniBars
           rows={[...summary.biggestCustomerDebts, ...summary.biggestSupplierDebts].slice(0, 6)}
           labelKey={(row) => row.customerName || row.supplierName}
@@ -409,18 +452,18 @@ const OverviewView = ({ summary, report, openModal }) => (
         />
       </FinancePanel>
 
-      <FinancePanel title="Agent balances">
+      <FinancePanel title="Agentlardagi qoldiq">
         <MiniBars rows={summary.agentWarnings} labelKey="agentName" valueKey="balance" emptyText="Agentlarda pul yo'q." />
       </FinancePanel>
 
-      <FinancePanel title="Payment methods">
-        <MiniBars rows={report.paymentMethods} labelKey={(row) => getPaymentMethodLabel(row.name)} valueKey="amount" emptyText="Payment mavjud emas." />
+      <FinancePanel title="To'lov turlari">
+        <MiniBars rows={report.paymentMethods} labelKey={(row) => getPaymentMethodLabel(row.name)} valueKey="amount" emptyText="To'lov mavjud emas." />
       </FinancePanel>
 
       <FinancePanel title="Tezkor amallar">
         <div className="finance-workspace__action-grid">
-          <Button onClick={() => openModal("cash-movement")} leftIcon={<Plus size={16} />}>Cash In/Out</Button>
-          <Button variant="secondary" onClick={() => openModal("cash-transfer")} leftIcon={<RotateCw size={16} />}>Transfer</Button>
+          <Button onClick={() => openModal("cash-movement")} leftIcon={<Plus size={16} />}>Kirim / chiqim</Button>
+          <Button variant="secondary" onClick={() => openModal("cash-transfer")} leftIcon={<RotateCw size={16} />}>O'tkazma</Button>
           <Button variant="secondary" onClick={() => openModal("agent-handover")} leftIcon={<HandCoins size={16} />}>Agent topshirdi</Button>
         </div>
       </FinancePanel>
@@ -444,7 +487,7 @@ const CashflowView = ({
   agentOptions,
   cashboxOptions,
 }) => (
-  <FinancePanel title="Cashflow / Pul oqimi">
+  <FinancePanel title="Pul oqimi">
     <Filters
       filters={filters}
       setFilters={setFilters}
@@ -478,7 +521,7 @@ const PaymentsView = ({ transactions, filters, setFilters, openModal }) => {
 
   return (
     <FinancePanel
-      title="Payments / To'lovlar"
+      title="To'lovlar"
       action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("customer-payment")}>To'lov qo'shish</Button>}
     >
       <div className="finance-workspace__simple-filter">
@@ -486,7 +529,7 @@ const PaymentsView = ({ transactions, filters, setFilters, openModal }) => {
         <input
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          placeholder="Payment, source yoki counterparty qidirish..."
+          placeholder="To'lov, manba yoki kontragentni qidirish..."
         />
       </div>
       <TransactionTable rows={rows} />
@@ -499,7 +542,7 @@ const ExpensesView = ({ transactions, openModal }) => {
 
   return (
     <FinancePanel
-      title="Expenses / Xarajatlar"
+      title="Xarajatlar"
       action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("expense")}>Xarajat qo'shish</Button>}
     >
       <TransactionTable rows={rows} />
@@ -511,27 +554,27 @@ const DebtsView = ({ customerDebts, supplierDebts, openModal }) => {
   const [tab, setTab] = useState("customers");
 
   return (
-    <FinancePanel title="Debts / Qarzlar">
+    <FinancePanel title="Qarzlar">
       <div className="finance-workspace__tabs">
         <button className={tab === "customers" ? "active" : ""} type="button" onClick={() => setTab("customers")}>
-          Customers owe us
+          Mijozlar qarzi
         </button>
         <button className={tab === "suppliers" ? "active" : ""} type="button" onClick={() => setTab("suppliers")}>
-          We owe suppliers
+          Yetkazib beruvchilarga qarz
         </button>
       </div>
 
       {tab === "customers" ? (
         <Table
           columns={[
-            { key: "customerName", title: "Customer" },
-            { key: "salesTotal", title: "Sales total", render: moneyCell },
-            { key: "paid", title: "Paid", render: moneyCell },
-            { key: "debt", title: "Debt", render: debtCell },
-            { key: "lastPayment", title: "Last payment", render: (value) => (value ? formatFinanceDate(value.date) : "-") },
+            { key: "customerName", title: "Mijoz" },
+            { key: "salesTotal", title: "Jami savdo", render: moneyCell },
+            { key: "paid", title: "To'langan", render: moneyCell },
+            { key: "debt", title: "Qarz", render: debtCell },
+            { key: "lastPayment", title: "Oxirgi to'lov", render: (value) => (value ? formatFinanceDate(value.date) : "-") },
             {
               key: "actions",
-              title: "Actions",
+              title: "Amallar",
               render: (_, row) => (
                 <Button size="sm" variant="secondary" onClick={() => openModal("customer-payment", { customerId: row.customerId })}>
                   To'lov qabul qilish
@@ -545,17 +588,17 @@ const DebtsView = ({ customerDebts, supplierDebts, openModal }) => {
       ) : (
         <Table
           columns={[
-            { key: "supplierName", title: "Supplier" },
-            { key: "purchasesTotal", title: "Purchases total", render: moneyCell },
-            { key: "paid", title: "Paid", render: moneyCell },
-            { key: "debt", title: "Debt", render: debtCell },
-            { key: "lastPayment", title: "Last payment", render: (value) => (value ? formatFinanceDate(value.date) : "-") },
+            { key: "supplierName", title: "Yetkazib beruvchi" },
+            { key: "purchasesTotal", title: "Jami xarid", render: moneyCell },
+            { key: "paid", title: "To'langan", render: moneyCell },
+            { key: "debt", title: "Qarz", render: debtCell },
+            { key: "lastPayment", title: "Oxirgi to'lov", render: (value) => (value ? formatFinanceDate(value.date) : "-") },
             {
               key: "actions",
-              title: "Actions",
+              title: "Amallar",
               render: (_, row) => (
                 <Button size="sm" variant="secondary" onClick={() => openModal("supplier-payment", { supplierId: row.supplierId })}>
-                  Supplierga to'lash
+                  Yetkazib beruvchiga to'lash
                 </Button>
               ),
             },
@@ -570,8 +613,8 @@ const DebtsView = ({ customerDebts, supplierDebts, openModal }) => {
 
 const CashboxesView = ({ cashboxBalances, openModal }) => (
   <FinancePanel
-    title="Cashbox / Kassa"
-    action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("cash-movement")}>Cash In/Out</Button>}
+    title="Kassa"
+    action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("cash-movement")}>Kirim / chiqim</Button>}
   >
     <div className="finance-workspace__cashboxes">
       {cashboxBalances.map((row) => (
@@ -579,7 +622,7 @@ const CashboxesView = ({ cashboxBalances, openModal }) => (
           <strong>{row.cashbox?.name || row.cashboxId}</strong>
           <span>{row.cashbox?.type || "CASH"} / {row.cashbox?.currency || "UZS"}</span>
           <b>{formatFinanceMoney(row.balance)} so'm</b>
-          <small>IN {formatFinanceMoney(row.inAmount)} / OUT {formatFinanceMoney(row.outAmount)}</small>
+          <small>Kirim {formatFinanceMoney(row.inAmount)} / chiqim {formatFinanceMoney(row.outAmount)}</small>
         </Card>
       ))}
     </div>
@@ -591,20 +634,20 @@ const CashboxesView = ({ cashboxBalances, openModal }) => (
 
 const AgentsView = ({ agentBalances, openModal }) => (
   <FinancePanel
-    title="Agent Collections"
-    action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("agent-collection")}>Collection qo'shish</Button>}
+    title="Agentdan tushumlar"
+    action={<Button leftIcon={<Plus size={16} />} onClick={() => openModal("agent-collection")}>Tushum qo'shish</Button>}
   >
     <Table
       columns={[
         { key: "agentName", title: "Agent" },
-        { key: "totalSales", title: "Sales", render: moneyCell },
-        { key: "collected", title: "Collected", render: moneyCell },
-        { key: "handedOver", title: "Handed Over", render: moneyCell },
-        { key: "balance", title: "Balance", render: debtCell },
-        { key: "commission", title: "Commission", render: moneyCell },
+        { key: "totalSales", title: "Savdo", render: moneyCell },
+        { key: "collected", title: "Yig'ilgan", render: moneyCell },
+        { key: "handedOver", title: "Topshirilgan", render: moneyCell },
+        { key: "balance", title: "Qoldiq", render: debtCell },
+        { key: "commission", title: "Komissiya", render: moneyCell },
         {
           key: "actions",
-          title: "Actions",
+          title: "Amallar",
           render: (_, row) => (
             <Button size="sm" variant="secondary" onClick={() => openModal("agent-handover", { agentId: row.agentId })}>
               Kassaga topshirish
@@ -635,59 +678,63 @@ const Filters = ({
 }) => (
   <div className="finance-workspace__filters">
     <Select
-      label="Period"
+      label="Davr"
       value={period}
       options={[
         { value: "today", label: "Bugun" },
         { value: "week", label: "Hafta" },
         { value: "month", label: "Oy" },
         { value: "year", label: "Yil" },
-        { value: "custom", label: "Custom" },
+        { value: "custom", label: "Tanlangan davr" },
         { value: "all", label: "Hammasi" },
       ]}
       onChange={(event) => setPeriod(event.target.value)}
     />
     {period === "custom" && (
       <>
-        <DatePicker label="From" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} />
-        <DatePicker label="To" value={customTo} onChange={(event) => setCustomTo(event.target.value)} />
+        <DatePicker label="Boshlanish" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} />
+        <DatePicker label="Tugash" value={customTo} onChange={(event) => setCustomTo(event.target.value)} />
       </>
     )}
-    <Select label="Type" value={filters.type} options={[{ value: "", label: "IN/OUT" }, { value: "IN", label: "IN" }, { value: "OUT", label: "OUT" }]} onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))} />
-    <Select label="Category" value={filters.category} options={categoryOptions} onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))} />
-    <Select label="Method" value={filters.paymentMethod} options={PAYMENT_OPTIONS} onChange={(event) => setFilters((current) => ({ ...current, paymentMethod: event.target.value }))} />
-    <Select label="Customer" value={filters.customerId} options={customerOptions} onChange={(event) => setFilters((current) => ({ ...current, customerId: event.target.value }))} />
-    <Select label="Supplier" value={filters.supplierId} options={supplierOptions} onChange={(event) => setFilters((current) => ({ ...current, supplierId: event.target.value }))} />
+    <Select label="Turi" value={filters.type} options={[{ value: "", label: "Kirim/chiqim" }, { value: "IN", label: "Kirim" }, { value: "OUT", label: "Chiqim" }]} onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))} />
+    <Select label="Kategoriya" value={filters.category} options={categoryOptions} onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))} />
+    <Select label="To'lov turi" value={filters.paymentMethod} options={PAYMENT_OPTIONS} onChange={(event) => setFilters((current) => ({ ...current, paymentMethod: event.target.value }))} />
+    <Select label="Mijoz" value={filters.customerId} options={customerOptions} onChange={(event) => setFilters((current) => ({ ...current, customerId: event.target.value }))} />
+    <Select label="Yetkazib beruvchi" value={filters.supplierId} options={supplierOptions} onChange={(event) => setFilters((current) => ({ ...current, supplierId: event.target.value }))} />
     <Select label="Agent" value={filters.agentId} options={agentOptions} onChange={(event) => setFilters((current) => ({ ...current, agentId: event.target.value }))} />
-    <Select label="Cashbox" value={filters.cashboxId} options={cashboxOptions} onChange={(event) => setFilters((current) => ({ ...current, cashboxId: event.target.value }))} />
-    <Input label="Search" value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} />
+    <Select label="Kassa" value={filters.cashboxId} options={cashboxOptions} onChange={(event) => setFilters((current) => ({ ...current, cashboxId: event.target.value }))} />
+    <Input label="Qidirish" value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} />
   </div>
 );
 
-const TransactionTable = ({ rows, compact = false }) => (
-  <Table
-    columns={[
-      { key: "date", title: "Date", render: formatFinanceDate },
+const TransactionTable = ({ rows, compact = false }) => {
+  const columns = useConfiguredColumns("finance-transactions", [
+      { key: "date", title: "Sana", render: formatFinanceDate },
       {
         key: "type",
-        title: "Type",
+        title: "Turi",
         render: (value) => (
           <Badge variant={value === "IN" ? "success" : "danger"}>{value}</Badge>
         ),
       },
-      { key: "category", title: "Category" },
-      { key: "source", title: "Source" },
-      { key: "counterparty", title: "Counterparty" },
-      { key: "paymentMethod", title: "Method", render: getPaymentMethodLabel },
-      { key: "amount", title: "Amount", render: moneyCell },
-      ...(!compact ? [{ key: "cashboxName", title: "Cashbox" }] : []),
-      ...(!compact ? [{ key: "note", title: "Note", render: (value) => value || "-" }] : []),
-    ]}
-    data={rows}
-    rowKey="id"
-    emptyText="Transaction mavjud emas."
-  />
-);
+      { key: "category", title: "Kategoriya" },
+      { key: "source", title: "Manba" },
+      { key: "counterparty", title: "Kontragent" },
+      { key: "paymentMethod", title: "To'lov turi", render: getPaymentMethodLabel },
+      { key: "amount", title: "Summa", render: moneyCell },
+      ...(!compact ? [{ key: "cashboxName", title: "Kassa" }] : []),
+      ...(!compact ? [{ key: "note", title: "Izoh", render: (value) => value || "-" }] : []),
+    ]);
+
+  return (
+    <Table
+      columns={columns}
+      data={rows}
+      rowKey="id"
+      emptyText="Operatsiya mavjud emas."
+    />
+  );
+};
 
 const FinanceModal = ({
   modal,
@@ -695,6 +742,7 @@ const FinanceModal = ({
   error,
   closeModal,
   submitModal,
+  isSubmitting,
   updateForm,
   customerOptions,
   supplierOptions,
@@ -704,12 +752,12 @@ const FinanceModal = ({
 }) => {
   const titleMap = {
     "customer-payment": "Mijoz to'lovi",
-    "supplier-payment": "Supplier payment",
+    "supplier-payment": "Yetkazib beruvchiga to'lov",
     expense: "Xarajat",
-    "cash-movement": "Cash In/Out",
-    "cash-transfer": "Cash transfer",
-    "agent-collection": "Agent collection",
-    "agent-handover": "Agent handover",
+    "cash-movement": "Kassa kirim/chiqimi",
+    "cash-transfer": "Kassa o'tkazmasi",
+    "agent-collection": "Agentdan tushum",
+    "agent-handover": "Agent topshirimi",
   };
 
   return (
@@ -721,7 +769,7 @@ const FinanceModal = ({
       footer={(
         <>
           <Button variant="secondary" onClick={closeModal}>Bekor qilish</Button>
-          <Button onClick={submitModal}>Saqlash</Button>
+          <Button onClick={submitModal} disabled={isSubmitting}>Saqlash</Button>
         </>
       )}
     >
@@ -730,29 +778,29 @@ const FinanceModal = ({
         {modal === "customer-payment" && <Select label="Mijoz" value={form.customerId} options={customerOptions} onChange={updateForm("customerId")} />}
         {modal === "supplier-payment" && (
           <>
-            <Select label="Supplier" value={form.supplierId} options={supplierOptions} onChange={updateForm("supplierId")} />
+            <Select label="Yetkazib beruvchi" value={form.supplierId} options={supplierOptions} onChange={updateForm("supplierId")} />
             <Select
-              label="Purchase optional"
+              label="Xarid ixtiyoriy"
               value={form.purchaseId}
-              options={[{ value: "", label: "Umumiy payment" }, ...selectedSupplierPurchases.map((purchase) => ({ value: purchase.id, label: purchase.number || purchase.id }))]}
+              options={[{ value: "", label: "Umumiy to'lov" }, ...selectedSupplierPurchases.map((purchase) => ({ value: purchase.id, label: purchase.number || purchase.id }))]}
               onChange={updateForm("purchaseId")}
             />
           </>
         )}
         {["agent-collection", "agent-handover"].includes(modal) && <Select label="Agent" value={form.agentId} options={agentOptions} onChange={updateForm("agentId")} />}
-        {modal === "agent-collection" && <Select label="Mijoz optional" value={form.customerId} options={customerOptions} onChange={updateForm("customerId")} />}
+        {modal === "agent-collection" && <Select label="Mijoz ixtiyoriy" value={form.customerId} options={customerOptions} onChange={updateForm("customerId")} />}
         {modal === "expense" && <Select label="Kategoriya" value={form.category} options={EXPENSE_CATEGORIES.map((category) => ({ value: category, label: category }))} onChange={updateForm("category")} />}
-        {modal === "cash-movement" && <Select label="Type" value={form.type} options={[{ value: "IN", label: "Cash In" }, { value: "OUT", label: "Cash Out" }]} onChange={updateForm("type")} />}
+        {modal === "cash-movement" && <Select label="Turi" value={form.type} options={[{ value: "IN", label: "Kirim" }, { value: "OUT", label: "Chiqim" }]} onChange={updateForm("type")} />}
         {modal === "cash-transfer" ? (
           <>
-            <Select label="From" value={form.fromCashboxId} options={cashboxOptions} onChange={updateForm("fromCashboxId")} />
-            <Select label="To" value={form.toCashboxId} options={cashboxOptions} onChange={updateForm("toCashboxId")} />
+            <Select label="Qaysi kassadan" value={form.fromCashboxId} options={cashboxOptions} onChange={updateForm("fromCashboxId")} />
+            <Select label="Qaysi kassaga" value={form.toCashboxId} options={cashboxOptions} onChange={updateForm("toCashboxId")} />
           </>
         ) : modal !== "agent-collection" ? (
           <Select label="Kassa" value={form.cashboxId} options={cashboxOptions} onChange={updateForm("cashboxId")} />
         ) : null}
         <Input label="Summa" type="number" min="0" value={form.amount} onChange={updateForm("amount")} />
-        {modal !== "cash-transfer" && <Select label="Payment method" value={form.paymentMethod} options={PAYMENT_OPTIONS.filter((option) => option.value)} onChange={updateForm("paymentMethod")} />}
+        {modal !== "cash-transfer" && <Select label="To'lov turi" value={form.paymentMethod} options={PAYMENT_OPTIONS.filter((option) => option.value)} onChange={updateForm("paymentMethod")} />}
         {modal === "expense" && <Input label="Mas'ul shaxs" value={form.responsiblePerson} onChange={updateForm("responsiblePerson")} />}
         <DatePicker label="Sana" value={form.date} onChange={updateForm("date")} />
         <Textarea label="Izoh" value={form.note} onChange={updateForm("note")} rows={3} />

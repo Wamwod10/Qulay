@@ -7,6 +7,7 @@ import {
 import {
     getStoredProducts,
 } from "../../products/utils/productsStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 export const receivePurchaseIntoWarehouse = ({
     purchase,
@@ -38,6 +39,26 @@ export const receivePurchaseIntoWarehouse = ({
         throw new Error(
             "Qabul qilinadigan mahsulotlarni kiriting.",
         );
+    }
+
+    const remotePurchase = syncApiRequest(`/purchases/${purchase.id}/receive`, {
+        method: "POST",
+        body: {
+            receivedItems: receivedItems.map((item) => ({
+                purchaseItemId: item.itemId,
+                productId: item.productId,
+                quantity: item.quantity,
+            })),
+        },
+    });
+
+    if (remotePurchase?.id) {
+        const remoteStock = unwrapList(syncApiRequest("/inventory/stock"), ["stock"]);
+        if (Array.isArray(remoteStock)) {
+            saveWarehouseStock(remoteStock);
+            window.dispatchEvent(new Event("warehouse:changed"));
+            return remoteStock;
+        }
     }
 
     const currentStock =

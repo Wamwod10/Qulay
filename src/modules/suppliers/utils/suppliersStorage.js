@@ -1,49 +1,57 @@
 import {
-    INITIAL_SUPPLIERS,
-} from "../constants/suppliersMock";
-
-import {
     syncSupplierReferences,
 } from "./supplierIntegration";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
 const STORAGE_KEY =
-    "universal_erp_suppliers";
+    "suppliers";
 
 export const getStoredSuppliers = () => {
+    const remoteSuppliers = unwrapList(syncApiRequest("/suppliers"), ["suppliers"]);
+
+    if (Array.isArray(remoteSuppliers)) {
+        tenantSet(STORAGE_KEY, remoteSuppliers);
+        return remoteSuppliers;
+    }
+
     try {
         const stored =
-            localStorage.getItem(
+            tenantGet(
                 STORAGE_KEY,
+                null,
             );
 
         if (!stored) {
-            localStorage.setItem(
+            tenantSet(
                 STORAGE_KEY,
-                JSON.stringify(
-                    INITIAL_SUPPLIERS,
-                ),
+                [],
             );
 
-            return INITIAL_SUPPLIERS;
+            return [];
         }
 
-        return JSON.parse(stored);
+        return stored;
     } catch (error) {
         console.error(
             "Suppliers storage read error:",
             error,
         );
 
-        return INITIAL_SUPPLIERS;
+        return [];
     }
 };
 
 export const saveSuppliers = (
     suppliers,
 ) => {
-    localStorage.setItem(
+    tenantSet(
         STORAGE_KEY,
-        JSON.stringify(suppliers),
+        suppliers,
+    );
+
+    window.dispatchEvent(
+        new Event("suppliers:changed"),
     );
 };
 
@@ -59,6 +67,17 @@ export const getSupplierById = (
 export const createSupplier = (
     supplier,
 ) => {
+    const remoteSupplier = syncApiRequest("/suppliers", {
+        method: "POST",
+        body: supplier,
+    });
+
+    if (remoteSupplier?.id) {
+        const suppliers = getStoredSuppliers();
+        saveSuppliers([remoteSupplier, ...suppliers.filter((item) => item.id !== remoteSupplier.id)]);
+        return remoteSupplier;
+    }
+
     const suppliers =
         getStoredSuppliers();
 
@@ -88,6 +107,18 @@ export const createSupplier = (
 export const updateSupplier = (
     updatedSupplier,
 ) => {
+    const remoteSupplier = syncApiRequest(`/suppliers/${updatedSupplier.id}`, {
+        method: "PATCH",
+        body: updatedSupplier,
+    });
+
+    if (remoteSupplier?.id) {
+        const suppliers = getStoredSuppliers();
+        saveSuppliers(suppliers.map((supplier) => (supplier.id === remoteSupplier.id ? remoteSupplier : supplier)));
+        syncSupplierReferences(remoteSupplier);
+        return remoteSupplier;
+    }
+
     const suppliers =
         getStoredSuppliers();
 
@@ -146,12 +177,23 @@ export const toggleSupplierStatus = (
 
     saveSuppliers(updated);
 
+    if (updatedSupplier) {
+        syncApiRequest(`/suppliers/${supplierId}`, {
+            method: "PATCH",
+            body: { status: updatedSupplier.status },
+        });
+    }
+
     return updatedSupplier;
 };
 
 export const deleteSupplier = (
     supplierId,
 ) => {
+    syncApiRequest(`/suppliers/${supplierId}`, {
+        method: "DELETE",
+    });
+
     const suppliers =
         getStoredSuppliers();
 

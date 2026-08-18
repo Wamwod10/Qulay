@@ -1,0 +1,16 @@
+{
+  "finance": {
+    "income": "Воридот",
+    "expense": "Хароҷот",
+    "cashflow": "Ҷараёни пул",
+    "netCashflow": "Ҷараёни софи пул",
+    "cashbox": "Хазина",
+    "payment": "Пардохт",
+    "customerDebt": "Қарзи мизоҷон",
+    "supplierDebt": "Қарз ба таъминкунандагон",
+    "advance": "Пешпардохт",
+    "bonus": "Бонус",
+    "penalty": "Ҷарима",
+    "salary": "Маош"
+  }
+}

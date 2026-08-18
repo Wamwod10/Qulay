@@ -1,57 +1,26 @@
-import {
-  ArrowLeft,
-  CircleDollarSign,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  Route,
-  Target,
-  UserRound,
-  Wallet,
-} from "lucide-react";
-
+import { ArrowLeft, CircleDollarSign, Mail, MapPin, Pencil, Phone, Route, Target, UserRound, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
 import PageContainer from "../../../../components/PageContainer/PageContainer";
-
 import AgentCustomers from "../../components/AgentCustomers/AgentCustomers";
 import AgentOrders from "../../components/AgentOrders/AgentOrders";
 import AgentPayments from "../../components/AgentPayments/AgentPayments";
 import AgentPerformance from "../../components/AgentPerformance/AgentPerformance";
-
 import { Badge, Button, Card } from "../../../../shared/ui";
-
 import { calculateAgentPerformance } from "../../utils/agentAnalytics";
-import {
-  formatAgentMoney,
-  getAgentInitials,
-  getAgentStatusLabel,
-  getAgentStatusVariant,
-} from "../../utils/agentHelpers";
-import {
-  getAgentById,
-} from "../../utils/agentsStorage";
-import {
-  getAgentCollectedAmount,
-  getAgentCustomers,
-  getAgentDebt,
-  getAgentOrders,
-  getAgentPayments,
-  getCustomersCatalog,
-} from "../../utils/agentIntegration";
+import { formatAgentMoney, getAgentInitials, getAgentStatusLabel, getAgentStatusVariant } from "../../utils/agentHelpers";
+import { getAgentById } from "../../utils/agentsStorage";
+import { getAgentCollectedAmount, getAgentCustomers, getAgentDebt, getAgentOrders, getAgentPayments, getCustomersCatalog } from "../../utils/agentIntegration";
 import { getAgentBalance } from "../../../finance/utils/financeSelectors";
-
 import "./AgentDetailsPage.scss";
-
+import { translateText } from "../../../../localization/i18n";
 const AgentDetailsPage = () => {
   const navigate = useNavigate();
-  const { agentId } = useParams();
+  const {
+    agentId
+  } = useParams();
   const [refreshKey, setRefreshKey] = useState(0);
-
   const agent = getAgentById(agentId);
-
   const integrationData = useMemo(() => {
     if (!agent) {
       return {
@@ -61,12 +30,10 @@ const AgentDetailsPage = () => {
         allCustomers: [],
         collectedAmount: 0,
         debtAmount: 0,
-        financeBalance: null,
+        financeBalance: null
       };
     }
-
     const financeBalance = getAgentBalance(agent.id);
-
     return {
       customers: getAgentCustomers(agent.id),
       orders: getAgentOrders(agent.id),
@@ -74,55 +41,29 @@ const AgentDetailsPage = () => {
       allCustomers: getCustomersCatalog(),
       collectedAmount: financeBalance.collected || getAgentCollectedAmount(agent.id),
       debtAmount: getAgentDebt(agent.id),
-      financeBalance,
+      financeBalance
     };
   }, [agent, refreshKey]);
-
   if (!agent) {
-    return (
-      <PageContainer
-        title="Agent topilmadi"
-        description="Bu agent mavjud emas yoki o'chirilgan."
-      >
-        <Button variant="secondary" onClick={() => navigate("/agents")}>
-          Agentlarga qaytish
-        </Button>
-      </PageContainer>
-    );
+    return <PageContainer title={translateText("Agent topilmadi")} description={translateText("Bu agent mavjud emas yoki o'chirilgan.")}>
+        <Button variant="secondary" onClick={() => navigate("/agents")}>{translateText("Agentlarga qaytish")}</Button>
+      </PageContainer>;
   }
-
   const target = Number(agent.targetAmount || 0);
   const cashBalance = Number(integrationData.financeBalance?.balance ?? agent.cashBalance ?? 0);
   const commission = Number(agent.commissionPercent || 0);
   const submittedAmount = Number(integrationData.financeBalance?.handedOver || 0);
   const commissionAmount = Number(integrationData.financeBalance?.commission || 0);
-
   const performance = calculateAgentPerformance({
     agent,
-    orders: integrationData.orders,
+    orders: integrationData.orders
   });
-
-  return (
-    <PageContainer
-      title={agent.name}
-      description={`${agent.region || "Hudud ko'rsatilmagan"} / ${agent.route || "Marshrut yo'q"}`}
-    >
+  return <PageContainer title={agent.name} description={`${agent.region || translateText("Hudud ko'rsatilmagan")} / ${agent.route || translateText("Marshrut yo'q")}`}>
       <div className="agent-details">
         <div className="agent-details__actions">
-          <Button
-            variant="secondary"
-            leftIcon={<ArrowLeft size={17} />}
-            onClick={() => navigate("/agents")}
-          >
-            Ortga
-          </Button>
+          <Button variant="secondary" leftIcon={<ArrowLeft size={17} />} onClick={() => navigate("/agents")}>{translateText("Ortga")}</Button>
 
-          <Button
-            leftIcon={<Pencil size={17} />}
-            onClick={() => navigate(`/agents/${agent.id}/edit`)}
-          >
-            Tahrirlash
-          </Button>
+          <Button leftIcon={<Pencil size={17} />} onClick={() => navigate(`/agents/${agent.id}/edit`)}>{translateText("Tahrirlash")}</Button>
         </div>
 
         <section className="agent-details__summary">
@@ -140,134 +81,93 @@ const AgentDetailsPage = () => {
                 </Badge>
               </div>
 
-              <p>{agent.region || "Hudud ko'rsatilmagan"}</p>
-              <span>{agent.route || "Marshrut belgilanmagan"}</span>
+              <p>{agent.region || translateText("Hudud ko'rsatilmagan")}</p>
+              <span>{agent.route || translateText("Marshrut belgilanmagan")}</span>
             </div>
           </Card>
 
-          <AgentMetric
-            icon={<Target size={20} />}
-            label="Oylik reja"
-            value={`${formatAgentMoney(target)} so'm`}
-          />
+          <AgentMetric icon={<Target size={20} />} label={translateText("Oylik reja")} value={`${formatAgentMoney(target)} ${translateText("so'm")}`} />
 
-          <AgentMetric
-            icon={<CircleDollarSign size={20} />}
-            label="Komissiya"
-            value={`${commission}%`}
-          />
+          <AgentMetric icon={<CircleDollarSign size={20} />} label={translateText("Komissiya")} value={`${commission}%`} />
 
-          <AgentMetric
-            icon={<Wallet size={20} />}
-            label="Agentdagi pul"
-            value={`${formatAgentMoney(cashBalance)} so'm`}
-          />
+          <AgentMetric icon={<Wallet size={20} />} label={translateText("Agentdagi pul")} value={`${formatAgentMoney(cashBalance)} ${translateText("so'm")}`} />
         </section>
 
         <section className="agent-details__grid">
           <Card padding="lg">
-            <SectionTitle
-              title="Kontaktlar"
-              description="Agent bilan bog'lanish uchun asosiy ma'lumotlar."
-            />
+            <SectionTitle title={translateText("Kontaktlar")} description={translateText("Agent bilan bog'lanish uchun asosiy ma'lumotlar.")} />
 
             <div className="agent-details__contact-list">
-              <ContactItem icon={<Phone size={17} />} label="Telefon" value={agent.phone} />
-              <ContactItem icon={<Mail size={17} />} label="Email" value={agent.email} />
-              <ContactItem icon={<MapPin size={17} />} label="Hudud" value={agent.region} />
-              <ContactItem icon={<Route size={17} />} label="Marshrut" value={agent.route} />
+              <ContactItem icon={<Phone size={17} />} label={translateText("Telefon")} value={agent.phone} />
+              <ContactItem icon={<Mail size={17} />} label={translateText("Email")} value={agent.email} />
+              <ContactItem icon={<MapPin size={17} />} label={translateText("Hudud")} value={agent.region} />
+              <ContactItem icon={<Route size={17} />} label={translateText("Marshrut")} value={agent.route} />
             </div>
           </Card>
 
           <Card padding="lg">
-            <SectionTitle
-              title="Pul / qarz summary"
-              description="Finance ulanganda collection va qarzlar shu yerda real hisoblanadi."
-            />
+            <SectionTitle title={translateText("Pul / qarz xulosasi")} description={translateText("Moliya ulanganda tushum va qarzlar shu yerda real hisoblanadi.")} />
 
             <div className="agent-details__info-grid">
-              <InfoItem
-                label="Yig'ilgan pul"
-                value={`${formatAgentMoney(integrationData.collectedAmount)} so'm`}
-              />
-              <InfoItem
-                label="Agentdagi pul"
-                value={`${formatAgentMoney(cashBalance)} so'm`}
-              />
-              <InfoItem
-                label="Komissiya"
-                value={`${formatAgentMoney(commissionAmount)} so'm`}
-              />
-              <InfoItem
-                label="Topshirilgan pul"
-                value={`${formatAgentMoney(submittedAmount)} so'm`}
-              />
+              <InfoItem label={translateText("Yig'ilgan pul")} value={`${formatAgentMoney(integrationData.collectedAmount)} ${translateText("so'm")}`} />
+              <InfoItem label={translateText("Agentdagi pul")} value={`${formatAgentMoney(cashBalance)} ${translateText("so'm")}`} />
+              <InfoItem label={translateText("Komissiya")} value={`${formatAgentMoney(commissionAmount)} ${translateText("so'm")}`} />
+              <InfoItem label={translateText("Topshirilgan pul")} value={`${formatAgentMoney(submittedAmount)} ${translateText("so'm")}`} />
             </div>
           </Card>
         </section>
 
         <section className="agent-details__stack">
-          <AgentCustomers
-            agent={agent}
-            onChange={() => setRefreshKey((current) => current + 1)}
-          />
+          <AgentCustomers agent={agent} onChange={() => setRefreshKey(current => current + 1)} />
 
           <AgentPerformance performance={performance} />
 
-          <AgentOrders
-            orders={integrationData.orders}
-            customers={integrationData.allCustomers}
-          />
+          <AgentOrders orders={integrationData.orders} customers={integrationData.allCustomers} />
 
-          <AgentPayments
-            payments={integrationData.payments}
-            customers={integrationData.allCustomers}
-          />
+          <AgentPayments payments={integrationData.payments} customers={integrationData.allCustomers} />
         </section>
 
-        {agent.note && (
-          <Card padding="lg">
-            <SectionTitle title="Izoh" />
+        {agent.note && <Card padding="lg">
+            <SectionTitle title={translateText("Izoh")} />
             <div className="agent-details__note">{agent.note}</div>
-          </Card>
-        )}
+          </Card>}
       </div>
-    </PageContainer>
-  );
+    </PageContainer>;
 };
-
-const AgentMetric = ({ icon, label, value }) => (
-  <Card className="agent-details__metric">
+const AgentMetric = ({
+  icon,
+  label,
+  value
+}) => <Card className="agent-details__metric">
     {icon && <div className="agent-details__metric-icon">{icon}</div>}
 
     <span>{label}</span>
     <strong>{value}</strong>
-  </Card>
-);
-
-const SectionTitle = ({ title, description }) => (
-  <div className="agent-details__section-title">
+  </Card>;
+const SectionTitle = ({
+  title,
+  description
+}) => <div className="agent-details__section-title">
     <h3>{title}</h3>
     {description && <p>{description}</p>}
-  </div>
-);
-
-const InfoItem = ({ label, value }) => (
-  <div className="agent-details__info-item">
+  </div>;
+const InfoItem = ({
+  label,
+  value
+}) => <div className="agent-details__info-item">
     <span>{label}</span>
-    <strong>{value || "Ma'lumot yo'q"}</strong>
-  </div>
-);
-
-const ContactItem = ({ icon, label, value }) => (
-  <div className="agent-details__contact-item">
+    <strong>{value || translateText("Ma'lumot yo'q")}</strong>
+  </div>;
+const ContactItem = ({
+  icon,
+  label,
+  value
+}) => <div className="agent-details__contact-item">
     <div>{icon}</div>
 
     <span>
       <small>{label}</small>
-      <strong>{value || "Ma'lumot yo'q"}</strong>
+      <strong>{value || translateText("Ma'lumot yo'q")}</strong>
     </span>
-  </div>
-);
-
+  </div>;
 export default AgentDetailsPage;

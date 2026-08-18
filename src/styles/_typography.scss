@@ -16,6 +16,11 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
+  --app-body-font-weight: 400;
+  --app-heading-font-weight: 700;
+
+  --app-table-font-size: 13px;
+
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.7;
@@ -23,4 +28,25 @@
 
 body {
   font-family: var(--font-family-base);
+
+  font-weight: var(--app-body-font-weight);
+}
+
+p,
+span,
+label,
+input,
+textarea,
+select,
+button {
+  font-weight: var(--app-body-font-weight);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--app-heading-font-weight);
 }

@@ -1,4 +1,6 @@
-const STORAGE_KEY = "universal_erp_payments";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+
+const STORAGE_KEY = "payments";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
@@ -25,24 +27,21 @@ export const getStoredPayments = () => {
   }
 
   try {
-    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    const payments = tenantGet(STORAGE_KEY, null);
 
-    if (!storedValue) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
-
+    if (!payments) {
+      tenantSet(STORAGE_KEY, []);
       return [];
     }
 
-    const payments = JSON.parse(storedValue);
-
     if (!Array.isArray(payments)) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      tenantSet(STORAGE_KEY, []);
 
       return [];
     }
 
     const normalizedPayments = payments.map(normalizePayment);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedPayments));
+    tenantSet(STORAGE_KEY, normalizedPayments);
 
     return normalizedPayments;
   } catch (error) {
@@ -57,10 +56,7 @@ export const savePayments = (payments) => {
     return false;
   }
 
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(payments.map(normalizePayment)),
-  );
+  tenantSet(STORAGE_KEY, payments.map(normalizePayment));
 
   return true;
 };

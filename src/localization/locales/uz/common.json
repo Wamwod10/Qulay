@@ -1,0 +1,27 @@
+{
+  "common": {
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "edit": "Tahrirlash",
+    "delete": "O'chirish",
+    "search": "Qidirish",
+    "status": "Holat",
+    "total": "Jami",
+    "empty": "Ma'lumot topilmadi."
+  },
+  "navigation": {
+    "dashboard": "Bosh sahifa",
+    "sales": "Savdo",
+    "products": "Mahsulotlar",
+    "customers": "Mijozlar",
+    "warehouse": "Ombor",
+    "purchases": "Xaridlar",
+    "suppliers": "Yetkazib beruvchilar",
+    "manufacturing": "Ishlab chiqarish",
+    "finance": "Moliya",
+    "employees": "Xodimlar",
+    "reports": "Hisobotlar",
+    "agents": "Agentlar",
+    "settings": "Sozlamalar"
+  }
+}

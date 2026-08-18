@@ -1,28 +1,50 @@
-import { WAREHOUSES } from "../constants/warehouseMock";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { getLocale } from "../../../localization/i18n";
+import { syncApiRequest, unwrapList } from "../../../services/api/syncApi";
 
-const STORAGE_KEY = "universal_erp_warehouses";
+const STORAGE_KEY = "warehouses";
+
+const DEFAULT_WAREHOUSES = [
+    {
+        id: "warehouse-main",
+        name: "Asosiy ombor",
+        branch: "Asosiy filial",
+        address: "",
+        responsible: "",
+        note: "",
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+    },
+];
 
 export const getStoredWarehouses = () => {
+    const remoteWarehouses = unwrapList(syncApiRequest("/warehouses"), ["warehouses"]);
+
+    if (Array.isArray(remoteWarehouses)) {
+        tenantSet(STORAGE_KEY, remoteWarehouses);
+        return remoteWarehouses;
+    }
+
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = tenantGet(STORAGE_KEY, null);
 
         if (!stored) {
-            const initialWarehouses = WAREHOUSES.map((warehouse) => ({
+            const initialWarehouses = DEFAULT_WAREHOUSES.map((warehouse) => ({
                 ...warehouse,
                 status: warehouse.status || "ACTIVE",
             }));
 
-            localStorage.setItem(
+            tenantSet(
                 STORAGE_KEY,
-                JSON.stringify(initialWarehouses),
+                initialWarehouses,
             );
 
             return initialWarehouses;
         }
 
-        return JSON.parse(stored);
+        return stored;
     } catch {
-        return WAREHOUSES.map((warehouse) => ({
+        return DEFAULT_WAREHOUSES.map((warehouse) => ({
             ...warehouse,
             status: warehouse.status || "ACTIVE",
         }));
@@ -30,13 +52,24 @@ export const getStoredWarehouses = () => {
 };
 
 export const saveWarehouses = (warehouses) => {
-    localStorage.setItem(
+    tenantSet(
         STORAGE_KEY,
-        JSON.stringify(warehouses),
+        warehouses,
     );
 };
 
 export const createWarehouse = (warehouse) => {
+    const remoteWarehouse = syncApiRequest("/warehouses", {
+        method: "POST",
+        body: warehouse,
+    });
+
+    if (remoteWarehouse?.id) {
+        const warehouses = getStoredWarehouses();
+        saveWarehouses([...warehouses.filter((item) => item.id !== remoteWarehouse.id), remoteWarehouse]);
+        return remoteWarehouse;
+    }
+
     const warehouses = getStoredWarehouses();
 
     const newWarehouse = {
@@ -47,7 +80,7 @@ export const createWarehouse = (warehouse) => {
         responsible: warehouse.responsible?.trim() || "",
         note: warehouse.note?.trim() || "",
         status: "ACTIVE",
-        createdAt: new Date().toLocaleString("uz-UZ"),
+        createdAt: new Date().toLocaleString(getLocale()),
     };
 
     saveWarehouses([

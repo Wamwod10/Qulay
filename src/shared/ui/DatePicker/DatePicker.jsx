@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  getCurrentLanguage,
+  translateText,
+} from "../../../localization/i18n";
 
 import "./DatePicker.scss";
 
 const WEEK_DAYS = ["Du", "Se", "Cho", "Pay", "Ju", "Sha", "Yak"];
+const WEEK_DAYS_TJ = ["Дш", "Сш", "Чш", "Пш", "Ҷм", "Шн", "Яш"];
 
 const MONTHS = [
   "Yanvar",
@@ -19,6 +24,20 @@ const MONTHS = [
   "Oktabr",
   "Noyabr",
   "Dekabr",
+];
+const MONTHS_TJ = [
+  "Январ",
+  "Феврал",
+  "Март",
+  "Апрел",
+  "Май",
+  "Июн",
+  "Июл",
+  "Август",
+  "Сентябр",
+  "Октябр",
+  "Ноябр",
+  "Декабр",
 ];
 
 const pad = (value) => String(value).padStart(2, "0");
@@ -84,6 +103,9 @@ const DatePicker = ({
   className = "",
 }) => {
   const rootRef = useRef(null);
+  const language = getCurrentLanguage();
+  const months = language === "tj" ? MONTHS_TJ : MONTHS;
+  const weekDays = language === "tj" ? WEEK_DAYS_TJ : WEEK_DAYS;
 
   const [open, setOpen] = useState(false);
 
@@ -293,7 +315,7 @@ const DatePicker = ({
             .filter(Boolean)
             .join(" ")}
         >
-          {value ? formatDate(value) : placeholder}
+          {value ? formatDate(value) : translateText(placeholder)}
         </span>
 
         <span className="ui-date-picker__trigger-actions">
@@ -301,7 +323,7 @@ const DatePicker = ({
             <button
               type="button"
               className="ui-date-picker__clear"
-              aria-label="Sanani tozalash"
+              aria-label={translateText("Sanani tozalash")}
               onClick={handleClear}
             >
               <X size={14} />
@@ -324,7 +346,7 @@ const DatePicker = ({
             </button>
 
             <strong>
-              {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
+              {months[viewDate.getMonth()]} {viewDate.getFullYear()}
             </strong>
 
             <button
@@ -337,7 +359,7 @@ const DatePicker = ({
           </div>
 
           <div className="ui-date-picker__weekdays">
-            {WEEK_DAYS.map((day) => (
+            {weekDays.map((day) => (
               <span key={day}>{day}</span>
             ))}
           </div>
@@ -376,11 +398,11 @@ const DatePicker = ({
 
           <div className="ui-date-picker__footer">
             <button type="button" onClick={() => emitChange("")}>
-              Tozalash
+              {translateText("Tozalash")}
             </button>
 
             <button type="button" onClick={handleToday}>
-              Bugun
+              {translateText("Bugun")}
             </button>
           </div>
         </div>

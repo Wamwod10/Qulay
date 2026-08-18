@@ -1,0 +1,15 @@
+{
+  "products": {
+    "title": "Маҳсулотҳо",
+    "columns": {
+      "product": "Маҳсулот",
+      "sku": "SKU",
+      "type": "Навъ",
+      "category": "Категория",
+      "stock": "Боқимонда",
+      "cost": "Арзиши аслӣ",
+      "salePrice": "Нархи фурӯш",
+      "status": "Ҳолат"
+    }
+  }
+}

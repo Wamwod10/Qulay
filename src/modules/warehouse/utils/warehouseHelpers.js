@@ -1,3 +1,5 @@
+import { getLocale, translateText } from "../../../localization/i18n";
+
 export const getAvailableStock = (
     item,
 ) => {
@@ -35,13 +37,13 @@ export const getWarehouseStockStatusLabel = (
 
     switch (status) {
         case "OUT_OF_STOCK":
-            return "Tugagan";
+            return translateText("Tugagan");
 
         case "LOW_STOCK":
-            return "Kam qolgan";
+            return translateText("Kam qolgan");
 
         default:
-            return "Yetarli";
+            return translateText("Yetarli");
     }
 };
 
@@ -67,6 +69,6 @@ export const formatWarehouseMoney = (
     value,
 ) => {
     return new Intl.NumberFormat(
-        "uz-UZ",
+        getLocale(),
     ).format(Number(value) || 0);
 };

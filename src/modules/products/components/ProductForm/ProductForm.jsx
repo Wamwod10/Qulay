@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { translateText } from "../../../../localization/i18n";import { useMemo, useRef, useState } from "react";
 
 import { ImagePlus, Trash2 } from "lucide-react";
 
@@ -32,7 +32,7 @@ const initialForm = {
   discount: "0",
   image: "",
   notes: "",
-  status: true,
+  status: true
 };
 
 const toFormValues = (initialValues) => {
@@ -52,49 +52,49 @@ const toFormValues = (initialValues) => {
     discount: initialValues.discount ?? 0,
     image: initialValues.image ?? "",
     notes: initialValues.notes ?? "",
-    status: initialValues.status === "ACTIVE",
+    status: initialValues.status === "ACTIVE"
   };
 };
 
 const resizeImage = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
+new Promise((resolve, reject) => {
+  const reader = new FileReader();
 
-    reader.onerror = () => reject(new Error("Rasmni o'qib bo'lmadi."));
+  reader.onerror = () => reject(new Error("Rasmni o'qib bo'lmadi."));
 
-    reader.onload = () => {
-      const image = new Image();
+  reader.onload = () => {
+    const image = new Image();
 
-      image.onerror = () =>
-        reject(new Error("Rasm formati qo'llab-quvvatlanmaydi."));
+    image.onerror = () =>
+    reject(new Error("Rasm formati qo'llab-quvvatlanmaydi."));
 
-      image.onload = () => {
-        const scale = Math.min(
-          1,
-          MAX_IMAGE_DIMENSION / image.width,
-          MAX_IMAGE_DIMENSION / image.height,
-        );
-        const canvas = document.createElement("canvas");
+    image.onload = () => {
+      const scale = Math.min(
+        1,
+        MAX_IMAGE_DIMENSION / image.width,
+        MAX_IMAGE_DIMENSION / image.height
+      );
+      const canvas = document.createElement("canvas");
 
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
 
-        const context = canvas.getContext("2d");
+      const context = canvas.getContext("2d");
 
-        if (!context) {
-          resolve(reader.result);
-          return;
-        }
+      if (!context) {
+        resolve(reader.result);
+        return;
+      }
 
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
-      };
-
-      image.src = reader.result;
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", IMAGE_QUALITY));
     };
 
-    reader.readAsDataURL(file);
-  });
+    image.src = reader.result;
+  };
+
+  reader.readAsDataURL(file);
+});
 
 const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
   const fileInputRef = useRef(null);
@@ -104,19 +104,19 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
 
   const suppliers = useMemo(
     () =>
-      getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
-    [],
+    getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
+    []
   );
 
   const selectedSupplier = useMemo(
     () => suppliers.find((supplier) => supplier.id === form.supplierId),
-    [suppliers, form.supplierId],
+    [suppliers, form.supplierId]
   );
 
   const supplierOptions = suppliers.map((supplier) => ({
     value: supplier.id,
 
-    label: supplier.name,
+    label: supplier.name
   }));
 
   const handleChange = (field, value) => {
@@ -139,7 +139,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
     if (!file.type.startsWith("image/")) {
       setErrors((current) => ({
         ...current,
-        image: "Faqat rasm fayli tanlang.",
+        image: "Faqat rasm fayli tanlang."
       }));
       return;
     }
@@ -147,7 +147,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
     if (file.size > MAX_IMAGE_SIZE) {
       setErrors((current) => ({
         ...current,
-        image: "Rasm hajmi 6 MB dan oshmasligi kerak.",
+        image: "Rasm hajmi 6 MB dan oshmasligi kerak."
       }));
       return;
     }
@@ -159,7 +159,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
     } catch {
       setErrors((current) => ({
         ...current,
-        image: "Rasmni yuklab bo'lmadi.",
+        image: "Rasmni yuklab bo'lmadi."
       }));
     }
   };
@@ -242,7 +242,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
       discount: Number(form.discount) || 0,
       image: form.image || "",
       notes: form.notes.trim(),
-      status: form.status ? "ACTIVE" : "INACTIVE",
+      status: form.status ? "ACTIVE" : "INACTIVE"
     };
 
     onSubmit?.(product);
@@ -252,17 +252,17 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
     <form className="product-form" onSubmit={handleSubmit}>
       <section className="product-form__section">
         <div className="product-form__section-header">
-          <h3>Mahsulot rasmi</h3>
-          <p>Mahsulotni tezroq tanish uchun rasm qo'shishingiz mumkin.</p>
+          <h3>{translateText("Mahsulot rasmi")}</h3>
+          <p>{translateText("Mahsulotni tezroq tanish uchun rasm qo'shishingiz mumkin.")}</p>
         </div>
 
         <div className="product-form__image-area">
           <div className="product-form__image-preview">
-            {form.image ? (
-              <img src={form.image} alt={form.name || "Mahsulot"} />
-            ) : (
-              <ImagePlus size={30} strokeWidth={1.5} />
-            )}
+            {form.image ?
+            <img src={form.image} alt={form.name || translateText("Mahsulot")} /> :
+
+            <ImagePlus size={30} strokeWidth={1.5} />
+            }
           </div>
 
           <div className="product-form__image-actions">
@@ -271,230 +271,230 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
               type="file"
               accept="image/*"
               hidden
-              onChange={handleImageChange}
-            />
+              onChange={handleImageChange} />
+            
 
             <Button
               type="button"
               variant="secondary"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Rasm tanlash
+              onClick={() => fileInputRef.current?.click()}>{translateText("Rasm tanlash")}
+
+
             </Button>
 
-            {form.image && (
-              <Button
-                type="button"
-                variant="danger"
-                leftIcon={<Trash2 size={16} />}
-                onClick={() => handleChange("image", "")}
-              >
-                Olib tashlash
-              </Button>
-            )}
+            {form.image &&
+            <Button
+              type="button"
+              variant="danger"
+              leftIcon={<Trash2 size={16} />}
+              onClick={() => handleChange("image", "")}>{translateText("Olib tashlash")}
 
-            {errors.image && (
-              <span className="product-form__error">{errors.image}</span>
-            )}
+
+            </Button>
+            }
+
+            {errors.image &&
+            <span className="product-form__error">{errors.image}</span>
+            }
           </div>
         </div>
       </section>
 
       <section className="product-form__section">
         <div className="product-form__section-header">
-          <h3>Asosiy ma'lumotlar</h3>
-          <p>Mahsulotning nomi, turi, kategoriya va identifikatsiyasi.</p>
+          <h3>{translateText("Asosiy ma'lumotlar")}</h3>
+          <p>{translateText("Mahsulotning nomi, turi, kategoriya va identifikatsiyasi.")}</p>
         </div>
 
         <div className="product-form__grid">
           <Input
-            label="Mahsulot nomi"
-            placeholder="Masalan: Un Premium"
+            label={translateText("Mahsulot nomi")}
+            placeholder={translateText("Masalan: Un Premium")}
             value={form.name}
             required
             error={errors.name}
-            onChange={(event) => handleChange("name", event.target.value)}
-          />
+            onChange={(event) => handleChange("name", event.target.value)} />
+          
 
           <Select
-            label="Asosiy yetkazib beruvchi"
+            label={translateText("Asosiy yetkazib beruvchi")}
             value={form.supplierId || ""}
-            placeholder="Yetkazib beruvchi tanlang"
+            placeholder={translateText("Yetkazib beruvchi tanlang")}
             options={supplierOptions}
-            onChange={(event) => handleChange("supplierId", event.target.value)}
-          />
+            onChange={(event) => handleChange("supplierId", event.target.value)} />
+          
 
           <Select
-            label="Mahsulot turi"
-            placeholder="Turini tanlang"
+            label={translateText("Mahsulot turi")}
+            placeholder={translateText("Turini tanlang")}
             value={form.type}
             options={PRODUCT_TYPES}
             required
             error={errors.type}
-            onChange={(event) => handleChange("type", event.target.value)}
-          />
+            onChange={(event) => handleChange("type", event.target.value)} />
+          
 
           <Select
-            label="Kategoriya"
-            placeholder="Kategoriya tanlang"
+            label={translateText("Kategoriya")}
+            placeholder={translateText("Kategoriya tanlang")}
             value={form.category}
             options={PRODUCT_CATEGORIES}
             required
             error={errors.category}
-            onChange={(event) => handleChange("category", event.target.value)}
-          />
+            onChange={(event) => handleChange("category", event.target.value)} />
+          
 
           <Input
-            label="Brend"
-            placeholder="Masalan: Universal Foods"
+            label={translateText("Brend")}
+            placeholder={translateText("Masalan: Universal Foods")}
             value={form.brand}
-            onChange={(event) => handleChange("brand", event.target.value)}
-          />
+            onChange={(event) => handleChange("brand", event.target.value)} />
+          
 
           <Input
             label="SKU"
-            placeholder="Masalan: 4821"
+            placeholder={translateText("Masalan: 4821")}
             value={form.sku}
-            onChange={(event) => handleChange("sku", event.target.value)}
-          />
+            onChange={(event) => handleChange("sku", event.target.value)} />
+          
 
           <Input
-            label="Barcode"
+            label={translateText("Barcode")}
             placeholder="4780012345000"
             value={form.barcode}
-            onChange={(event) => handleChange("barcode", event.target.value)}
-          />
+            onChange={(event) => handleChange("barcode", event.target.value)} />
+          
 
           <Select
-            label="O'lchov birligi"
+            label={translateText("O'lchov birligi")}
             value={form.unit}
             required
             error={errors.unit}
             options={[
-              { value: "dona", label: "Dona" },
-              { value: "kg", label: "Kilogram" },
-              { value: "g", label: "Gram" },
-              { value: "litr", label: "Litr" },
-              { value: "metr", label: "Metr" },
-            ]}
-            onChange={(event) => handleChange("unit", event.target.value)}
-          />
+            { value: "dona", label: translateText("Dona") },
+            { value: "kg", label: translateText("Kilogram") },
+            { value: "g", label: translateText("Gram") },
+            { value: "litr", label: translateText("Litr") },
+            { value: "metr", label: translateText("Metr") }]
+            }
+            onChange={(event) => handleChange("unit", event.target.value)} />
+          
 
         </div>
       </section>
 
       <section className="product-form__section">
         <div className="product-form__section-header">
-          <h3>Ombor</h3>
-          <p>Mahsulotning boshlang'ich va minimal qoldiq chegarasi.</p>
+          <h3>{translateText("Ombor")}</h3>
+          <p>{translateText("Mahsulotning boshlang'ich va minimal qoldiq chegarasi.")}</p>
         </div>
 
         <div className="product-form__grid">
           <Input
-            label="Joriy qoldiq"
+            label={translateText("Joriy qoldiq")}
             type="number"
             min="0"
             value={form.stock}
             error={errors.stock}
-            onChange={(event) => handleChange("stock", event.target.value)}
-          />
+            onChange={(event) => handleChange("stock", event.target.value)} />
+          
 
           <Input
-            label="Minimal qoldiq"
+            label={translateText("Minimal qoldiq")}
             type="number"
             min="0"
             value={form.minimumStock}
             error={errors.minimumStock}
             onChange={(event) =>
-              handleChange("minimumStock", event.target.value)
-            }
-          />
+            handleChange("minimumStock", event.target.value)
+            } />
+          
         </div>
       </section>
 
       <section className="product-form__section">
         <div className="product-form__section-header">
-          <h3>Narx va soliq</h3>
-          <p>Tannarx, sotuv narxi, QQS va chegirmani belgilang.</p>
+          <h3>{translateText("Narx va soliq")}</h3>
+          <p>{translateText("Tannarx, sotuv narxi, QQS va chegirmani belgilang.")}</p>
         </div>
 
         <div className="product-form__grid">
           <Input
-            label="Tannarx"
+            label={translateText("Tannarx")}
             type="number"
             min="0"
             placeholder="0"
             value={form.cost}
             error={errors.cost}
-            onChange={(event) => handleChange("cost", event.target.value)}
-          />
+            onChange={(event) => handleChange("cost", event.target.value)} />
+          
 
           <Input
-            label="Sotuv narxi"
+            label={translateText("Sotuv narxi")}
             type="number"
             min="0"
             placeholder="0"
             value={form.salePrice}
             error={errors.salePrice}
-            onChange={(event) => handleChange("salePrice", event.target.value)}
-          />
+            onChange={(event) => handleChange("salePrice", event.target.value)} />
+          
 
           <Input
-            label="QQS (%)"
+            label={translateText("QQS (%)")}
             type="number"
             min="0"
             max="100"
             value={form.tax}
             error={errors.tax}
-            onChange={(event) => handleChange("tax", event.target.value)}
-          />
+            onChange={(event) => handleChange("tax", event.target.value)} />
+          
 
           <Input
-            label="Chegirma (%)"
+            label={translateText("Chegirma (%)")}
             type="number"
             min="0"
             max="100"
             value={form.discount}
             error={errors.discount}
-            onChange={(event) => handleChange("discount", event.target.value)}
-          />
+            onChange={(event) => handleChange("discount", event.target.value)} />
+          
         </div>
       </section>
 
       <section className="product-form__section">
         <div className="product-form__section-header">
-          <h3>Qo'shimcha ma'lumot</h3>
-          <p>Mahsulot bo'yicha ichki izoh yoki muhim eslatmalar.</p>
+          <h3>{translateText("Qo'shimcha ma'lumot")}</h3>
+          <p>{translateText("Mahsulot bo'yicha ichki izoh yoki muhim eslatmalar.")}</p>
         </div>
 
         <Textarea
-          label="Izoh"
-          placeholder="Mahsulot haqida qo'shimcha ma'lumot..."
+          label={translateText("Izoh")}
+          placeholder={translateText("Mahsulot haqida qo'shimcha ma'lumot...")}
           value={form.notes}
-          onChange={(event) => handleChange("notes", event.target.value)}
-        />
+          onChange={(event) => handleChange("notes", event.target.value)} />
+        
       </section>
 
       <div className="product-form__status">
         <Switch
           checked={form.status}
-          label="Mahsulot faol"
-          description="Faol mahsulot savdo, ombor va ishlab chiqarish jarayonlarida ishlatilishi mumkin."
-          onChange={(event) => handleChange("status", event.target.checked)}
-        />
+          label={translateText("Mahsulot faol")}
+          description={translateText("Faol mahsulot savdo, ombor va ishlab chiqarish jarayonlarida ishlatilishi mumkin.")}
+          onChange={(event) => handleChange("status", event.target.checked)} />
+        
       </div>
 
       <div className="product-form__actions">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Bekor qilish
+        <Button type="button" variant="secondary" onClick={onCancel}>{translateText("Bekor qilish")}
+
         </Button>
 
         <Button type="submit">
           {initialValues ? "O'zgarishlarni saqlash" : "Mahsulot yaratish"}
         </Button>
       </div>
-    </form>
-  );
+    </form>);
+
 };
 
 export default ProductForm;

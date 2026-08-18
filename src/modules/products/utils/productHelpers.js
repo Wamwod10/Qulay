@@ -1,9 +1,10 @@
 import { PRODUCT_TYPES } from "../constants/productTypes";
+import { getLocale, translateText } from "../../../localization/i18n";
 
 export const getProductTypeLabel = (type) => {
   const productType = PRODUCT_TYPES.find((item) => item.value === type);
 
-  return productType?.label || type || "-";
+  return translateText(productType?.label || type || "-");
 };
 
 export const getStockStatus = (product) => {
@@ -26,13 +27,13 @@ export const getStockStatusLabel = (product) => {
 
   switch (status) {
     case "OUT_OF_STOCK":
-      return "Tugagan";
+      return translateText("Tugagan");
 
     case "LOW_STOCK":
-      return "Kam qolgan";
+      return translateText("Kam qolgan");
 
     default:
-      return "Yetarli";
+      return translateText("Yetarli");
   }
 };
 
@@ -54,13 +55,13 @@ export const getStockBadgeVariant = (product) => {
 export const getProductStatusLabel = (status) => {
   switch (status) {
     case "ACTIVE":
-      return "Faol";
+      return translateText("Faol");
 
     case "INACTIVE":
-      return "Faol emas";
+      return translateText("Faol emas");
 
     case "ARCHIVED":
-      return "Arxiv";
+      return translateText("Arxiv");
 
     default:
       return status || "-";
@@ -88,5 +89,5 @@ export const formatProductPrice = (value) => {
     return "-";
   }
 
-  return new Intl.NumberFormat("uz-UZ").format(Number(value) || 0);
+  return new Intl.NumberFormat(getLocale()).format(Number(value) || 0);
 };

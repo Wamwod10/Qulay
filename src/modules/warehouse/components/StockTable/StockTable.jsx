@@ -9,6 +9,8 @@ import {
   getWarehouseStockStatusLabel,
   formatWarehouseMoney,
 } from "../../utils/warehouseHelpers";
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
+import { translateText } from "../../../../localization/i18n";
 
 import "./StockTable.scss";
 
@@ -16,7 +18,7 @@ const StockTable = ({ items = [], onView }) => {
   const columns = [
     {
       key: "product",
-      title: "Mahsulot",
+      title: translateText("Mahsulot"),
 
       render: (_, item) => (
         <div className="warehouse-stock-table__product">
@@ -35,7 +37,7 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "category",
-      title: "Kategoriya",
+      title: translateText("Kategoriya"),
 
       render: (value) => (
         <span className="warehouse-stock-table__muted">{value || "—"}</span>
@@ -44,7 +46,7 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "quantity",
-      title: "Jami qoldiq",
+      title: translateText("Jami qoldiq"),
 
       render: (_, item) => (
         <strong>
@@ -55,7 +57,7 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "reserved",
-      title: "Rezerv",
+      title: translateText("Rezerv"),
 
       render: (_, item) => (
         <span>
@@ -69,7 +71,7 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "available",
-      title: "Mavjud",
+      title: translateText("Mavjud"),
 
       render: (_, item) => (
         <strong>
@@ -80,7 +82,7 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "status",
-      title: "Holat",
+      title: translateText("Holat"),
 
       render: (_, item) => (
         <Badge variant={getWarehouseStockBadgeVariant(item)}>
@@ -92,10 +94,12 @@ const StockTable = ({ items = [], onView }) => {
 
     {
       key: "value",
-      title: "Qiymati",
+      title: translateText("Qiymati"),
 
       render: (_, item) => (
-        <span>{formatWarehouseMoney(item.quantity * item.cost)} so‘m</span>
+        <span>
+          {formatWarehouseMoney(item.quantity * item.cost)} {translateText("so‘m")}
+        </span>
       ),
     },
 
@@ -111,11 +115,13 @@ const StockTable = ({ items = [], onView }) => {
     },
   ];
 
+  const configuredColumns = useConfiguredColumns("warehouse-stock", columns);
+
   return (
     <Table
-      columns={columns}
+      columns={configuredColumns}
       data={items}
-      emptyText="Omborda mahsulot topilmadi."
+      emptyText={translateText("Omborda mahsulot topilmadi.")}
     />
   );
 };

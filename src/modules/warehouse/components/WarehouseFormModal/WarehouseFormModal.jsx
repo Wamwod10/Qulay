@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button, Input, Modal, Switch, Textarea } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
   const [form, setForm] = useState({
@@ -60,11 +61,11 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
     const nextErrors = {};
 
     if (!form.name.trim()) {
-      nextErrors.name = "Ombor nomini kiriting.";
+      nextErrors.name = translateText("Ombor nomini kiriting.");
     }
 
     if (!form.branch.trim()) {
-      nextErrors.branch = "Filial nomini kiriting.";
+      nextErrors.branch = translateText("Filial nomini kiriting.");
     }
 
     setErrors(nextErrors);
@@ -88,8 +89,8 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title={warehouse ? "Omborni tahrirlash" : "Yangi ombor"}
-      description={warehouse ? warehouse.name : "Yangi ombor yaratish."}
+      title={translateText(warehouse ? "Omborni tahrirlash" : "Yangi ombor")}
+      description={warehouse ? warehouse.name : translateText("Yangi ombor yaratish.")}
       size="md"
     >
       <div
@@ -99,46 +100,46 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
         }}
       >
         <Input
-          label="Ombor nomi"
-          placeholder="Masalan: Asosiy ombor"
+          label={translateText("Ombor nomi")}
+          placeholder={translateText("Masalan: Asosiy ombor")}
           value={form.name}
           error={errors.name}
           onChange={(event) => handleChange("name", event.target.value)}
         />
 
         <Input
-          label="Filial"
-          placeholder="Masalan: Asosiy filial"
+          label={translateText("Filial")}
+          placeholder={translateText("Masalan: Asosiy filial")}
           value={form.branch}
           error={errors.branch}
           onChange={(event) => handleChange("branch", event.target.value)}
         />
 
         <Input
-          label="Manzil"
-          placeholder="Ombor manzili"
+          label={translateText("Manzil")}
+          placeholder={translateText("Ombor manzili")}
           value={form.address}
           onChange={(event) => handleChange("address", event.target.value)}
         />
 
         <Input
-          label="Mas’ul shaxs"
-          placeholder="Masalan: Omborchi"
+          label={translateText("Mas’ul shaxs")}
+          placeholder={translateText("Masalan: Omborchi")}
           value={form.responsible}
           onChange={(event) => handleChange("responsible", event.target.value)}
         />
 
         <Textarea
-          label="Izoh"
-          placeholder="Qo‘shimcha ma’lumot..."
+          label={translateText("Izoh")}
+          placeholder={translateText("Qo‘shimcha ma’lumot...")}
           value={form.note}
           onChange={(event) => handleChange("note", event.target.value)}
         />
 
         <Switch
           checked={form.status}
-          label="Ombor faol"
-          description="Faol ombor operatsiyalarda ishlatilishi mumkin."
+          label={translateText("Ombor faol")}
+          description={translateText("Faol ombor operatsiyalarda ishlatilishi mumkin.")}
           onChange={(event) => handleChange("status", event.target.checked)}
         />
 
@@ -150,11 +151,11 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
           }}
         >
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {translateText("Bekor qilish")}
           </Button>
 
           <Button onClick={handleSubmit}>
-            {warehouse ? "Saqlash" : "Ombor yaratish"}
+            {translateText(warehouse ? "Saqlash" : "Ombor yaratish")}
           </Button>
         </div>
       </div>

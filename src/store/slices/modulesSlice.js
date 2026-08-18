@@ -1,23 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    enabledModules: [
-        "dashboard",
-        "sales",
-        "manufacturing",
-        "warehouse",
-        "purchases",
-        "products",
-        "customers",
-        "agents",
-        "suppliers",
-        "finance",
-        "employees",
-        "reports",
-        "settings",
-    ],
+    enabledModules: [],
 
-    isInitialized: true,
+    isInitialized: false,
 };
 
 const modulesSlice = createSlice({

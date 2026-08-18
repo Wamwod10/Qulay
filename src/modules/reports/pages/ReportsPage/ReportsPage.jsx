@@ -35,42 +35,136 @@ import {
 } from "../../../manufacturing/utils/manufacturingHelpers";
 
 import { buildManufacturingReport } from "../../utils/manufacturingReports";
+
 import { getStoredSales } from "../../../sales/utils/salesStorage";
+
 import { formatSaleMoney } from "../../../sales/utils/salesHelpers";
+
 import {
   buildFinanceReport,
   formatFinanceMoney,
   getPaymentMethodLabel,
 } from "../../../finance/utils/financeSelectors";
+
 import { buildCustomerReport } from "../../../customers/utils/customerSelectors";
+
 import { buildHrReport, monthIso } from "../../../employees/utils/hrStorage";
+
+import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
+
+import { getLocale, translateText } from "../../../../localization/i18n";
 
 import "./ReportsPage.scss";
 
+/* =========================================
+ * OPTIONS
+ * ========================================= */
+
 const PERIOD_OPTIONS = [
-  { value: "today", label: "Bugun" },
-  { value: "week", label: "Hafta" },
-  { value: "month", label: "Oy" },
-  { value: "year", label: "Yil" },
-  { value: "custom", label: "Custom period" },
+  {
+    value: "today",
+    label: "Bugun",
+  },
+  {
+    value: "week",
+    label: "Hafta",
+  },
+  {
+    value: "month",
+    label: "Oy",
+  },
+  {
+    value: "year",
+    label: "Yil",
+  },
+  {
+    value: "custom",
+    label: "Tanlangan davr",
+  },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Barcha holatlar" },
-  { value: "PLANNED", label: "Rejalashtirilgan" },
-  { value: "IN_PROGRESS", label: "Jarayonda" },
-  { value: "COMPLETED", label: "Tugallangan" },
+  {
+    value: "",
+    label: "Barcha holatlar",
+  },
+  {
+    value: "PLANNED",
+    label: "Rejalashtirilgan",
+  },
+  {
+    value: "IN_PROGRESS",
+    label: "Jarayonda",
+  },
+  {
+    value: "COMPLETED",
+    label: "Tugallangan",
+  },
 ];
+
+/* =========================================
+ * I18N HELPERS
+ * ========================================= */
+
+const localizeOptions = (options = []) =>
+  options.map((option) => ({
+    ...option,
+    label: translateText(option.label),
+  }));
+
+const moneyUnit = () => translateText("so'm");
+
+const moneyText = (value, formatter = formatFinanceMoney) =>
+  `${formatter(value)} ${moneyUnit()}`;
+
+const localizedUnit = (unit) => translateText(unit || "dona");
+
+const localizedProductionStatus = (status) =>
+  translateText(getProductionStatusLabel(status));
+
+const LocalizedTable = ({ columns = [], emptyText, ...props }) => {
+  const localizedColumns = columns.map((column) => ({
+    ...column,
+
+    title:
+      typeof column.title === "string"
+        ? translateText(column.title)
+        : column.title,
+  }));
+
+  return (
+    <Table
+      {...props}
+      columns={localizedColumns}
+      emptyText={emptyText ? translateText(emptyText) : undefined}
+    />
+  );
+};
+
+/* =========================================
+ * PAGE
+ * ========================================= */
 
 const ReportsPage = () => {
   const [orders] = useState(() => getStoredProductionOrders());
+
   const [sales] = useState(() => getStoredSales());
+
   const [period, setPeriod] = useState("month");
+
   const [from, setFrom] = useState("");
+
   const [to, setTo] = useState("");
+
   const [productId, setProductId] = useState("");
+
   const [status, setStatus] = useState("");
+
   const [hrMonth, setHrMonth] = useState(monthIso());
+
+  /* =========================================
+   * PRODUCT OPTIONS
+   * ========================================= */
 
   const productOptions = useMemo(() => {
     const map = new Map();
@@ -82,13 +176,21 @@ const ReportsPage = () => {
     });
 
     return [
-      { value: "", label: "Barcha mahsulotlar" },
+      {
+        value: "",
+        label: translateText("Barcha mahsulotlar"),
+      },
+
       ...Array.from(map.entries()).map(([value, label]) => ({
         value,
         label,
       })),
     ];
   }, [orders]);
+
+  /* =========================================
+   * MANUFACTURING REPORT
+   * ========================================= */
 
   const report = useMemo(
     () =>
@@ -100,48 +202,71 @@ const ReportsPage = () => {
         productId,
         status,
       }),
+
     [orders, period, from, to, productId, status],
   );
 
+  /* =========================================
+   * SALES REPORT
+   * ========================================= */
+
   const salesReport = useMemo(() => {
     const completedSales = sales.filter((sale) => sale.status !== "CANCELLED");
+
     const productMap = new Map();
+
     const agentMap = new Map();
+
     const customerMap = new Map();
 
     completedSales.forEach((sale) => {
       (sale.items || []).forEach((item) => {
         const current = productMap.get(item.productId) || {
           id: item.productId,
+
           name: item.productName,
+
           quantity: 0,
+
           revenue: 0,
         };
 
         current.quantity += Number(item.quantity || 0);
+
         current.revenue += Number(item.subtotal || 0);
+
         productMap.set(item.productId, current);
       });
 
       if (sale.agentId) {
         const currentAgent = agentMap.get(sale.agentId) || {
           id: sale.agentId,
+
           name: sale.agentName || sale.agentId,
+
           total: 0,
         };
+
         currentAgent.total += Number(sale.netTotal ?? sale.total ?? 0);
+
         agentMap.set(sale.agentId, currentAgent);
       }
 
       if (sale.customerId) {
         const currentCustomer = customerMap.get(sale.customerId) || {
           id: sale.customerId,
+
           name: sale.customerName || sale.customerId,
+
           total: 0,
+
           debt: 0,
         };
+
         currentCustomer.total += Number(sale.netTotal ?? sale.total ?? 0);
+
         currentCustomer.debt += Number(sale.debtAmount || 0);
+
         customerMap.set(sale.customerId, currentCustomer);
       }
     });
@@ -149,91 +274,271 @@ const ReportsPage = () => {
     return {
       amount: completedSales.reduce(
         (total, sale) => total + Number(sale.netTotal ?? sale.total ?? 0),
+
         0,
       ),
-      paid: completedSales.reduce((total, sale) => total + Number(sale.paidAmount || 0), 0),
-      debt: completedSales.reduce((total, sale) => total + Number(sale.debtAmount || 0), 0),
+
+      paid: completedSales.reduce(
+        (total, sale) => total + Number(sale.paidAmount || 0),
+
+        0,
+      ),
+
+      debt: completedSales.reduce(
+        (total, sale) => total + Number(sale.debtAmount || 0),
+
+        0,
+      ),
+
       count: completedSales.length,
-      topProducts: [...productMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-      agentSales: [...agentMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
-      customerSales: [...customerMap.values()].sort((a, b) => b.total - a.total).slice(0, 5),
+
+      topProducts: [...productMap.values()]
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5),
+
+      agentSales: [...agentMap.values()]
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5),
+
+      customerSales: [...customerMap.values()]
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5),
     };
   }, [sales]);
+
+  /* =========================================
+   * FINANCE
+   * ========================================= */
 
   const financeReport = useMemo(
     () =>
       buildFinanceReport({
         ...getReportRange(period, from, to),
       }),
+
     [period, from, to],
   );
 
-  const customerReport = useMemo(() => buildCustomerReport(), []);
-  const hrReport = useMemo(() => buildHrReport(hrMonth), [hrMonth]);
+  /* =========================================
+   * CRM
+   * ========================================= */
+
+  const customerReport = useMemo(
+    () => buildCustomerReport(),
+
+    [],
+  );
+
+  /* =========================================
+   * HR
+   * ========================================= */
+
+  const hrReport = useMemo(
+    () => buildHrReport(hrMonth),
+
+    [hrMonth],
+  );
+
+  /* =========================================
+   * PAYROLL TABLE
+   * ========================================= */
+
+  const payrollReportColumns = useConfiguredColumns(
+    "reports-payroll",
+
+    [
+      {
+        key: "employeeName",
+
+        title: "Xodim",
+      },
+
+      {
+        key: "baseAmount",
+
+        title: "Asos",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "bonuses",
+
+        title: "Bonus",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "advances",
+
+        title: "Avans",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "penalties",
+
+        title: "Jarima",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "netAmount",
+
+        title: "Sof oylik",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "paidAmount",
+
+        title: "To'langan",
+
+        render: (value) => moneyText(value),
+      },
+
+      {
+        key: "debtAmount",
+
+        title: "Qarz",
+
+        render: (value) => moneyText(value),
+      },
+    ],
+  );
 
   const topProductMax = Math.max(
     ...report.topProducts.map((product) => product.producedQuantity),
+
     0,
   );
 
   return (
     <PageContainer
-      title="Hisobotlar"
-      description="Manufacturing natijalari, tannarx va ishlab chiqarish samaradorligi."
+      title={translateText("Hisobotlar")}
+      description={translateText(
+        "Manufacturing natijalari, tannarx va ishlab chiqarish samaradorligi.",
+      )}
     >
       <div className="reports-page">
-        <ReportSection
-          title="Sales Report"
-          description="Sales modulidagi real completed savdolar, payment va debt summary."
-        >
-          <div className="reports-page__summary-grid">
-            <SummaryValue label="Sale count" value={salesReport.count} />
-            <SummaryValue label="Sales amount" value={`${formatSaleMoney(salesReport.amount)} so'm`} />
-            <SummaryValue label="Paid" value={`${formatSaleMoney(salesReport.paid)} so'm`} />
-            <SummaryValue label="Debt" value={`${formatSaleMoney(salesReport.debt)} so'm`} />
-          </div>
-
-          <div className="reports-page__sales-grid">
-            <MiniReportList title="Top products" rows={salesReport.topProducts} valueKey="revenue" />
-            <MiniReportList title="Agent sales" rows={salesReport.agentSales} valueKey="total" />
-            <MiniReportList title="Customer sales" rows={salesReport.customerSales} valueKey="total" />
-          </div>
-        </ReportSection>
+        {/* =========================
+            SALES
+        ========================== */}
 
         <ReportSection
-          title="Finance Report"
-          description="Income, expenses, debt va agent collections Finance selectorlari asosida."
+          title="Savdo hisoboti"
+          description="Savdo modulidagi real yakunlangan savdolar, to'lovlar va qarzlar."
         >
           <div className="reports-page__summary-grid">
-            <SummaryValue label="Income" value={`${formatFinanceMoney(financeReport.summary.income)} so'm`} />
-            <SummaryValue label="Expenses" value={`${formatFinanceMoney(financeReport.summary.expense)} so'm`} />
-            <SummaryValue label="Net Cashflow" value={`${formatFinanceMoney(financeReport.summary.netCashflow)} so'm`} />
-            <SummaryValue label="Customer Debt" value={`${formatFinanceMoney(financeReport.summary.customerDebt)} so'm`} />
-            <SummaryValue label="Supplier Debt" value={`${formatFinanceMoney(financeReport.summary.supplierDebt)} so'm`} />
-            <SummaryValue label="Agent Collections" value={`${formatFinanceMoney(financeReport.summary.agentBalance)} so'm`} />
+            <SummaryValue label="Savdo soni" value={salesReport.count} />
+
+            <SummaryValue
+              label="Savdo summasi"
+              value={moneyText(salesReport.amount, formatSaleMoney)}
+            />
+
+            <SummaryValue
+              label="To'langan"
+              value={moneyText(salesReport.paid, formatSaleMoney)}
+            />
+
+            <SummaryValue
+              label="Qarz"
+              value={moneyText(salesReport.debt, formatSaleMoney)}
+            />
           </div>
 
           <div className="reports-page__sales-grid">
             <MiniReportList
-              title="Payment methods"
+              title="Eng ko'p sotilgan mahsulotlar"
+              rows={salesReport.topProducts}
+              valueKey="revenue"
+            />
+
+            <MiniReportList
+              title="Agentlar savdosi"
+              rows={salesReport.agentSales}
+              valueKey="total"
+            />
+
+            <MiniReportList
+              title="Mijozlar savdosi"
+              rows={salesReport.customerSales}
+              valueKey="total"
+            />
+          </div>
+        </ReportSection>
+
+        {/* =========================
+            FINANCE
+        ========================== */}
+
+        <ReportSection
+          title="Moliya hisoboti"
+          description="Kirim, chiqim, qarz va agent tushumlari moliya hisoblari asosida."
+        >
+          <div className="reports-page__summary-grid">
+            <SummaryValue
+              label="Kirim"
+              value={moneyText(financeReport.summary.income)}
+            />
+
+            <SummaryValue
+              label="Chiqim"
+              value={moneyText(financeReport.summary.expense)}
+            />
+
+            <SummaryValue
+              label="Sof pul oqimi"
+              value={moneyText(financeReport.summary.netCashflow)}
+            />
+
+            <SummaryValue
+              label="Mijoz qarzi"
+              value={moneyText(financeReport.summary.customerDebt)}
+            />
+
+            <SummaryValue
+              label="Yetkazib beruvchi qarzi"
+              value={moneyText(financeReport.summary.supplierDebt)}
+            />
+
+            <SummaryValue
+              label="Agentdagi pul"
+              value={moneyText(financeReport.summary.agentBalance)}
+            />
+          </div>
+
+          <div className="reports-page__sales-grid">
+            <MiniReportList
+              title="To'lov turlari"
               rows={financeReport.paymentMethods.map((row) => ({
                 ...row,
-                name: getPaymentMethodLabel(row.name),
+
+                name: translateText(getPaymentMethodLabel(row.name)),
               }))}
               valueKey="amount"
               formatter={formatFinanceMoney}
             />
+
             <MiniReportList
-              title="Expenses by category"
+              title="Kategoriya bo'yicha xarajatlar"
               rows={financeReport.expensesByCategory}
               valueKey="amount"
               formatter={formatFinanceMoney}
             />
+
             <MiniReportList
-              title="Agent balances"
+              title="Agent qoldiqlari"
               rows={financeReport.agentCollections.slice(0, 5).map((row) => ({
                 id: row.agentId,
+
                 name: row.agentName,
+
                 amount: row.balance,
               }))}
               valueKey="amount"
@@ -242,44 +547,75 @@ const ReportsPage = () => {
           </div>
         </ReportSection>
 
+        {/* =========================
+            CRM
+        ========================== */}
+
         <ReportSection
-          title="CRM / Customer Report"
-          description="Customers, Sales, Finance va Agents selectorlari asosida real customer summary."
+          title="CRM / mijozlar hisoboti"
+          description="Mijozlar, savdo, moliya va agentlar ma'lumotlari asosidagi real mijozlar xulosasi."
         >
           <div className="reports-page__summary-grid">
-            <SummaryValue label="Total customers" value={customerReport.totalCustomers} />
-            <SummaryValue label="New customers" value={customerReport.newCustomers} />
-            <SummaryValue label="Active customers" value={customerReport.activeCustomers} />
-            <SummaryValue label="Customer sales" value={`${formatFinanceMoney(customerReport.customerSales)} so'm`} />
-            <SummaryValue label="Customer debt" value={`${formatFinanceMoney(customerReport.customerDebt)} so'm`} />
+            <SummaryValue
+              label="Jami mijoz"
+              value={customerReport.totalCustomers}
+            />
+
+            <SummaryValue
+              label="Yangi mijoz"
+              value={customerReport.newCustomers}
+            />
+
+            <SummaryValue
+              label="Faol mijoz"
+              value={customerReport.activeCustomers}
+            />
+
+            <SummaryValue
+              label="Mijozlar savdosi"
+              value={moneyText(customerReport.customerSales)}
+            />
+
+            <SummaryValue
+              label="Mijozlar qarzi"
+              value={moneyText(customerReport.customerDebt)}
+            />
           </div>
 
           <div className="reports-page__sales-grid">
             <MiniReportList
-              title="Top customers"
+              title="Eng faol mijozlar"
               rows={customerReport.topCustomers.map((row) => ({
                 id: row.id,
+
                 name: row.displayName,
+
                 amount: row.salesAmount,
               }))}
               valueKey="amount"
               formatter={formatFinanceMoney}
             />
+
             <MiniReportList
-              title="Risky debt customers"
+              title="Riskli qarzdor mijozlar"
               rows={customerReport.riskyDebtCustomers.map((row) => ({
                 id: row.id,
+
                 name: row.displayName,
+
                 amount: row.debtAmount,
               }))}
               valueKey="amount"
               formatter={formatFinanceMoney}
             />
+
             <MiniReportList
-              title="Agent customer distribution"
+              title="Agentlar bo'yicha mijozlar"
               rows={customerReport.agentDistribution.map((row) => ({
                 id: row.id,
-                name: `${row.name} / ${row.customers} ta`,
+
+                name: `${row.name} / ${row.customers} ${translateText("ta")}`,
+
                 amount: row.sales,
               }))}
               valueKey="amount"
@@ -288,13 +624,17 @@ const ReportsPage = () => {
           </div>
         </ReportSection>
 
+        {/* =========================
+            HR
+        ========================== */}
+
         <ReportSection
-          title="HR Report"
-          description="Xodim, davomat, payroll, qarz va bonus/jarima HR storage asosida."
+          title="Xodimlar hisoboti"
+          description="Xodim, davomat, oylik hisob-kitobi, qarz va bonus/jarimalar asosida."
         >
           <div className="reports-page__hr-filter">
             <Input
-              label="Payroll month"
+              label={translateText("Oylik oyi")}
               type="month"
               value={hrMonth}
               onChange={(event) => setHrMonth(event.target.value || monthIso())}
@@ -302,43 +642,89 @@ const ReportsPage = () => {
           </div>
 
           <div className="reports-page__summary-grid">
-            <SummaryValue label="Employee count" value={hrReport.summary.employeeCount} />
-            <SummaryValue label="Payroll total" value={`${formatFinanceMoney(hrReport.summary.payrollTotal)} so'm`} />
-            <SummaryValue label="Paid salary" value={`${formatFinanceMoney(hrReport.summary.paidSalary)} so'm`} />
-            <SummaryValue label="Salary debt" value={`${formatFinanceMoney(hrReport.summary.salaryDebt)} so'm`} />
-            <SummaryValue label="Advances" value={`${formatFinanceMoney(hrReport.summary.advances)} so'm`} />
-            <SummaryValue label="Bonuses" value={`${formatFinanceMoney(hrReport.summary.bonuses)} so'm`} />
-            <SummaryValue label="Penalties" value={`${formatFinanceMoney(hrReport.summary.penalties)} so'm`} />
-            <SummaryValue label="Attendance rate" value={`${hrReport.summary.attendanceRate}%`} />
-            <SummaryValue label="Late count" value={hrReport.summary.lateCount} />
+            <SummaryValue
+              label="Xodimlar soni"
+              value={hrReport.summary.employeeCount}
+            />
+
+            <SummaryValue
+              label="Jami oylik"
+              value={moneyText(hrReport.summary.payrollTotal)}
+            />
+
+            <SummaryValue
+              label="To'langan oylik"
+              value={moneyText(hrReport.summary.paidSalary)}
+            />
+
+            <SummaryValue
+              label="Oylik qarzi"
+              value={moneyText(hrReport.summary.salaryDebt)}
+            />
+
+            <SummaryValue
+              label="Avanslar"
+              value={moneyText(hrReport.summary.advances)}
+            />
+
+            <SummaryValue
+              label="Bonuslar"
+              value={moneyText(hrReport.summary.bonuses)}
+            />
+
+            <SummaryValue
+              label="Jarimalar"
+              value={moneyText(hrReport.summary.penalties)}
+            />
+
+            <SummaryValue
+              label="Davomat foizi"
+              value={`${hrReport.summary.attendanceRate}%`}
+            />
+
+            <SummaryValue
+              label="Kechikkanlar soni"
+              value={hrReport.summary.lateCount}
+            />
           </div>
 
           <div className="reports-page__sales-grid">
             <MiniReportList
-              title="Salary debt"
+              title="Oylik qarzi"
               rows={hrReport.salaryDebt.slice(0, 5).map((row) => ({
                 id: row.id,
+
                 name: row.employeeName,
+
                 amount: row.debtAmount,
               }))}
               valueKey="amount"
               formatter={formatFinanceMoney}
             />
+
             <MiniReportList
-              title="Late employees"
+              title="Kechikkan xodimlar"
               rows={hrReport.lateEmployees.slice(0, 5).map((row) => ({
                 id: row.id,
-                name: `${row.employeeName} / ${row.lateMinutes} min`,
+
+                name: `${row.employeeName} / ${row.lateMinutes} ${translateText(
+                  "min",
+                )}`,
+
                 amount: row.lateMinutes,
               }))}
               valueKey="amount"
               formatter={(value) => String(value)}
+              suffix=""
             />
+
             <MiniReportList
-              title="Department payroll"
+              title="Bo'limlar bo'yicha oylik"
               rows={hrReport.departmentPayroll.slice(0, 5).map((row) => ({
                 id: row.id,
+
                 name: row.name,
+
                 amount: row.payroll,
               }))}
               valueKey="amount"
@@ -346,41 +732,36 @@ const ReportsPage = () => {
             />
           </div>
 
-          <Table
-            columns={[
-              { key: "employeeName", title: "Employee" },
-              { key: "baseAmount", title: "Base", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "bonuses", title: "Bonus", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "advances", title: "Advance", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "penalties", title: "Penalty", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "netAmount", title: "Net", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "paidAmount", title: "Paid", render: (value) => `${formatFinanceMoney(value)} so'm` },
-              { key: "debtAmount", title: "Debt", render: (value) => `${formatFinanceMoney(value)} so'm` },
-            ]}
+          <LocalizedTable
+            columns={payrollReportColumns}
             data={hrReport.payrollByMonth}
             rowKey="id"
-            emptyText="HR payroll ma'lumoti yo'q."
+            emptyText="Xodimlar oyligi bo'yicha ma'lumot yo'q."
           />
         </ReportSection>
 
+        {/* =========================
+            FILTERS
+        ========================== */}
+
         <Card padding="lg" className="reports-page__filters">
           <Select
-            label="Period"
+            label={translateText("Davr")}
             value={period}
-            options={PERIOD_OPTIONS}
+            options={localizeOptions(PERIOD_OPTIONS)}
             onChange={(event) => setPeriod(event.target.value)}
           />
 
           {period === "custom" && (
             <>
               <DatePicker
-                label="Boshlanish"
+                label={translateText("Boshlanish")}
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
               />
 
               <DatePicker
-                label="Tugash"
+                label={translateText("Tugash")}
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
               />
@@ -388,31 +769,37 @@ const ReportsPage = () => {
           )}
 
           <Select
-            label="Product"
+            label={translateText("Mahsulot")}
             value={productId}
             options={productOptions}
             onChange={(event) => setProductId(event.target.value)}
           />
 
           <Select
-            label="Status"
+            label={translateText("Holat")}
             value={status}
-            options={STATUS_OPTIONS}
+            options={localizeOptions(STATUS_OPTIONS)}
             onChange={(event) => setStatus(event.target.value)}
           />
         </Card>
 
+        {/* =========================
+            KPIs
+        ========================== */}
+
         <section className="reports-page__kpis">
           <ReportKpi
             icon={<Factory size={20} />}
-            label="Jami production order"
+            label="Jami ishlab chiqarish buyurtmasi"
             value={report.kpi.totalOrders}
           />
+
           <ReportKpi
             icon={<Clock3 size={20} />}
             label="Rejalashtirilgan"
             value={report.kpi.planned}
           />
+
           <ReportKpi
             icon={
               <LiveIcon
@@ -426,6 +813,7 @@ const ReportsPage = () => {
             value={report.kpi.inProgress}
             variant="warning"
           />
+
           <ReportKpi
             icon={
               <LiveIcon
@@ -439,99 +827,142 @@ const ReportsPage = () => {
             value={report.kpi.completed}
             variant="success"
           />
+
           <ReportKpi
             icon={<CheckCircle2 size={20} />}
             label="Jami ishlab chiqarilgan"
             value={formatProductionQuantity(report.kpi.producedQuantity)}
           />
+
           <ReportKpi
             icon={<Users size={20} />}
             label="CRM mijozlar"
             value={customerReport.totalCustomers}
           />
+
           <ReportKpi
             icon={<UserCheck size={20} />}
             label="Faol CRM mijozlar"
             value={customerReport.activeCustomers}
             variant="success"
           />
+
           <ReportKpi
             icon={<AlertTriangle size={20} />}
             label="Jami brak"
             value={formatProductionQuantity(report.kpi.defectQuantity)}
             variant="danger"
           />
+
           <ReportKpi
             icon={<AlertTriangle size={20} />}
-            label="Jami waste"
+            label="Jami yo'qotish"
             value={formatProductionQuantity(report.kpi.wasteQuantity)}
             variant="warning"
           />
+
           <ReportKpi
             icon={<WalletCards size={20} />}
             label="Jami material tannarxi"
-            value={`${formatManufacturingMoney(
+            value={moneyText(
               report.kpi.actualMaterialCost,
-            )} so'm`}
+              formatManufacturingMoney,
+            )}
           />
+
           <ReportKpi
             icon={<WalletCards size={20} />}
-            label="Jami overhead"
-            value={`${formatManufacturingMoney(report.kpi.overheadCost)} so'm`}
+            label="Jami qo'shimcha xarajat"
+            value={moneyText(report.kpi.overheadCost, formatManufacturingMoney)}
           />
+
           <ReportKpi
             icon={<WalletCards size={20} />}
             label="Jami ishlab chiqarish tannarxi"
-            value={`${formatManufacturingMoney(
+            value={moneyText(
               report.kpi.actualProductionCost,
-            )} so'm`}
+              formatManufacturingMoney,
+            )}
           />
+
           <ReportKpi
             icon={<WalletCards size={20} />}
-            label="O'rtacha unit cost"
-            value={`${formatManufacturingMoney(
+            label="O'rtacha birlik tannarxi"
+            value={moneyText(
               report.kpi.averageUnitCost,
-            )} so'm`}
+              formatManufacturingMoney,
+            )}
           />
         </section>
 
+        {/* =========================
+            MANUFACTURING SUMMARY
+        ========================== */}
+
         <ReportSection
-          title="Production Summary"
-          description="Order count, completed, in progress va production quantity."
+          title="Ishlab chiqarish xulosasi"
+          description="Buyurtmalar soni, yakunlangan, jarayondagi va ishlab chiqarilgan miqdor."
         >
           <div className="reports-page__summary-grid">
-            <SummaryValue label="Order count" value={report.kpi.totalOrders} />
-            <SummaryValue label="Completed" value={report.kpi.completed} />
-            <SummaryValue label="In progress" value={report.kpi.inProgress} />
             <SummaryValue
-              label="Production quantity"
+              label="Buyurtmalar soni"
+              value={report.kpi.totalOrders}
+            />
+
+            <SummaryValue label="Yakunlangan" value={report.kpi.completed} />
+
+            <SummaryValue label="Jarayonda" value={report.kpi.inProgress} />
+
+            <SummaryValue
+              label="Ishlab chiqarilgan miqdor"
               value={formatProductionQuantity(report.kpi.producedQuantity)}
             />
           </div>
         </ReportSection>
 
+        {/* =========================
+            PLAN VS ACTUAL
+        ========================== */}
+
         <ReportSection
-          title="Plan vs Actual"
-          description="Har completed order bo'yicha reja va real ishlab chiqarish."
+          title="Reja va amalda"
+          description="Har bir yakunlangan buyurtma bo'yicha reja va real ishlab chiqarish."
         >
-          <Table
+          <LocalizedTable
             columns={[
-              { key: "productName", title: "Product" },
+              {
+                key: "productName",
+
+                title: "Mahsulot",
+              },
+
               {
                 key: "plannedQuantity",
-                title: "Planned",
+
+                title: "Reja",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "producedQuantity",
-                title: "Actual",
+
+                title: "Amalda",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "difference",
-                title: "Difference",
+
+                title: "Farq",
+
                 render: (value, row) => (
                   <strong
                     className={
@@ -543,100 +974,154 @@ const ReportsPage = () => {
                     }
                   >
                     {value > 0 ? "+" : ""}
-                    {formatProductionQuantity(value)} {row.unit}
+                    {formatProductionQuantity(value)} {localizedUnit(row.unit)}
                   </strong>
                 ),
               },
+
               {
                 key: "percent",
-                title: "Percentage",
+
+                title: "Foiz",
+
                 render: (value) =>
                   `${value > 0 ? "+" : ""}${value.toFixed(1)}%`,
               },
             ]}
             data={report.planActualRows}
             rowKey="id"
-            emptyText="Completed production mavjud emas."
+            emptyText="Yakunlangan ishlab chiqarish mavjud emas."
           />
         </ReportSection>
 
+        {/* =========================
+            DEFECT / WASTE
+        ========================== */}
+
         <ReportSection
-          title="Defect / Waste"
-          description="Brak va waste ulushi completed orderlar asosida."
+          title="Brak / yo'qotish"
+          description="Brak va yo'qotish ulushi yakunlangan buyurtmalar asosida."
         >
-          <Table
+          <LocalizedTable
             columns={[
-              { key: "productName", title: "Product" },
+              {
+                key: "productName",
+
+                title: "Mahsulot",
+              },
+
               {
                 key: "defectQuantity",
-                title: "Defect",
+
+                title: "Brak",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "wasteQuantity",
-                title: "Waste",
+
+                title: "Yo'qotish",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "defectRate",
-                title: "Defect rate",
+
+                title: "Brak foizi",
+
                 render: (value) => `${value.toFixed(1)}%`,
               },
+
               {
                 key: "wasteRate",
-                title: "Waste rate",
+
+                title: "Yo'qotish foizi",
+
                 render: (value) => `${value.toFixed(1)}%`,
               },
             ]}
             data={report.defectWasteRows}
             rowKey="id"
-            emptyText="Defect yoki waste ma'lumoti yo'q."
+            emptyText="Brak yoki yo'qotish ma'lumoti yo'q."
           />
         </ReportSection>
 
+        {/* =========================
+            COST REPORT
+        ========================== */}
+
         <ReportSection
-          title="Cost Report"
-          description="Material, overhead va total production cost."
+          title="Tannarx hisoboti"
+          description="Material, qo'shimcha xarajat va jami ishlab chiqarish tannarxi."
         >
-          <Table
+          <LocalizedTable
             columns={[
-              { key: "productName", title: "Product" },
+              {
+                key: "productName",
+
+                title: "Mahsulot",
+              },
+
               {
                 key: "plannedMaterialCost",
-                title: "Planned material",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Rejadagi material",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
+
               {
                 key: "actualMaterialCost",
-                title: "Actual material",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Amaldagi material",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
+
               {
                 key: "overheadCost",
-                title: "Overhead",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Qo'shimcha xarajat",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
+
               {
                 key: "actualProductionCost",
-                title: "Total production cost",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Jami ishlab chiqarish tannarxi",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
+
               {
                 key: "actualUnitCost",
-                title: "Actual unit cost",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Amaldagi birlik tannarxi",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
             ]}
             data={report.costRows}
             rowKey="id"
-            emptyText="Cost report uchun completed order mavjud emas."
+            emptyText="Tannarx hisoboti uchun yakunlangan buyurtma mavjud emas."
           />
         </ReportSection>
 
+        {/* =========================
+            TOP PRODUCTS
+        ========================== */}
+
         <ReportSection
-          title="Top Products"
+          title="Eng ko'p ishlab chiqarilgan mahsulotlar"
           description="Eng ko'p ishlab chiqarilgan 5 ta mahsulot."
         >
           <div className="reports-page__top-products">
@@ -645,6 +1130,7 @@ const ReportsPage = () => {
                 <div key={product.id} className="reports-page__top-product">
                   <div>
                     <strong>{product.productName}</strong>
+
                     <span>
                       {formatProductionQuantity(product.producedQuantity)}
                     </span>
@@ -664,55 +1150,90 @@ const ReportsPage = () => {
                 </div>
               ))
             ) : (
-              <div className="reports-page__empty">Mahsulotlar mavjud emas.</div>
+              <div className="reports-page__empty">
+                {translateText("Mahsulotlar mavjud emas.")}
+              </div>
             )}
           </div>
         </ReportSection>
 
+        {/* =========================
+            RECENT PRODUCTION
+        ========================== */}
+
         <ReportSection
-          title="Recent Production"
-          description="Oxirgi production orderlar."
+          title="Oxirgi ishlab chiqarish"
+          description="Oxirgi ishlab chiqarish buyurtmalari."
         >
-          <Table
+          <LocalizedTable
             columns={[
-              { key: "number", title: "Number" },
-              { key: "productName", title: "Product" },
+              {
+                key: "number",
+
+                title: "Raqam",
+              },
+
+              {
+                key: "productName",
+
+                title: "Mahsulot",
+              },
+
               {
                 key: "status",
-                title: "Status",
+
+                title: "Holat",
+
                 render: (value) => (
                   <Badge variant={getProductionStatusVariant(value)}>
                     <ProductionStatusIcon status={value} />
-                    {getProductionStatusLabel(value)}
+
+                    {localizedProductionStatus(value)}
                   </Badge>
                 ),
               },
+
               {
                 key: "date",
-                title: "Date",
+
+                title: "Sana",
+
                 render: (value) => value || "-",
               },
+
               {
                 key: "plannedQuantity",
-                title: "Planned",
+
+                title: "Reja",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "producedQuantity",
-                title: "Actual",
+
+                title: "Amalda",
+
                 render: (value, row) =>
-                  `${formatProductionQuantity(value)} ${row.unit}`,
+                  `${formatProductionQuantity(value)} ${localizedUnit(
+                    row.unit,
+                  )}`,
               },
+
               {
                 key: "cost",
-                title: "Cost",
-                render: (value) => `${formatManufacturingMoney(value)} so'm`,
+
+                title: "Tannarx",
+
+                render: (value) => moneyText(value, formatManufacturingMoney),
               },
             ]}
             data={report.recentOrders}
             rowKey="id"
-            emptyText="Production order mavjud emas."
+            emptyText="Ishlab chiqarish buyurtmasi mavjud emas."
           />
         </ReportSection>
       </div>
@@ -720,11 +1241,16 @@ const ReportsPage = () => {
   );
 };
 
+/* =========================================
+ * COMPONENTS
+ * ========================================= */
+
 const ReportKpi = ({ icon, label, value, variant = "" }) => (
   <Card variant="soft" padding="md" className="reports-page__kpi">
     <div
       className={[
         "reports-page__kpi-icon",
+
         variant ? `reports-page__kpi-icon--${variant}` : "",
       ]
         .filter(Boolean)
@@ -734,7 +1260,8 @@ const ReportKpi = ({ icon, label, value, variant = "" }) => (
     </div>
 
     <div>
-      <span>{label}</span>
+      <span>{translateText(label)}</span>
+
       <strong>{value}</strong>
     </div>
   </Card>
@@ -743,8 +1270,9 @@ const ReportKpi = ({ icon, label, value, variant = "" }) => (
 const ReportSection = ({ title, description, children }) => (
   <Card padding="lg" className="reports-page__section">
     <div className="reports-page__section-title">
-      <h3>{title}</h3>
-      {description && <p>{description}</p>}
+      <h3>{translateText(title)}</h3>
+
+      {description && <p>{translateText(description)}</p>}
     </div>
 
     {children}
@@ -753,34 +1281,56 @@ const ReportSection = ({ title, description, children }) => (
 
 const SummaryValue = ({ label, value }) => (
   <div className="reports-page__summary-value">
-    <span>{label}</span>
+    <span>{translateText(label)}</span>
+
     <strong>{value}</strong>
   </div>
 );
 
-const MiniReportList = ({ title, rows, valueKey, formatter = formatSaleMoney }) => (
+const MiniReportList = ({
+  title,
+  rows = [],
+  valueKey,
+  formatter = formatSaleMoney,
+  suffix,
+}) => (
   <div className="reports-page__mini-report">
-    <h4>{title}</h4>
+    <h4>{translateText(title)}</h4>
+
     {rows.length ? (
       rows.map((row) => (
         <span key={row.id}>
-          <b>{row.name}</b>
-          <strong>{formatter(row[valueKey])} so'm</strong>
+          <b>{translateText(row.name || "-")}</b>
+
+          <strong>
+            {formatter(row[valueKey])}
+
+            {suffix !== "" ? ` ${moneyUnit()}` : ""}
+          </strong>
         </span>
       ))
     ) : (
-      <p>Ma'lumot yo'q.</p>
+      <p>{translateText("Ma'lumot yo'q.")}</p>
     )}
   </div>
 );
 
+/* =========================================
+ * DATE RANGE
+ * ========================================= */
+
 const getReportRange = (period, from, to) => {
   const now = new Date();
+
   const today = now.toISOString().slice(0, 10);
+
   const start = new Date(now);
 
   if (period === "today") {
-    return { from: today, to: today };
+    return {
+      from: today,
+      to: today,
+    };
   }
 
   if (period === "week") {
@@ -790,11 +1340,22 @@ const getReportRange = (period, from, to) => {
   } else if (period === "year") {
     start.setFullYear(now.getFullYear() - 1);
   } else {
-    return { from, to };
+    return {
+      from,
+      to,
+    };
   }
 
-  return { from: start.toISOString().slice(0, 10), to: today };
+  return {
+    from: start.toISOString().slice(0, 10),
+
+    to: today,
+  };
 };
+
+/* =========================================
+ * STATUS ICON
+ * ========================================= */
 
 const ProductionStatusIcon = ({ status }) => {
   if (status === "IN_PROGRESS") {
