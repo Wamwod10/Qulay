@@ -23,7 +23,7 @@ import "../SalesPage/SalesPage.scss";
 
 const PAGE_SIZE = 10;
 
-const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+const moneyText = (value) => formatSaleMoney(value);
 
 const SalesHistoryPage = () => {
   const navigate = useNavigate();

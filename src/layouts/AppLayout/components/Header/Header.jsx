@@ -138,7 +138,7 @@ const getSearchResults = (query) => {
         id: `sale-${sale.id}`,
         title: sale.number || "Savdo",
         type: "Savdo",
-        description: [sale.customerName, sale.status, `${formatFinanceMoney(sale.total)} so'm`]
+        description: [sale.customerName, sale.status, formatFinanceMoney(sale.total)]
           .filter(Boolean)
           .join(" / "),
         path: `/sales/history/${sale.id}`,
@@ -152,7 +152,7 @@ const getSearchResults = (query) => {
         id: `purchase-${purchase.id}`,
         title: purchase.number || "Xarid",
         type: "Xarid",
-        description: [purchase.supplierName, purchase.status, `${formatFinanceMoney(purchase.total)} so'm`]
+        description: [purchase.supplierName, purchase.status, formatFinanceMoney(purchase.total)]
           .filter(Boolean)
           .join(" / "),
         path: `/purchases/${purchase.id}`,
@@ -236,7 +236,7 @@ const getNotificationItems = (notifications) => {
         items.push({
           id: `customer-debt-${row.customerId}`,
           title: "Mijoz qarzi",
-          description: `${row.customerName} / ${formatFinanceMoney(row.debt)} so'm`,
+          description: `${row.customerName} / ${formatFinanceMoney(row.debt)}`,
           path: row.customerId ? `/customers/${row.customerId}` : "/finance/debts",
           tone: "warning",
         });
@@ -251,7 +251,7 @@ const getNotificationItems = (notifications) => {
         items.push({
           id: `supplier-debt-${row.supplierId}`,
           title: "Yetkazib beruvchi qarzi",
-          description: `${row.supplierName} / ${formatFinanceMoney(row.debt)} so'm`,
+          description: `${row.supplierName} / ${formatFinanceMoney(row.debt)}`,
           path: row.supplierId ? `/suppliers/${row.supplierId}` : "/finance/debts",
           tone: "warning",
         });
@@ -322,7 +322,7 @@ const getNotificationItems = (notifications) => {
       items.push({
         id: "payroll-debt",
         title: "Oylik qarzi mavjud",
-        description: `${formatFinanceMoney(hrSummary.salaryDebt)} so'm`,
+          description: formatFinanceMoney(hrSummary.salaryDebt),
         path: "/hr/payroll",
         tone: "warning",
       });

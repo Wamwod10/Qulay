@@ -116,7 +116,9 @@ const readAgents = () => {
 
     return normalizedAgents;
   } catch (error) {
-    console.error("Agents storage read error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Agents storage read error:", error);
+    }
 
     return [];
   }

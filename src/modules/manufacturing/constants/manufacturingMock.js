@@ -8,7 +8,7 @@ export const INITIAL_BOMS = [
         productName: "Shokoladli pechenye",
 
         outputQuantity: 100,
-        outputUnit: "dona",
+        unit: "dona",
 
         version: "1.0",
 

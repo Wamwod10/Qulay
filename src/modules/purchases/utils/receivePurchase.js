@@ -41,13 +41,17 @@ export const receivePurchaseIntoWarehouse = async ({
         );
     }
 
+    const idempotencyKey = `purchase-receive:${purchase.id}:${receivedItems.map((item) => `${item.itemId || item.productId}:${item.quantity}`).join(",")}`;
     const remotePurchase = await apiRequest(`/purchases/${purchase.id}/receive`, {
         method: "POST",
+        idempotencyKey,
         body: {
+            idempotencyKey,
             receivedItems: receivedItems.map((item) => ({
                 purchaseItemId: item.itemId,
                 productId: item.productId,
                 quantity: item.quantity,
+                expiryDate: item.expiryDate || null,
             })),
         },
     });

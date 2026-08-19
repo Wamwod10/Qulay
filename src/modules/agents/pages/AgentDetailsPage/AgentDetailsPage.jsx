@@ -86,11 +86,11 @@ const AgentDetailsPage = () => {
             </div>
           </Card>
 
-          <AgentMetric icon={<Target size={20} />} label={translateText("Oylik reja")} value={`${formatAgentMoney(target)} ${translateText("so'm")}`} />
+          <AgentMetric icon={<Target size={20} />} label={translateText("Oylik reja")} value={formatAgentMoney(target)} />
 
           <AgentMetric icon={<CircleDollarSign size={20} />} label={translateText("Komissiya")} value={`${commission}%`} />
 
-          <AgentMetric icon={<Wallet size={20} />} label={translateText("Agentdagi pul")} value={`${formatAgentMoney(cashBalance)} ${translateText("so'm")}`} />
+          <AgentMetric icon={<Wallet size={20} />} label={translateText("Agentdagi pul")} value={formatAgentMoney(cashBalance)} />
         </section>
 
         <section className="agent-details__grid">
@@ -109,10 +109,10 @@ const AgentDetailsPage = () => {
             <SectionTitle title={translateText("Pul / qarz xulosasi")} description={translateText("Moliya ulanganda tushum va qarzlar shu yerda real hisoblanadi.")} />
 
             <div className="agent-details__info-grid">
-              <InfoItem label={translateText("Yig'ilgan pul")} value={`${formatAgentMoney(integrationData.collectedAmount)} ${translateText("so'm")}`} />
-              <InfoItem label={translateText("Agentdagi pul")} value={`${formatAgentMoney(cashBalance)} ${translateText("so'm")}`} />
-              <InfoItem label={translateText("Komissiya")} value={`${formatAgentMoney(commissionAmount)} ${translateText("so'm")}`} />
-              <InfoItem label={translateText("Topshirilgan pul")} value={`${formatAgentMoney(submittedAmount)} ${translateText("so'm")}`} />
+              <InfoItem label={translateText("Yig'ilgan pul")} value={formatAgentMoney(integrationData.collectedAmount)} />
+              <InfoItem label={translateText("Agentdagi pul")} value={formatAgentMoney(cashBalance)} />
+              <InfoItem label={translateText("Komissiya")} value={formatAgentMoney(commissionAmount)} />
+              <InfoItem label={translateText("Topshirilgan pul")} value={formatAgentMoney(submittedAmount)} />
             </div>
           </Card>
         </section>

@@ -20,6 +20,7 @@ import {
 
 import {
   getStoredWarehouseStock,
+  getStoredBatches,
   getWarehouseMovements,
   inventoryAdjustStock,
   stockIn,
@@ -45,6 +46,7 @@ import PageContainer from "../../../../components/PageContainer/PageContainer";
 import {
   Button,
   Card,
+  Badge,
   LiveIcon,
   Select,
   TableToolbar,
@@ -63,10 +65,14 @@ import "./WarehousePage.scss";
 const WarehousePage = () => {
   const [stock, setStock] = useState(() => getStoredWarehouseStock());
 
+  const [batches, setBatches] = useState(() => getStoredBatches());
+
   const [movements, setMovements] = useState(() => getWarehouseMovements());
 
   const refreshWarehouseData = () => {
     setStock(syncWarehouseWithProducts());
+
+    setBatches(getStoredBatches());
 
     setMovements(getWarehouseMovements());
 
@@ -216,14 +222,40 @@ const WarehousePage = () => {
       (item) => getWarehouseStockStatus(item) === "OUT_OF_STOCK",
     ).length;
 
+    const warehouseBatches = batches.filter(
+      (batch) => batch.warehouseId === warehouseId,
+    );
+
+    const expiredBatches = warehouseBatches.filter(
+      (batch) => batch.expiryStatus === "expired",
+    ).length;
+
+    const nearExpiryBatches = warehouseBatches.filter(
+      (batch) => batch.expiryStatus === "near_expiry",
+    ).length;
+
     return {
       products: warehouseStock.length,
 
       totalValue,
       lowStock,
       outOfStock,
+      expiredBatches,
+      nearExpiryBatches,
     };
-  }, [stock, warehouseId]);
+  }, [stock, batches, warehouseId]);
+
+  const expiryWarnings = useMemo(
+    () =>
+      batches
+        .filter(
+          (batch) =>
+            batch.warehouseId === warehouseId &&
+            ["expired", "near_expiry"].includes(batch.expiryStatus),
+        )
+        .sort((left, right) => Number(left.expiryDays ?? 0) - Number(right.expiryDays ?? 0)),
+    [batches, warehouseId],
+  );
 
   const selectedWarehouse = warehouses.find(
     (warehouse) => warehouse.id === warehouseId,
@@ -330,7 +362,7 @@ const WarehousePage = () => {
           <WarehouseStat
             icon={<Wallet size={21} />}
             label={translateText("Ombor qiymati")}
-            value={`${formatWarehouseMoney(stats.totalValue)} ${translateText("so‘m")}`}
+          value={formatWarehouseMoney(stats.totalValue)}
           />
 
           <WarehouseStat
@@ -360,7 +392,51 @@ const WarehousePage = () => {
             value={stats.outOfStock}
             variant="danger"
           />
+
+          <WarehouseStat
+            icon={<CircleAlert size={21} />}
+            label={translateText("Muddati o'tgan batchlar")}
+            value={stats.expiredBatches}
+            variant="danger"
+          />
+
+          <WarehouseStat
+            icon={<PackageCheck size={21} />}
+            label={translateText("Yaqin muddati tugaydi")}
+            value={stats.nearExpiryBatches}
+            variant="warning"
+          />
         </section>
+
+        {expiryWarnings.length > 0 && (
+          <Card padding="md" className="warehouse-page__expiry-warning">
+            <div className="warehouse-page__expiry-warning-header">
+              <div>
+                <h2>{translateText("Yaroqlilik ogohlantirishlari")}</h2>
+                <p>{translateText("FEFO/FIFO iste'molida ushbu batchlar hisobga olinadi.")}</p>
+              </div>
+              <Badge variant="warning">{expiryWarnings.length}</Badge>
+            </div>
+            <div className="warehouse-page__expiry-warning-list">
+              {expiryWarnings.slice(0, 5).map((batch) => {
+                const expired = batch.expiryStatus === "expired";
+                return (
+                  <div key={batch.id} className="warehouse-page__expiry-warning-row">
+                    <div>
+                      <strong>{batch.productName}</strong>
+                      <span>{batch.batchNumber}</span>
+                    </div>
+                    <Badge variant={expired ? "danger" : "warning"}>
+                      {expired
+                        ? translateText("Muddati o'tgan")
+                        : `${batch.expiryDays} ${translateText("kun qoldi")}`}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         <WarehouseManager
           warehouses={warehouses}

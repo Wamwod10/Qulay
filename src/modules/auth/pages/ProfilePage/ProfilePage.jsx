@@ -10,6 +10,7 @@ import authService from "../../services/authService";
 import { logout, setAuth } from "../../../../store/slices/authSlice";
 import { setCompany } from "../../../../store/slices/tenantSlice";
 import { updateSection } from "../../../../store/slices/settingsSlice";
+import { SUPPORTED_CURRENCIES } from "../../../../shared/utils/currency";
 
 import "./ProfilePage.scss";
 
@@ -127,6 +128,7 @@ const ProfilePage = () => {
           changes: { receiptHeader: result.account.businessName },
         }),
       );
+      dispatch(updateSection({ section: "formats", changes: { currency: result.account.currency } }));
       setMessage("Kompaniya profili yangilandi.");
     } catch (saveError) {
       setError(saveError.message || "Kompaniya saqlanmadi.");
@@ -280,9 +282,7 @@ const ProfilePage = () => {
               value={company.currency}
               onChange={(event) => setCompanyForm((current) => ({ ...current, currency: event.target.value }))}
             >
-              <option value="UZS">UZS</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
+              {SUPPORTED_CURRENCIES.map((currency) => <option key={currency.value} value={currency.value}>{currency.label}</option>)}
             </select>
           </label>
           <Input

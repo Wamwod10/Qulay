@@ -30,10 +30,12 @@ export const getStoredPurchases = () => {
 
         return stored;
     } catch (error) {
-        console.error(
-            "Purchases storage read error:",
-            error,
-        );
+        if (import.meta.env.DEV) {
+            console.error(
+                "Purchases storage read error:",
+                error,
+            );
+        }
 
         return [];
     }
@@ -52,10 +54,12 @@ export const savePurchases = (
             new Event("purchases:changed"),
         );
     } catch (error) {
-        console.error(
-            "Purchases storage save error:",
-            error,
-        );
+        if (import.meta.env.DEV) {
+            console.error(
+                "Purchases storage save error:",
+                error,
+            );
+        }
     }
 };
 

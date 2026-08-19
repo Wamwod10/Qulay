@@ -15,9 +15,7 @@ const getFormats = () => {
 };
 
 export const formatSaleMoney = (value) => {
-  const formatted = formatMoneyWithSettings(value, getFormats());
-
-  return formatted.replace(/\s(so'm|UZS|USD)$/, "");
+  return formatMoneyWithSettings(value, getFormats());
 };
 
 export const formatSaleDate = (value) => {

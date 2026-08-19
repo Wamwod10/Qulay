@@ -1,19 +1,22 @@
 import { useMemo, useState } from "react";
+import { translateText } from "../../../../localization/i18n";
 
 import { Plus, Trash2 } from "lucide-react";
 
 import {
   Button,
   Card,
+  CreatableSelect,
   Input,
   Select,
   Switch,
   Textarea,
 } from "../../../../shared/ui";
 
-import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { createStoredProduct, getStoredProducts } from "../../../products/utils/productsStorage";
 
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
 import "./BomForm.scss";
 
@@ -25,7 +28,8 @@ const createEmptyMaterial = () => ({
 });
 
 const BomForm = ({ initialValues, onSubmit, onCancel }) => {
-  const products = useMemo(() => getStoredProducts(), []);
+  const [productList, setProductList] = useState(() => getStoredProducts());
+  const products = productList;
 
   const finishedProducts = useMemo(
     () =>
@@ -159,7 +163,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
     const nextErrors = {};
 
     if (!name.trim()) {
-      nextErrors.name = "BOM nomini kiriting.";
+      nextErrors.name = "Retsept nomini kiriting.";
     }
 
     if (!productId) {
@@ -182,10 +186,11 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
     if (new Set(ids).size !== ids.length) {
       nextErrors.materials =
-        "Bir xil xomashyoni BOM ichida ikki marta qo‘shib bo‘lmaydi.";
+        "Bir xil xomashyoni retsept ichida ikki marta qo‘shib bo‘lmaydi.";
     }
 
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
 
     return Object.keys(nextErrors).length === 0;
   };
@@ -226,7 +231,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
       outputQuantity: output,
 
-      outputUnit: selectedProduct?.unit || "dona",
+      unit: selectedProduct?.unit || "dona",
 
       version: version.trim() || "1.0",
 
@@ -253,21 +258,29 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
         <div className="bom-form__grid">
           <Input
-            label="BOM / Retsept nomi"
+            label="Retsept nomi"
             value={name}
             placeholder="Masalan: Shokoladli pechenye retsepti"
             error={errors.name}
             onChange={(event) => setName(event.target.value)}
           />
 
-          <Select
-            label="Tayyor mahsulot"
+          <CreatableSelect
+            label={translateText("Natijada olinadigan mahsulot")}
             value={productId}
-            placeholder="Mahsulot tanlang"
+            placeholder={translateText("Mahsulotni tanlang yoki yangi nom yozing")}
             options={finishedProductOptions}
             error={errors.product}
             onChange={(event) => setProductId(event.target.value)}
+            onCreate={async (name) => {
+              const created = await createStoredProduct({ name, type: "FINISHED_GOOD", unit: "dona", stock: 0, cost: 0, salePrice: null, status: "ACTIVE" });
+              setProductList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+              setProductId(created.id);
+              return created;
+            }}
           />
+
+          <p className="bom-form__helper">{translateText("Ushbu retsept bo‘yicha ishlab chiqariladigan mahsulotni tanlang yoki yarating.")}</p>
 
           <Input
             label="Chiqish miqdori"
@@ -280,8 +293,6 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
             onChange={(event) => setOutputQuantity(event.target.value)}
           />
 
-          <Input label="Birlik" value={selectedProduct?.unit || "—"} disabled />
-
           <Input
             label="Versiya"
             value={version}
@@ -291,8 +302,8 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
           <Switch
             checked={status}
-            label="BOM faol"
-            description="Faol BOM ishlab chiqarish buyurtmasida tanlanishi mumkin."
+            label="Retsept faol"
+            description="Faol retsept ishlab chiqarish buyurtmasida tanlanishi mumkin."
             onChange={(event) => setStatus(event.target.checked)}
           />
         </div>
@@ -306,15 +317,6 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
             <p>Bitta ishlab chiqarish batch’i uchun kerakli materiallar.</p>
           </div>
 
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            leftIcon={<Plus size={16} />}
-            onClick={handleAddMaterial}
-          >
-            Xomashyo qo‘shish
-          </Button>
         </div>
 
         <div className="bom-form__materials">
@@ -322,10 +324,10 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
             <div key={material.id} className="bom-form__material">
               <div className="bom-form__material-number">{index + 1}</div>
 
-              <Select
+              <CreatableSelect
                 label="Xomashyo"
                 value={material.productId}
-                placeholder="Tanlang"
+                placeholder="Tanlang yoki yangi nom yozing"
                 options={materialOptions}
                 onChange={(event) =>
                   handleMaterialChange(
@@ -334,6 +336,12 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
                     event.target.value,
                   )
                 }
+                onCreate={async (name) => {
+                  const created = await createStoredProduct({ name, type: "RAW_MATERIAL", unit: "dona", stock: 0, cost: 0, salePrice: null, status: "ACTIVE" });
+                  setProductList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+                  handleMaterialChange(material.id, "productId", created.id);
+                  return created;
+                }}
               />
 
               <Input
@@ -361,13 +369,13 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
               <div className="bom-form__material-cost">
                 <span>Tannarx</span>
 
-                <strong>{formatManufacturingMoney(material.cost)} so‘m</strong>
+                <strong>{formatManufacturingMoney(material.cost)}</strong>
               </div>
 
               <div className="bom-form__material-cost">
                 <span>Jami</span>
 
-                <strong>{formatManufacturingMoney(material.total)} so‘m</strong>
+                <strong>{formatManufacturingMoney(material.total)}</strong>
               </div>
 
               <Button
@@ -387,6 +395,9 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         {errors.materials && (
           <div className="bom-form__error">{errors.materials}</div>
         )}
+        <Button type="button" variant="secondary" size="sm" leftIcon={<Plus size={16} />} onClick={handleAddMaterial}>
+          Xomashyo qo‘shish
+        </Button>
       </Card>
 
       <div className="bom-form__bottom-grid">
@@ -402,7 +413,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
           <div className="bom-form__cost-summary">
             <CostRow
               label="Xomashyo tannarxi"
-              value={`${formatManufacturingMoney(materialCost)} so‘m`}
+              value={formatManufacturingMoney(materialCost)}
             />
 
             <CostRow
@@ -414,7 +425,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
             <CostRow
               label="1 birlik tannarx"
-              value={`${formatManufacturingMoney(unitCost)} so‘m`}
+              value={formatManufacturingMoney(unitCost)}
               strong
             />
           </div>
@@ -444,7 +455,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         </Button>
 
         <Button type="submit">
-          {initialValues ? "O‘zgarishlarni saqlash" : "BOM yaratish"}
+          {initialValues ? "O‘zgarishlarni saqlash" : "Retsept yaratish"}
         </Button>
       </div>
     </form>

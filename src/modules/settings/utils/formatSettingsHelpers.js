@@ -1,4 +1,6 @@
 import { getLocale, translateText } from "../../../localization/i18n";
+import { normalizeCurrency } from "../../../shared/utils/currency";
+import { roundDecimal } from "../../../shared/utils/number";
 
 export const formatDateWithSettings = (value, formats = {}) => {
   if (!value) {
@@ -46,9 +48,9 @@ export const formatTimeWithSettings = (value, formats = {}) => {
 };
 
 export const formatMoneyWithSettings = (value, formats = {}) => {
-  const amount = Number(value || 0);
-  const currency = formats.currency || "UZS";
-  const precision = Number(formats.numberPrecision || 0);
+  const amount = roundDecimal(value, 2);
+  const currency = normalizeCurrency(formats.currency || "UZS");
+  const precision = Math.max(Number(formats.numberPrecision ?? 2), 2);
   const locale = formats.moneyFormat === "comma-code" ? "en-US" : getLocale(formats.language);
   const formatted = new Intl.NumberFormat(locale, {
     minimumFractionDigits: precision,
@@ -62,10 +64,17 @@ export const formatMoneyWithSettings = (value, formats = {}) => {
   return `${formatted} ${currency === "UZS" ? translateText("so'm", { language: formats.language }) : currency}`;
 };
 
+export const calculateVat = (amount, percent) => {
+  const base = Number(amount || 0);
+  const rate = Number(percent || 0);
+  if (!Number.isFinite(base) || !Number.isFinite(rate)) return 0;
+  return Number((base * rate / 100).toFixed(2));
+};
+
 export const formatQuantityWithSettings = (value, formats = {}) => {
   const precision = Number(formats.quantityPrecision ?? 2);
 
-  return Number(value || 0).toLocaleString(getLocale(formats.language), {
+  return roundDecimal(value, precision).toLocaleString(getLocale(formats.language), {
     minimumFractionDigits: 0,
     maximumFractionDigits: precision,
   });

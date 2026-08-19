@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Card, Input, Switch, Textarea } from "../../../../shared/ui";
 import "./AgentForm.scss";
 import { translateText } from "../../../../localization/i18n";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 const toNumber = value => {
   const number = Number(value || 0);
   return Number.isFinite(number) ? number : 0;
@@ -56,6 +57,7 @@ const AgentForm = ({
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
+      focusFirstInvalidField();
       return;
     }
     onSubmit?.({

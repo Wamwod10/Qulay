@@ -154,14 +154,14 @@ const PurchaseDetailsPage = () => {
     key: "purchasePrice",
     title: translateText("Xarid narxi"),
 
-    render: (value) => <span>{formatPurchaseMoney(value)}{translateText("so‘m")}</span>
+      render: (value) => <span>{formatPurchaseMoney(value)}</span>
   },
 
   {
     key: "total",
     title: translateText("Jami"),
 
-    render: (value) => <strong>{formatPurchaseMoney(value)}{translateText("so‘m")}</strong>
+      render: (value) => <strong>{formatPurchaseMoney(value)}</strong>
   }];
 
 
@@ -267,12 +267,12 @@ const PurchaseDetailsPage = () => {
           <PurchaseMetric
             icon={<Wallet size={20} />}
             label={translateText("Jami")}
-            value={`${formatPurchaseMoney(purchase.total)} so‘m`} />
+            value={formatPurchaseMoney(purchase.total)} />
           
 
           <PurchaseMetric
             label={translateText("To‘langan")}
-            value={`${formatPurchaseMoney(purchase.paidAmount)} so‘m`} />
+            value={formatPurchaseMoney(purchase.paidAmount)} />
           
 
           <PurchaseMetric
@@ -285,7 +285,7 @@ const PurchaseDetailsPage = () => {
 
             }
             label={translateText("Qarz")}
-            value={`${formatPurchaseMoney(purchase.debtAmount)} so‘m`} />
+            value={formatPurchaseMoney(purchase.debtAmount)} />
           
         </section>
 
@@ -325,17 +325,17 @@ const PurchaseDetailsPage = () => {
             <div className="purchase-details__info-grid">
               <InfoItem
                 label={translateText("Jami")}
-                value={`${formatPurchaseMoney(purchase.total)} so‘m`} />
+                value={formatPurchaseMoney(purchase.total)} />
               
 
               <InfoItem
                 label={translateText("To‘langan")}
-                value={`${formatPurchaseMoney(purchase.paidAmount)} so‘m`} />
+                value={formatPurchaseMoney(purchase.paidAmount)} />
               
 
               <InfoItem
                 label={translateText("Qarz")}
-                value={`${formatPurchaseMoney(purchase.debtAmount)} so‘m`} />
+                value={formatPurchaseMoney(purchase.debtAmount)} />
               
 
               <InfoItem

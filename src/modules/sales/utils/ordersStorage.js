@@ -46,7 +46,9 @@ export const getStoredOrders = () => {
 
     return normalizedOrders;
   } catch (error) {
-    console.error("Orders storage read error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Orders storage read error:", error);
+    }
 
     return [];
   }

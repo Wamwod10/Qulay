@@ -135,7 +135,7 @@ const ProductTable = ({
     title: tTerm("cost"),
     render: (value) =>
     <span className="product-table__price">
-          {formatProductPrice(value ?? 0)}{translateText("so'm")}
+          {formatProductPrice(value ?? 0)}
     </span>
 
   },
@@ -145,7 +145,7 @@ const ProductTable = ({
     render: (value) =>
     <span className="product-table__price">
           {value !== null && value !== undefined ?
-      `${formatProductPrice(value)} ${translateText("so'm")}` :
+      formatProductPrice(value) :
       "-"}
         </span>
 

@@ -29,15 +29,15 @@ import {
   parseDashboardDate,
 } from "../../utils/dashboardSelectors";
 import { getLocale, translateText } from "../../../../localization/i18n";
+import { formatMoneyWithSettings } from "../../../settings/utils/formatSettingsHelpers";
+import { getPlatformSettings } from "../../../settings/utils/settingsStorage";
 
 import "./DashboardPage.scss";
 
-const moneyFormatter = () => new Intl.NumberFormat(getLocale(), {
-  maximumFractionDigits: 0,
-});
+const moneyFormatter = () => new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 });
 
 const formatMoney = (value) =>
-  `${moneyFormatter().format(Number(value) || 0)} ${translateText("so'm")}`;
+  formatMoneyWithSettings(Number(value) || 0, getPlatformSettings().formats);
 
 const formatNumber = (value) => moneyFormatter().format(Number(value) || 0);
 
@@ -415,7 +415,7 @@ const ManufacturingPanel = ({ manufacturing, periodLabel, onClick, onOrder }) =>
               <strong>{order.number || order.id}</strong>
               <small>
                 {order.productName || translateText("Mahsulot")} · {formatNumber(order.plannedQuantity)}{" "}
-                {translateText(order.outputUnit || "dona")}
+                {translateText(order.unit || "dona")}
               </small>
               {order.currentStageName && <small>{order.currentStageName}</small>}
             </span>

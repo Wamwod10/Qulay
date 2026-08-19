@@ -17,6 +17,14 @@ let currentLanguage = DEFAULT_LANGUAGE;
 let currentTerminology = {};
 
 const TAJIK_SAFE_TEXT_MAP = {
+  "Internet aloqasi yo'q": "Пайвасти интернет мавҷуд нест",
+  "Qayta urinish": "Аз нав кӯшиш кардан",
+  "Sahifa ochilmadi": "Саҳифа кушода нашуд",
+  "Iltimos, sahifani qayta yuklang.": "Лутфан, саҳифаро аз нав бор кунед.",
+  "Qayta yuklash": "Аз нав бор кардан",
+  "Natijada olinadigan mahsulot": "Маҳсулоти натиҷавӣ",
+  "Mahsulotni tanlang yoki yangi nom yozing": "Маҳсулотро интихоб кунед ё номи нав нависед",
+  "Ushbu retsept bo‘yicha ishlab chiqariladigan mahsulotni tanlang yoki yarating.": "Маҳсулотеро интихоб кунед ё созед, ки аз рӯи ин ретсепт истеҳсол мешавад.",
   "Amallar": "Амалҳо",
   "Faol": "Фаъол",
   "Faol emas": "Ғайрифаъол",
@@ -234,7 +242,7 @@ export const tTerm = (key, options = {}) => {
 
 export const translateText = (value, options = {}) => {
   const language = normalizeLanguage(options.language || currentLanguage);
-  const source = normalizeVisibleText(value);
+  const source = repairMojibake(normalizeVisibleText(value));
 
   if (!source || language === "uz") {
     return source;
@@ -342,11 +350,6 @@ export const localizeDom = (root = document.body) => {
     return;
   }
 
-  if (currentLanguage === "uz") {
-    restoreUzDom(root);
-    return;
-  }
-
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = node.parentElement;
@@ -400,26 +403,6 @@ export const localizeDom = (root = document.body) => {
   });
 };
 
-const restoreUzDom = (root) => {
-  root.querySelectorAll?.("[data-i18n-source-text]")?.forEach((element) => {
-    if (element.childNodes.length === 1 && element.firstChild?.nodeType === Node.TEXT_NODE) {
-      element.firstChild.nodeValue = element.dataset.i18nSourceText;
-    }
-  });
-
-  TEXT_ATTRIBUTES.forEach((attribute) => {
-    root.querySelectorAll?.(`[${toDatasetAttribute(attribute)}]`)?.forEach(
-      (element) => {
-        const source = element.dataset[`i18n${toDatasetName(attribute)}Source`];
-
-        if (source) {
-          element.setAttribute(attribute, source);
-        }
-      },
-    );
-  });
-};
-
 export const installBrowserLocalization = () => {
   if (typeof window === "undefined" || window.__universalErpI18nInstalled) {
     return;
@@ -451,6 +434,3 @@ const toDatasetName = (attribute) =>
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join("");
-
-const toDatasetAttribute = (attribute) =>
-  `data-i18n-${attribute.replace(/^data-/, "")}-source`;

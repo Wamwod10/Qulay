@@ -80,7 +80,9 @@ const readCustomers = () => {
     tenantSet(STORAGE_KEY, normalizedCustomers);
     return normalizedCustomers;
   } catch (error) {
-    console.error("Customers storage read error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Customers storage read error:", error);
+    }
     return [];
   }
 };
@@ -170,7 +172,9 @@ const readFollowUps = () => {
     }
     return followUps.map(normalizeCustomerFollowUp);
   } catch (error) {
-    console.error("Customer follow-up storage read error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Customer follow-up storage read error:", error);
+    }
     return [];
   }
 };

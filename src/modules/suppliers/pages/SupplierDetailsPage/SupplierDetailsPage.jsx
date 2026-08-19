@@ -170,14 +170,14 @@ const SupplierDetailsPage = () => {
       key: "total",
       title: "Jami",
 
-      render: (value) => `${formatSupplierMoney(value)} so‘m`,
+      render: (value) => formatSupplierMoney(value),
     },
 
     {
       key: "paidAmount",
       title: "To‘langan",
 
-      render: (value) => `${formatSupplierMoney(value)} so‘m`,
+      render: (value) => formatSupplierMoney(value),
     },
 
     {
@@ -188,7 +188,7 @@ const SupplierDetailsPage = () => {
         const debt = Number(value || 0);
 
         return debt > 0 ? (
-          <Badge variant="warning">{formatSupplierMoney(debt)} so‘m</Badge>
+          <Badge variant="warning">{formatSupplierMoney(debt)}</Badge>
         ) : (
           <Badge variant="success">Qarz yo‘q</Badge>
         );
@@ -266,7 +266,7 @@ const SupplierDetailsPage = () => {
           <SupplierMetric
             icon={<Wallet size={20} />}
             label="Jami xarid"
-            value={`${formatSupplierMoney(totalPurchases)} so‘m`}
+            value={formatSupplierMoney(totalPurchases)}
           />
 
           <SupplierMetric
@@ -279,7 +279,7 @@ const SupplierDetailsPage = () => {
               />
             }
             label="Jami qarz"
-            value={`${formatSupplierMoney(totalDebt)} so‘m`}
+            value={formatSupplierMoney(totalDebt)}
           />
 
           <Card className="supplier-details__score">
@@ -440,7 +440,7 @@ const SupplierDetailsPage = () => {
                             <span>{formatPurchaseDate(price.date)}</span>
 
                             <strong>
-                              {formatSupplierMoney(price.price)} so‘m
+                              {formatSupplierMoney(price.price)}
                             </strong>
                           </div>
                         ))}
@@ -448,13 +448,13 @@ const SupplierDetailsPage = () => {
 
                       <div className="supplier-details__price-footer">
                         <span>
-                          Birinchi: {formatSupplierMoney(trend.firstPrice)} so‘m
+                          Birinchi: {formatSupplierMoney(trend.firstPrice)}
                         </span>
 
                         <span>
                           Hozir:{" "}
                           <strong>
-                            {formatSupplierMoney(trend.lastPrice)} so‘m
+                            {formatSupplierMoney(trend.lastPrice)}
                           </strong>
                         </span>
                       </div>
@@ -476,17 +476,17 @@ const SupplierDetailsPage = () => {
             <div className="supplier-details__info-grid">
               <InfoItem
                 label="Jami xarid"
-                value={`${formatSupplierMoney(totalPurchases)} so‘m`}
+                value={formatSupplierMoney(totalPurchases)}
               />
 
               <InfoItem
                 label="To‘langan"
-                value={`${formatSupplierMoney(totalPaid)} so‘m`}
+                value={formatSupplierMoney(totalPaid)}
               />
 
               <InfoItem
                 label="Qarz"
-                value={`${formatSupplierMoney(totalDebt)} so‘m`}
+                value={formatSupplierMoney(totalDebt)}
               />
 
               <InfoItem
@@ -525,8 +525,7 @@ const SupplierDetailsPage = () => {
                   </div>
 
                   <small>
-                    Oxirgi narx: {formatSupplierMoney(product.purchasePrice)}{" "}
-                    so‘m
+                    Oxirgi narx: {formatSupplierMoney(product.purchasePrice)}
                   </small>
                 </div>
               ))}
@@ -573,7 +572,7 @@ const SupplierDetailsPage = () => {
               {
                 key: "amount",
                 title: "Summa",
-                render: (value) => `${formatFinanceMoney(value)} so'm`,
+                render: (value) => formatFinanceMoney(value),
               },
               { key: "note", title: "Izoh", render: (value) => value || "-" },
             ]}

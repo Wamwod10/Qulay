@@ -20,7 +20,7 @@ const AgentPayments = ({
   }, {
     key: "amount",
     title: translateText("Summa"),
-    render: value => `${formatAgentMoney(value)} ${translateText("so'm")}`
+    render: value => formatAgentMoney(value)
   }, {
     key: "createdAt",
     title: translateText("Sana"),

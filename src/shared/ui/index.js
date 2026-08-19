@@ -9,6 +9,7 @@ export { default as LiveIcon } from "./LiveIcon/LiveIcon";
 export { default as Modal } from "./Modal/Modal";
 export { default as Pagination } from "./Pagination/Pagination";
 export { default as Select } from "./Select/Select";
+export { default as CreatableSelect } from "./CreatableSelect/CreatableSelect";
 export { default as Skeleton } from "./Skeleton/Skeleton";
 export { default as Switch } from "./Switch/Switch";
 export { default as Table } from "./Table/Table";

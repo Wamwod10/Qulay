@@ -207,14 +207,14 @@ const SuppliersPage = () => {
               />
             }
             label="Jami qarz"
-            value={`${formatSupplierMoney(stats.totalDebt)} so‘m`}
+            value={formatSupplierMoney(stats.totalDebt)}
             variant="warning"
           />
 
           <SupplierStat
             icon={<PackageCheck size={21} />}
             label="Jami xarid"
-            value={`${formatSupplierMoney(stats.totalPurchases)} so‘m`}
+            value={formatSupplierMoney(stats.totalPurchases)}
           />
         </section>
 

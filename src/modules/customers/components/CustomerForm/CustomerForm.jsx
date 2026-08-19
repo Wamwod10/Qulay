@@ -5,6 +5,7 @@ import { Badge, Button, Card, Input, LiveIcon, Select, Textarea } from "../../..
 import { CUSTOMER_SEGMENTS, CUSTOMER_SOURCES, getStoredCustomers, normalizeCustomer } from "../../utils/customersStorage";
 import "./CustomerForm.scss";
 import { translateText } from "../../../../localization/i18n";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 const TYPE_OPTIONS = [{
   value: "INDIVIDUAL",
   text: "Jismoniy shaxs"
@@ -110,6 +111,7 @@ const CustomerForm = ({
       nextErrors.paymentTermDays = translateText("To'lov muddati manfiy bo'lmasin.");
     }
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
     return Object.keys(nextErrors).length === 0;
   };
   const handleSubmit = event => {

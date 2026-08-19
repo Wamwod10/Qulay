@@ -16,6 +16,12 @@ const createApiUnavailableError = (path, status) => {
   return error;
 };
 
+const emitApiStatus = (type, detail = {}) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(type, { detail }));
+  }
+};
+
 const getSession = () => {
   if (typeof window === "undefined") {
     return null;
@@ -122,6 +128,7 @@ const request = async (path, options = {}) => {
   })
     .then((response) => parseResponse(response, path))
     .then((result) => {
+      emitApiStatus("erp:api-online");
       if (method === "GET" && result !== null) {
         responseCache.set(cacheKey, { createdAt: Date.now(), value: result });
       }
@@ -130,9 +137,11 @@ const request = async (path, options = {}) => {
     })
     .catch((error) => {
       if (!isLocalBusinessFallbackEnabled()) {
-        throw error?.code === "API_UNAVAILABLE"
+        const normalizedError = error?.code === "API_UNAVAILABLE"
           ? error
           : createApiUnavailableError(path, error?.status);
+        emitApiStatus("erp:api-error", { message: normalizedError.message });
+        throw normalizedError;
       }
 
       return null;

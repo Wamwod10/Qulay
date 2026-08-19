@@ -3,15 +3,13 @@ import {
     savePurchases,
 } from "./purchasesStorage";
 import { getLocale, translateText } from "../../../localization/i18n";
+import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
+import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 
 export const formatPurchaseMoney = (
     value,
 ) => {
-    return new Intl.NumberFormat(
-        getLocale(),
-    ).format(
-        Number(value) || 0,
-    );
+    return formatMoneyWithSettings(Number(value) || 0, getPlatformSettings().formats);
 };
 
 export const getPurchaseStatusLabel = (

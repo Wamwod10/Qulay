@@ -21,7 +21,7 @@ const BomCreatePage = () => {
 
   return (
     <PageContainer
-      title="Yangi BOM / Retsept"
+      title="Yangi retsept"
       description="Mahsulot ishlab chiqarish uchun xomashyo tarkibini yarating."
     >
       <div

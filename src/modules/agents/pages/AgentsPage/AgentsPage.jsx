@@ -84,9 +84,9 @@ const AgentsPage = () => {
 
           <AgentStat icon={<Route size={21} />} label={translateText("Faol agent")} value={stats.active} variant="success" />
 
-          <AgentStat icon={<Target size={21} />} label={translateText("Jami reja")} value={`${formatAgentMoney(stats.target)} ${translateText("so'm")}`} />
+          <AgentStat icon={<Target size={21} />} label={translateText("Jami reja")} value={formatAgentMoney(stats.target)} />
 
-          {stats.hasSalesData ? <AgentStat icon={<CircleDollarSign size={21} />} label={translateText("Real savdo")} value={`${formatAgentMoney(stats.sales)} ${translateText("so'm")}`} variant="success" /> : <AgentStat icon={<CircleDollarSign size={21} />} label={translateText("Agentlardagi pul")} value={`${formatAgentMoney(stats.cash)} ${translateText("so'm")}`} variant="warning" />}
+          {stats.hasSalesData ? <AgentStat icon={<CircleDollarSign size={21} />} label={translateText("Real savdo")} value={formatAgentMoney(stats.sales)} variant="success" /> : <AgentStat icon={<CircleDollarSign size={21} />} label={translateText("Agentlardagi pul")} value={formatAgentMoney(stats.cash)} variant="warning" />}
         </section>
 
         <Card padding="md" className="agents-page__workspace">

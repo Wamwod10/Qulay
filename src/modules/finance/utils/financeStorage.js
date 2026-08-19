@@ -88,7 +88,9 @@ const readJson = (key, fallback) => {
 
     return stored;
   } catch (error) {
-    console.error(`Finance storage read error (${key}):`, error);
+    if (import.meta.env.DEV) {
+      console.error(`Finance storage read error (${key}):`, error);
+    }
 
     return fallback;
   }

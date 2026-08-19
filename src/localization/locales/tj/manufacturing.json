@@ -1,7 +1,7 @@
 {
   "manufacturing": {
     "title": "Истеҳсолот",
-    "bom": "BOM",
+    "bom": "Ретсепт",
     "recipe": "Ретсепт",
     "productionOrder": "Фармоиши истеҳсолӣ",
     "rawMaterial": "Ашёи хом",

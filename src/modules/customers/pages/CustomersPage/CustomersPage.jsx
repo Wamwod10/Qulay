@@ -122,13 +122,13 @@ const CustomersPage = () => {
   }, {
     key: "sales",
     title: translateText("Savdo"),
-    render: (_, row) => `${formatSaleMoney(row.salesAmount)} ${translateText("so'm")}`
+    render: (_, row) => formatSaleMoney(row.salesAmount)
   }, {
     key: "debt",
     title: tTerm("debt"),
     render: (_, row) => <span className={row.credit.exceeded ? "customers-page__danger" : ""}>
           {notifications.customerDebtWarning && row.debtAmount > 0 && <LiveIcon icon={AlertTriangle} motion={row.credit.exceeded ? "danger-breathe" : "warning-glow"} size={13} />}
-          {formatSaleMoney(row.debtAmount)} {translateText("so'm")}</span>
+          {formatSaleMoney(row.debtAmount)}</span>
   }, {
     key: "lastSale",
     title: translateText("Oxirgi savdo"),
@@ -181,8 +181,8 @@ const CustomersPage = () => {
         <section className="customers-page__kpis">
           <Metric icon={<Users size={20} />} label={translateText("Jami mijoz")} value={stats.total} />
           <Metric icon={<UserCheck size={20} />} label={translateText("Faol mijoz")} value={stats.active} variant="success" />
-          <Metric icon={<CircleDollarSign size={20} />} label={translateText("Jami savdo")} value={`${formatSaleMoney(stats.sales)} ${translateText("so'm")}`} />
-          <Metric icon={<Wallet size={20} />} label={translateText("Jami qarz")} value={`${formatSaleMoney(stats.debt)} ${translateText("so'm")}`} variant="warning" active={stats.debt > 0} />
+          <Metric icon={<CircleDollarSign size={20} />} label={translateText("Jami savdo")} value={formatSaleMoney(stats.sales)} />
+          <Metric icon={<Wallet size={20} />} label={translateText("Jami qarz")} value={formatSaleMoney(stats.debt)} variant="warning" active={stats.debt > 0} />
           <Metric icon={<Plus size={20} />} label={translateText("Yangi mijozlar")} value={stats.newCustomers} />
           <Metric icon={<AlertTriangle size={20} />} label={translateText("Qarzdor mijozlar")} value={stats.debtors} variant="danger" active={stats.debtors > 0} />
         </section>
@@ -272,7 +272,7 @@ const CustomersPage = () => {
             <div>
               {topCustomers.map(customer => <button key={customer.id} type="button" onClick={() => navigate(`/customers/${customer.id}`)}>
                   <span>{customer.displayName}</span>
-                  <strong>{formatSaleMoney(customer.salesAmount)} {translateText("so'm")}</strong>
+                  <strong>{formatSaleMoney(customer.salesAmount)}</strong>
                 </button>)}
             </div>
           </Card>}

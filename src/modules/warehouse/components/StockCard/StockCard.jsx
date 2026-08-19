@@ -91,7 +91,7 @@ const StockCard = ({ item, onView }) => {
           <span>{translateText("Ombor qiymati")}</span>
 
           <strong>
-            {formatWarehouseMoney(stockValue)} {translateText("so‘m")}
+            {formatWarehouseMoney(stockValue)}
           </strong>
         </div>
       </div>

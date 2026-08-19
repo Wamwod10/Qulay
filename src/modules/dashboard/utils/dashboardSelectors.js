@@ -571,7 +571,7 @@ export const getDashboardRecentActivity = (period = "today") => {
       amount: toSafeNumber(order.producedQuantity || order.plannedQuantity),
       date: getPrimaryDate(order, ["completedAt", "updatedAt", "createdAt"]),
       path: `/manufacturing/orders/${order.id}`,
-      unit: order.outputUnit || "dona",
+      unit: order.unit || "dona",
     }));
   const movements = getWarehouseMovements()
     .filter((movement) => isWithinRange(movement.createdAt, range))

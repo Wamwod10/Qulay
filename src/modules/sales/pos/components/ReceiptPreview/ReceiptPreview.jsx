@@ -16,7 +16,7 @@ const ReceiptPreview = ({ sale, settings = {}, onPrint }) => {
     return null;
   }
 
-  const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+  const moneyText = (value) => formatSaleMoney(value);
 
   return (
     <div className="sales-receipt">

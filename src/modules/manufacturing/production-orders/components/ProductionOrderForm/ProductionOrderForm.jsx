@@ -30,6 +30,8 @@ import {
 } from "../../utils/materialAvailability";
 
 import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
+import { aggregateQuantities } from "../../../../../shared/utils/units";
+import { focusFirstInvalidField } from "../../../../../shared/utils/formFocus";
 
 import "./ProductionOrderForm.scss";
 
@@ -87,6 +89,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
   const enoughMaterials = hasEnoughMaterials(availability);
 
   const plannedMaterialCost = calculateProductionMaterialCost(requiredMaterials);
+  const materialSummary = aggregateQuantities(availability);
 
   const bomOptions = boms.map((bom) => ({
     value: bom.id,
@@ -104,7 +107,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
     const nextErrors = {};
 
     if (!bomId) {
-      nextErrors.bom = "BOM tanlang.";
+      nextErrors.bom = "Retsept tanlang.";
     }
 
     if (Number(plannedQuantity) <= 0) {
@@ -120,6 +123,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
     }
 
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
 
     return Object.keys(nextErrors).length === 0;
   };
@@ -142,7 +146,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
 
       plannedQuantity: Number(plannedQuantity),
 
-      unit: selectedBomSnapshot.outputUnit,
+      unit: selectedBomSnapshot.unit,
 
       warehouseId,
 
@@ -181,15 +185,15 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
           <div>
             <h3>Ishlab chiqarish rejasi</h3>
 
-            <p>BOM, miqdor va ishlab chiqarish sanasini belgilang.</p>
+            <p>Retsept, miqdor va ishlab chiqarish sanasini belgilang.</p>
           </div>
         </div>
 
         <div className="production-order-form__grid">
           <Select
-            label="BOM / Retsept"
+            label="Retsept"
             value={bomId}
-            placeholder="BOM tanlang"
+            placeholder="Retsept tanlang"
             options={bomOptions}
             error={errors.bom}
             onChange={(event) => setBomId(event.target.value)}
@@ -231,7 +235,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
             </div>
 
             <div>
-              <span>BOM versiya</span>
+              <span>Retsept versiyasi</span>
 
               <strong>v{selectedBomSnapshot.bomVersion}</strong>
             </div>
@@ -241,7 +245,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
 
               <strong>
                 {formatProductionQuantity(selectedBomSnapshot.outputQuantity)}{" "}
-                {selectedBomSnapshot.outputUnit}
+                {selectedBomSnapshot.unit}
               </strong>
             </div>
           </div>
@@ -286,7 +290,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
 
         {!selectedBom || Number(plannedQuantity) <= 0 ? (
           <div className="production-order-form__empty">
-            BOM va ishlab chiqarish miqdorini tanlang.
+            Retsept va ishlab chiqarish miqdorini tanlang.
           </div>
         ) : (
           <div className="production-order-form__materials">
@@ -341,10 +345,14 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
                 </span>
 
                 <strong>
-                  {formatManufacturingMoney(material.totalCost)} so‘m
+                  {formatManufacturingMoney(material.totalCost)}
                 </strong>
               </div>
             ))}
+            <div className="production-order-form__material-summary">
+              <strong>Jami miqdorlar</strong>
+              {materialSummary.map((item) => <span key={item.dimension}>Jami {item.dimension === "WEIGHT" ? "og‘irlik" : item.dimension === "VOLUME" ? "hajm" : item.dimension === "LENGTH" ? "uzunlik" : "dona"}: {item.value} {item.unit}</span>)}
+            </div>
           </div>
         )}
       </Card>
@@ -353,7 +361,7 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
         <Card padding="lg" className="production-order-form__cost">
           <span>Rejalashtirilgan xomashyo tannarxi</span>
 
-          <strong>{formatManufacturingMoney(plannedMaterialCost)} so‘m</strong>
+          <strong>{formatManufacturingMoney(plannedMaterialCost)}</strong>
         </Card>
 
         <Card padding="lg">

@@ -232,9 +232,9 @@ const CustomerDetailsPage = () => {
             </div>
           </Card>
 
-          <Metric icon={<CircleDollarSign size={20} />} label={translateText("Jami savdo")} value={`${formatFinanceMoney(analytics.totalSales)} ${translateText("so'm")}`} />
-          <Metric icon={<HandCoins size={20} />} label={translateText("Jami to'langan")} value={`${formatFinanceMoney(analytics.totalPaid)} ${translateText("so'm")}`} variant="success" />
-          <Metric icon={<Wallet size={20} />} label={translateText("Qarz")} value={`${formatFinanceMoney(analytics.debt)} ${translateText("so'm")}`} variant={analytics.debt > 0 ? "warning" : "success"} live={analytics.debt > 0} />
+          <Metric icon={<CircleDollarSign size={20} />} label={translateText("Jami savdo")} value={formatFinanceMoney(analytics.totalSales)} />
+          <Metric icon={<HandCoins size={20} />} label={translateText("Jami to'langan")} value={formatFinanceMoney(analytics.totalPaid)} variant="success" />
+          <Metric icon={<Wallet size={20} />} label={translateText("Qarz")} value={formatFinanceMoney(analytics.debt)} variant={analytics.debt > 0 ? "warning" : "success"} live={analytics.debt > 0} />
           <Metric icon={<ReceiptText size={20} />} label={translateText("Buyurtmalar soni")} value={analytics.ordersCount} />
         </section>
 
@@ -266,12 +266,12 @@ const CustomerDetailsPage = () => {
         <section className="customer-details__grid">
           <Card padding="lg" className="customer-details__section">
             <SectionTitle title={translateText("Qarz / kredit")} />
-            <InfoGrid items={[["Kredit limiti", `${formatFinanceMoney(analytics.credit.creditLimit)} ${translateText("so'm")}`], ["Ishlatilgan", `${formatFinanceMoney(analytics.credit.currentDebt)} ${translateText("so'm")}`], ["Mavjud limit", `${formatFinanceMoney(analytics.credit.availableCredit)} ${translateText("so'm")}`], ["To'lov muddati", `${customer?.paymentTermDays || 0} ${translateText("kun")}`], ["Oxirgi to'lov", analytics.lastPayment ? formatFinanceDate(analytics.lastPayment.date) : "-"], ["Keyin yig'ilgan", `${formatFinanceMoney(analytics.collectedAmount)} ${translateText("so'm")}`]]} />
+          <InfoGrid items={[["Kredit limiti", formatFinanceMoney(analytics.credit.creditLimit)], ["Ishlatilgan", formatFinanceMoney(analytics.credit.currentDebt)], ["Mavjud limit", formatFinanceMoney(analytics.credit.availableCredit)], ["To'lov muddati", `${customer?.paymentTermDays || 0} ${translateText("kun")}`], ["Oxirgi to'lov", analytics.lastPayment ? formatFinanceDate(analytics.lastPayment.date) : "-"], ["Keyin yig'ilgan", formatFinanceMoney(analytics.collectedAmount)]]} />
           </Card>
 
           <Card padding="lg" className="customer-details__section">
             <SectionTitle title={translateText("Sodiqlik / mukofot")} />
-            <InfoGrid items={[["Sodiqlik ballari", customer?.loyaltyPoints || 0], ["Mukofot qoldig'i", `${formatFinanceMoney(customer?.bonusBalance || 0)} ${translateText("so'm")}`], ["Rejim", translateText("Faqat o'qish uchun")], ["Tug'ilgan sana", customer?.birthday || "-"]]} />
+          <InfoGrid items={[["Sodiqlik ballari", customer?.loyaltyPoints || 0], ["Mukofot qoldig'i", formatFinanceMoney(customer?.bonusBalance || 0)], ["Rejim", translateText("Faqat o'qish uchun")], ["Tug'ilgan sana", customer?.birthday || "-"]]} />
           </Card>
         </section>
 
@@ -294,15 +294,15 @@ const CustomerDetailsPage = () => {
         }, {
           key: "netTotal",
           title: translateText("Jami"),
-          render: (value, row) => `${formatFinanceMoney(value ?? row.total)} ${translateText("so'm")}`
+          render: (value, row) => formatFinanceMoney(value ?? row.total)
         }, {
           key: "paidAmount",
           title: translateText("To'langan"),
-          render: value => `${formatFinanceMoney(value)} ${translateText("so'm")}`
+          render: value => formatFinanceMoney(value)
         }, {
           key: "debtAmount",
           title: translateText("Qarz"),
-          render: value => `${formatFinanceMoney(value)} ${translateText("so'm")}`
+          render: value => formatFinanceMoney(value)
         }, {
           key: "paymentStatus",
           title: translateText("To'lov"),
@@ -335,7 +335,7 @@ const CustomerDetailsPage = () => {
         }, {
           key: "amount",
           title: translateText("Summa"),
-          render: value => `${formatFinanceMoney(value)} ${translateText("so'm")}`
+          render: value => formatFinanceMoney(value)
         }, {
           key: "note",
           title: translateText("Izoh"),
@@ -365,7 +365,7 @@ const CustomerDetailsPage = () => {
 
           <Card padding="lg" className="customer-details__section">
             <SectionTitle title={translateText("Mijoz tahlili")} />
-            <InfoGrid items={[["O'rtacha chek", `${formatFinanceMoney(analytics.averageCheck)} ${translateText("so'm")}`], ["Oxirgi savdo", analytics.lastSale ? formatSaleDate(analytics.lastSale.completedAt || analytics.lastSale.createdAt) : "-"], ["Oxirgi savdodan beri kun", analytics.daysSinceLastSale ?? "-"], ["Qaytarish soni", analytics.returnCount], ["Kredit ishlatilishi", analytics.credit.creditLimit > 0 ? `${Math.round(analytics.credit.currentDebt / analytics.credit.creditLimit * 100)}%` : "0%"], ["Mijoz reytingi", `${analytics.score.value} / ${analytics.score.label}`]]} />
+                <InfoGrid items={[["O'rtacha chek", formatFinanceMoney(analytics.averageCheck)], ["Oxirgi savdo", analytics.lastSale ? formatSaleDate(analytics.lastSale.completedAt || analytics.lastSale.createdAt) : "-"], ["Oxirgi savdodan beri kun", analytics.daysSinceLastSale ?? "-"], ["Qaytarish soni", analytics.returnCount], ["Kredit ishlatilishi", analytics.credit.creditLimit > 0 ? `${Math.round(analytics.credit.currentDebt / analytics.credit.creditLimit * 100)}%` : "0%"], ["Mijoz reytingi", `${analytics.score.value} / ${analytics.score.label}`]]} />
           </Card>
         </section>
 
@@ -376,7 +376,7 @@ const CustomerDetailsPage = () => {
                 <span>{formatFinanceDate(event.date)}</span>
                 <strong>{event.title}</strong>
                 <small>{event.note || event.meta || ""}</small>
-                {event.amount !== undefined && <b>{formatFinanceMoney(event.amount)} {translateText("so'm")}</b>}
+                {event.amount !== undefined && <b>{formatFinanceMoney(event.amount)}</b>}
               </div>)}
           </div>
         </Card>

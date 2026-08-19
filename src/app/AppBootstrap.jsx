@@ -62,7 +62,9 @@ const AppBootstrap = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error("App bootstrap error:", error);
+        if (import.meta.env.DEV) {
+          console.error("App bootstrap error:", error);
+        }
       } finally {
         dispatch(setGlobalLoading(false));
       }

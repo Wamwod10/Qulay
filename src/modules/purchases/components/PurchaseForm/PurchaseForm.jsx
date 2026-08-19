@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import {
   Button,
   Card,
+  CreatableSelect,
   DatePicker,
   Input,
   Select,
@@ -19,11 +20,13 @@ import {
 
 import { getStoredPurchases } from "../../utils/purchasesStorage";
 
-import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { createStoredProduct, getStoredProducts } from "../../../products/utils/productsStorage";
 
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
 
-import { getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
+import { createSupplier, getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
+import { UNIT_DEFINITIONS, UNIT_OPTIONS } from "../../../../shared/utils/units";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 import "./PurchaseForm.scss";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
@@ -32,17 +35,13 @@ const createEmptyItem = () => ({
   id: `item-${Date.now()}-${Math.random()}`,
   productId: "",
   quantity: "",
-  purchasePrice: ""
+  purchasePrice: "",
+  unit: "dona",
 });
 
 const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
-  const products = useMemo(
-    () =>
-    getStoredProducts().filter(
-      (product) => product.status === "ACTIVE" && product.type !== "SERVICE"
-    ),
-    []
-  );
+  const [productList, setProductList] = useState(() => getStoredProducts().filter((product) => product.status === "ACTIVE" && product.type !== "SERVICE"));
+  const products = productList;
 
   const warehouses = useMemo(
     () =>
@@ -74,11 +73,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
   const purchases = useMemo(() => getStoredPurchases(), []);
 
-  const suppliers = useMemo(
-    () =>
-    getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
-    []
-  );
+  const [supplierList, setSupplierList] = useState(() => getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"));
+  const suppliers = supplierList;
 
   const [items, setItems] = useState(
     initialValues?.items?.length ?
@@ -89,7 +85,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
       quantity: item.quantity,
 
-      purchasePrice: item.purchasePrice
+      purchasePrice: item.purchasePrice ?? item.cost,
+      unit: item.purchaseUnit || item.unit || "dona",
     })) :
     [createEmptyItem()]
   );
@@ -179,7 +176,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
       productId,
 
-      purchasePrice: product?.cost ?? item.purchasePrice
+      purchasePrice: product?.cost ?? item.purchasePrice,
+      unit: product?.unit || item.unit || "dona",
     } :
     item
     )
@@ -200,10 +198,6 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
   const validate = () => {
     const nextErrors = {};
-
-    if (!supplierId) {
-      nextErrors.supplier = "Yetkazib beruvchini tanlang.";
-    }
 
     if (!warehouseId) {
       nextErrors.warehouse = "Omborni tanlang.";
@@ -229,6 +223,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
     }
 
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
 
     return Object.keys(nextErrors).length === 0;
   };
@@ -264,6 +259,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
 
         unit: product.unit,
 
+        purchaseUnit: item.unit || product.unit,
+
         quantity,
 
         receivedQuantity: initialValues ?
@@ -271,6 +268,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
         0,
 
         purchasePrice,
+
+        cost: purchasePrice,
+
+        salePrice: product.salePrice,
 
         total: quantity * purchasePrice
       };
@@ -327,13 +328,19 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
         </div>
 
         <div className="purchase-form__grid">
-          <Select
+          <CreatableSelect
             label={translateText("Yetkazib beruvchi")}
             value={supplierId}
             placeholder={translateText("Tanlang")}
             options={supplierOptions}
             error={errors.supplier}
-            onChange={(event) => setSupplierId(event.target.value)} />
+            onChange={(event) => setSupplierId(event.target.value)}
+            onCreate={async (name) => {
+              const created = await createSupplier({ name });
+              setSupplierList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+              setSupplierId(created.id);
+              return created;
+            }} />
           
 
           <Select
@@ -405,16 +412,28 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                 <div className="purchase-form__item-number">{index + 1}</div>
 
                 <div className="purchase-form__item-product">
-                  <Select
+                  <CreatableSelect
                     label={translateText("Mahsulot")}
                     value={item.productId}
                     placeholder={translateText("Mahsulot tanlang")}
                     options={productOptions}
                     onChange={(event) =>
                     handleProductSelect(item.id, event.target.value)
-                    } />
+                    }
+                    onCreate={async (name) => {
+                      const created = await createStoredProduct({ name, type: "RAW_MATERIAL", unit: "dona", stock: 0, cost: 0, salePrice: null, status: "ACTIVE" });
+                      setProductList((current) => [created, ...current.filter((entry) => entry.id !== created.id)]);
+                      handleProductSelect(item.id, created.id);
+                      return created;
+                    }} />
                   
                 </div>
+
+                <Select
+                  label={translateText("Birlik")}
+                  value={item.unit || product?.unit || "dona"}
+                  options={UNIT_OPTIONS.filter((option) => !product || option.dimension === UNIT_DEFINITIONS[product.unit]?.dimension)}
+                  onChange={(event) => handleItemChange(item.id, "unit", event.target.value)} />
 
                 <Input
                   label={translateText("Miqdor")}
@@ -446,7 +465,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                     <span>{translateText("Oxirgi xarid:")}
                     {" "}
                       <strong>
-                        {formatPurchaseMoney(lastPurchasePrice)}{translateText("so‘m")}
+                        {formatPurchaseMoney(lastPurchasePrice)}
                     </strong>
                     </span>
 
@@ -461,7 +480,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                     }>
                     
                         {priceDifference.amount > 0 ? "+" : ""}
-                        {formatPurchaseMoney(priceDifference.amount)}{translateText("so‘m")}
+                        {formatPurchaseMoney(priceDifference.amount)}
                     {priceDifference.percent !== null &&
                     <>
                             {" "}
@@ -478,7 +497,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                 <div className="purchase-form__item-total">
                   <span>{translateText("Jami")}</span>
 
-                  <strong>{formatPurchaseMoney(rowTotal)}{translateText("so‘m")}</strong>
+                  <strong>{formatPurchaseMoney(rowTotal)}</strong>
 
                   {product && <small>{product.unit}</small>}
                 </div>
@@ -526,17 +545,17 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
             <div className="purchase-form__payment-summary">
               <SummaryRow
                 label={translateText("Jami")}
-                value={`${formatPurchaseMoney(subtotal)} so‘m`} />
+                value={formatPurchaseMoney(subtotal)} />
               
 
               <SummaryRow
                 label={translateText("To‘langan")}
-                value={`${formatPurchaseMoney(paid)} so‘m`} />
+                value={formatPurchaseMoney(paid)} />
               
 
               <SummaryRow
                 label={translateText("Qarz")}
-                value={`${formatPurchaseMoney(debt)} so‘m`}
+                value={formatPurchaseMoney(debt)}
                 strong />
               
             </div>

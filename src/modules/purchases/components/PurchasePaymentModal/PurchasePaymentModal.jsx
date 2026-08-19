@@ -65,7 +65,7 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
         
         <Input
           label={translateText("Jami xarid")}
-          value={`${formatPurchaseMoney(total)} so‘m`}
+          value={formatPurchaseMoney(total)}
           disabled />
         
 
@@ -108,7 +108,7 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
                 fontSize: 14
               }}>
               
-              {formatPurchaseMoney(debt)}{translateText("so‘m")}
+              {formatPurchaseMoney(debt)}
             </strong>
           </div>
         </div>

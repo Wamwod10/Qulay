@@ -2,12 +2,19 @@ import { translateText } from "../../../../localization/i18n";import { useMemo, 
 
 import { ImagePlus, Trash2 } from "lucide-react";
 
-import { Button, Input, Select, Switch, Textarea } from "../../../../shared/ui";
+import { Button, CreatableSelect, Input, Select, Switch, Textarea } from "../../../../shared/ui";
 
 import { PRODUCT_TYPES } from "../../constants/productTypes";
 import { PRODUCT_CATEGORIES } from "../../constants/productCategories";
 import { generateUniqueSku } from "../../utils/productsStorage";
 import { getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
+import { createSupplier } from "../../../suppliers/utils/suppliersStorage";
+import { createCategory, getStoredCategories } from "../../utils/categoriesStorage";
+import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
+import { tenantGet, tenantSet } from "../../../auth/utils/tenantStorage";
+import { UNIT_DEFINITIONS } from "../../../../shared/utils/units";
+import { getPlatformSettings } from "../../../settings/utils/settingsStorage";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
 import "./ProductForm.scss";
 
@@ -22,13 +29,17 @@ const initialForm = {
   type: "",
   category: "",
   brand: "",
-  unit: "dona",
+  unit: tenantGet("last_product_unit", "dona"),
+  warehouseId: "",
   stock: "",
   minimumStock: "",
+  reorderPoint: "",
+  expiryDate: "",
+  normalWastePercent: "",
   cost: "",
   salePrice: "",
   supplierId: "",
-  tax: "12",
+  tax: "0",
   discount: "0",
   image: "",
   notes: "",
@@ -37,17 +48,22 @@ const initialForm = {
 
 const toFormValues = (initialValues) => {
   if (!initialValues) {
-    return initialForm;
+    return { ...initialForm, unit: tenantGet("last_product_unit", "dona"), tax: String(getPlatformSettings().defaults.vatRate ?? 0) };
   }
 
   return {
     ...initialForm,
     ...initialValues,
+    category: initialValues.categoryId ?? initialValues.category ?? "",
     stock: initialValues.stock ?? "",
     minimumStock: initialValues.minimumStock ?? "",
+    reorderPoint: initialValues.reorderPoint ?? "",
+    expiryDate: initialValues.expiryDate ? String(initialValues.expiryDate).slice(0, 10) : "",
+    normalWastePercent: initialValues.normalWastePercent ?? "",
     cost: initialValues.cost ?? "",
     salePrice: initialValues.salePrice ?? "",
     supplierId: initialValues.supplierId ?? "",
+    warehouseId: initialValues.warehouseId ?? "",
     tax: initialValues.tax ?? 0,
     discount: initialValues.discount ?? 0,
     image: initialValues.image ?? "",
@@ -101,12 +117,11 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(() => toFormValues(initialValues));
+  const [supplierList, setSupplierList] = useState(() => getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"));
+  const [categoryList, setCategoryList] = useState(() => getStoredCategories().filter((category) => category.status !== "INACTIVE"));
+  const warehouses = useMemo(() => getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"), []);
 
-  const suppliers = useMemo(
-    () =>
-    getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
-    []
-  );
+  const suppliers = supplierList;
 
   const selectedSupplier = useMemo(
     () => suppliers.find((supplier) => supplier.id === form.supplierId),
@@ -119,8 +134,17 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
     label: supplier.name
   }));
 
+  const categoryOptions = [
+    ...PRODUCT_CATEGORIES,
+    ...categoryList.map((category) => ({ value: category.id, label: category.name })),
+  ].filter((option, index, all) => all.findIndex((item) => item.value === option.value) === index);
+  const selectedCategory = categoryList.find((category) => category.id === form.category);
+  const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
+
   const handleChange = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+
+    if (field === "unit") tenantSet("last_product_unit", value);
 
     if (errors[field]) {
       setErrors((current) => ({ ...current, [field]: undefined }));
@@ -194,22 +218,22 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
       nextErrors.type = "Mahsulot turini tanlang.";
     }
 
-    if (!form.category) {
-      nextErrors.category = "Kategoriya tanlang.";
-    }
-
     if (!form.unit) {
       nextErrors.unit = "O'lchov birligini tanlang.";
     }
 
     validateNumber("stock", "Qoldiq", 0, null, nextErrors);
     validateNumber("minimumStock", "Minimal qoldiq", 0, null, nextErrors);
+    validateNumber("reorderPoint", "Qayta buyurtma nuqtasi", 0, null, nextErrors);
+    validateNumber("normalWastePercent", "Normal chiqindi foizi", 0, 100, nextErrors);
     validateNumber("cost", "Tannarx", 0, null, nextErrors);
-    validateNumber("salePrice", "Sotuv narxi", 0, null, nextErrors);
+    if (form.type !== "RAW_MATERIAL") validateNumber("salePrice", "Sotuv narxi", 0, null, nextErrors);
+    if (Number(form.stock || 0) > 0 && !form.warehouseId) nextErrors.warehouseId = "Boshlang'ich qoldiq uchun omborni tanlang.";
     validateNumber("tax", "QQS", 0, 100, nextErrors);
     validateNumber("discount", "Chegirma", 0, 100, nextErrors);
 
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
 
     return Object.keys(nextErrors).length === 0;
   };
@@ -229,15 +253,20 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
       sku,
       barcode: form.barcode.trim(),
       type: form.type,
-      category: form.category,
+      category: selectedCategory?.name || form.category || null,
+      categoryId: selectedCategory?.id || null,
       brand: form.brand.trim(),
       unit: form.unit,
       stock: Number(form.stock) || 0,
       minimumStock: Number(form.minimumStock) || 0,
+      reorderPoint: Number(form.reorderPoint) || 0,
+      expiryDate: form.expiryDate || null,
+      normalWastePercent: form.normalWastePercent === "" ? null : Number(form.normalWastePercent),
       cost: Number(form.cost) || 0,
-      salePrice: form.salePrice === "" ? null : Number(form.salePrice),
+      salePrice: form.type === "RAW_MATERIAL" || form.salePrice === "" ? null : Number(form.salePrice),
       supplierId: form.supplierId || null,
       supplierName: selectedSupplier?.name || null,
+      warehouseId: form.warehouseId || null,
       tax: Number(form.tax) || 0,
       discount: Number(form.discount) || 0,
       image: form.image || "",
@@ -316,12 +345,17 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             onChange={(event) => handleChange("name", event.target.value)} />
           
 
-          <Select
+          <CreatableSelect
             label={translateText("Asosiy yetkazib beruvchi")}
             value={form.supplierId || ""}
             placeholder={translateText("Yetkazib beruvchi tanlang")}
             options={supplierOptions}
-            onChange={(event) => handleChange("supplierId", event.target.value)} />
+            onChange={(event) => handleChange("supplierId", event.target.value)}
+            onCreate={async (name) => {
+              const created = await createSupplier({ name });
+              setSupplierList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+              return created;
+            }} />
           
 
           <Select
@@ -334,14 +368,18 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             onChange={(event) => handleChange("type", event.target.value)} />
           
 
-          <Select
+          <CreatableSelect
             label={translateText("Kategoriya")}
             placeholder={translateText("Kategoriya tanlang")}
             value={form.category}
-            options={PRODUCT_CATEGORIES}
-            required
+            options={categoryOptions}
             error={errors.category}
-            onChange={(event) => handleChange("category", event.target.value)} />
+            onChange={(event) => handleChange("category", event.target.value)}
+            onCreate={async (name) => {
+              const created = await createCategory(name);
+              setCategoryList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+              return created;
+            }} />
           
 
           <Input
@@ -370,13 +408,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             value={form.unit}
             required
             error={errors.unit}
-            options={[
-            { value: "dona", label: translateText("Dona") },
-            { value: "kg", label: translateText("Kilogram") },
-            { value: "g", label: translateText("Gram") },
-            { value: "litr", label: translateText("Litr") },
-            { value: "metr", label: translateText("Metr") }]
-            }
+            options={Object.values(UNIT_DEFINITIONS).map((unit) => ({ value: unit.label, label: unit.label }))}
             onChange={(event) => handleChange("unit", event.target.value)} />
           
 
@@ -390,10 +422,19 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
         </div>
 
         <div className="product-form__grid">
+          <Select
+            label={translateText("Ombor")}
+            value={form.warehouseId}
+            placeholder={translateText("Ombor tanlang")}
+            options={warehouseOptions}
+            error={errors.warehouseId}
+            onChange={(event) => handleChange("warehouseId", event.target.value)} />
+
           <Input
-            label={translateText("Joriy qoldiq")}
+            label={translateText("Boshlang'ich qoldiq")}
             type="number"
             min="0"
+            step="any"
             value={form.stock}
             error={errors.stock}
             onChange={(event) => handleChange("stock", event.target.value)} />
@@ -403,11 +444,37 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             label={translateText("Minimal qoldiq")}
             type="number"
             min="0"
+            step="any"
             value={form.minimumStock}
             error={errors.minimumStock}
             onChange={(event) =>
             handleChange("minimumStock", event.target.value)
             } />
+
+          <Input
+            label={translateText("Qayta buyurtma nuqtasi")}
+            type="number"
+            min="0"
+            step="any"
+            value={form.reorderPoint}
+            error={errors.reorderPoint}
+            onChange={(event) => handleChange("reorderPoint", event.target.value)} />
+
+          <Input
+            label={translateText("Yaroqlilik muddati")}
+            type="date"
+            value={form.expiryDate}
+            onChange={(event) => handleChange("expiryDate", event.target.value)} />
+
+          <Input
+            label={translateText("Normal chiqindi (%)")}
+            type="number"
+            min="0"
+            max="100"
+            step="any"
+            value={form.normalWastePercent}
+            error={errors.normalWastePercent}
+            onChange={(event) => handleChange("normalWastePercent", event.target.value)} />
           
         </div>
       </section>
@@ -423,20 +490,22 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             label={translateText("Tannarx")}
             type="number"
             min="0"
+            step="any"
             placeholder="0"
             value={form.cost}
             error={errors.cost}
             onChange={(event) => handleChange("cost", event.target.value)} />
           
 
-          <Input
+          {form.type !== "RAW_MATERIAL" && <Input
             label={translateText("Sotuv narxi")}
             type="number"
             min="0"
+            step="any"
             placeholder="0"
             value={form.salePrice}
             error={errors.salePrice}
-            onChange={(event) => handleChange("salePrice", event.target.value)} />
+            onChange={(event) => handleChange("salePrice", event.target.value)} />}
           
 
           <Input
@@ -444,6 +513,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             type="number"
             min="0"
             max="100"
+            step="any"
             value={form.tax}
             error={errors.tax}
             onChange={(event) => handleChange("tax", event.target.value)} />
@@ -454,6 +524,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             type="number"
             min="0"
             max="100"
+            step="any"
             value={form.discount}
             error={errors.discount}
             onChange={(event) => handleChange("discount", event.target.value)} />

@@ -98,7 +98,7 @@ const StockTable = ({ items = [], onView }) => {
 
       render: (_, item) => (
         <span>
-          {formatWarehouseMoney(item.quantity * item.cost)} {translateText("so‘m")}
+          {formatWarehouseMoney(item.quantity * item.cost)}
         </span>
       ),
     },

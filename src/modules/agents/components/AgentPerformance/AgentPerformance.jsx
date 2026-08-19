@@ -26,17 +26,17 @@ const AgentPerformance = ({
       </div>
 
       <div className="agent-performance__stats">
-        <PerformanceItem icon={<Target size={18} />} label={translateText("Oylik reja")} value={`${formatAgentMoney(performance.target)} ${translateText("so'm")}`} />
+        <PerformanceItem icon={<Target size={18} />} label={translateText("Oylik reja")} value={formatAgentMoney(performance.target)} />
 
-        <PerformanceItem icon={achieved ? <LiveIcon icon={TrendingUp} motion="success-pop" once size={18} /> : <TrendingUp size={18} />} label={translateText("Bajarilgan savdo")} value={`${formatAgentMoney(performance.salesAmount)} ${translateText("so'm")}`} />
+        <PerformanceItem icon={achieved ? <LiveIcon icon={TrendingUp} motion="success-pop" once size={18} /> : <TrendingUp size={18} />} label={translateText("Bajarilgan savdo")} value={formatAgentMoney(performance.salesAmount)} />
 
         <PerformanceItem icon={<Gauge size={18} />} label={translateText("Reja %")} value={`${progress.toFixed(1)}%`} />
 
         <PerformanceItem icon={<ShoppingBag size={18} />} label={translateText("Buyurtmalar soni")} value={`${performance.ordersCount || 0} ${translateText("ta")}`} />
 
-        <PerformanceItem icon={<CircleDollarSign size={18} />} label={translateText("Taxminiy komissiya")} value={`${formatAgentMoney(performance.commissionAmount)} ${translateText("so'm")}`} />
+        <PerformanceItem icon={<CircleDollarSign size={18} />} label={translateText("Taxminiy komissiya")} value={formatAgentMoney(performance.commissionAmount)} />
 
-        <PerformanceItem icon={<Target size={18} />} label={translateText("Qolgan reja")} value={`${formatAgentMoney(performance.remaining)} ${translateText("so'm")}`} />
+        <PerformanceItem icon={<Target size={18} />} label={translateText("Qolgan reja")} value={formatAgentMoney(performance.remaining)} />
       </div>
     </Card>;
 };

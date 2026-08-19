@@ -33,10 +33,12 @@ export const getStoredSuppliers = () => {
 
         return stored;
     } catch (error) {
-        console.error(
-            "Suppliers storage read error:",
-            error,
-        );
+        if (import.meta.env.DEV) {
+            console.error(
+                "Suppliers storage read error:",
+                error,
+            );
+        }
 
         return [];
     }

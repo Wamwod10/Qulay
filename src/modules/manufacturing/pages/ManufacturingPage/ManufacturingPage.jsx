@@ -81,7 +81,7 @@ const ManufacturingPage = () => {
             variant="secondary"
             onClick={() => navigate("/manufacturing/boms/create")}
           >
-            Yangi BOM
+            Yangi retsept
           </Button>
 
           <Button
@@ -123,7 +123,7 @@ const ManufacturingPage = () => {
         <Card padding="md">
           <div className="manufacturing-page__section-header">
             <div>
-              <h3>BOM / Retseptlar</h3>
+              <h3>Retseptlar</h3>
 
               <p>Tayyor mahsulot ishlab chiqarish uchun xomashyo tarkibi.</p>
             </div>

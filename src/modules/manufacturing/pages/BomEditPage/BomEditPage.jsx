@@ -19,7 +19,7 @@ const BomEditPage = () => {
 
   if (!bom) {
     return (
-      <PageContainer title="BOM topilmadi">
+      <PageContainer title="Retsept topilmadi">
         <Button variant="secondary" onClick={() => navigate("/manufacturing")}>
           Ishlab chiqarishga qaytish
         </Button>
@@ -39,7 +39,7 @@ const BomEditPage = () => {
   };
 
   return (
-    <PageContainer title="BOMni tahrirlash" description={bom.name}>
+    <PageContainer title="Retseptni tahrirlash" description={bom.name}>
       <div
         style={{
           display: "flex",

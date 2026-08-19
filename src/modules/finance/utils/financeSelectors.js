@@ -60,7 +60,7 @@ const getFormats = () => {
 };
 
 export const formatFinanceMoney = (value) =>
-  formatMoneyWithSettings(toMoney(value), getFormats()).replace(/\s(so'm|UZS|USD)$/, "");
+  formatMoneyWithSettings(toMoney(value), getFormats());
 
 export const formatFinanceDate = (value) => {
   if (!value) {

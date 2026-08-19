@@ -115,3 +115,38 @@
     padding: 18px 24px 24px;
   }
 }
+
+@media (max-width: 640px) {
+  .ui-modal {
+    align-items: flex-end;
+    padding: 10px;
+
+    &__dialog {
+      max-height: calc(100vh - 20px);
+      border-radius: var(--radius-xl);
+    }
+
+    &__header {
+      gap: 12px;
+      padding: 16px;
+
+      h2 {
+        font-size: 17px;
+      }
+    }
+
+    &__body {
+      min-width: 0;
+      padding: 0 16px 16px;
+    }
+
+    &__footer {
+      flex-wrap: wrap;
+      padding: 12px 16px 16px;
+
+      .ui-button {
+        flex: 1 1 140px;
+      }
+    }
+  }
+}

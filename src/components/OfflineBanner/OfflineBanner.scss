@@ -1,0 +1,47 @@
+.offline-banner {
+  position: fixed;
+  z-index: 1200;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-radius: var(--radius-lg);
+  background: #fff7ed;
+  color: #9a3412;
+  box-shadow: var(--shadow-floating);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.offline-banner button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: #9a3412;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .offline-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+  }
+
+  .offline-banner button {
+    width: 100%;
+  }
+}

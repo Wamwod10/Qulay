@@ -13,6 +13,10 @@
     width: 100%;
 
     overflow-x: auto;
+
+    overscroll-behavior-x: contain;
+
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
@@ -33,6 +37,11 @@
   }
 
   th {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    background: var(--color-surface);
+
     color: var(--color-text-muted);
 
     font-size: calc(var(--app-table-font-size, 13px) * 0.85);

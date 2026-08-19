@@ -16,9 +16,9 @@ import {
   X,
 } from "lucide-react";
 
-import { getStoredAgents } from "../../../../agents/utils/agentsStorage";
+import { createAgent, getStoredAgents } from "../../../../agents/utils/agentsStorage";
 import { canCustomerUseDebt } from "../../../../customers/utils/customerSelectors";
-import { getStoredCustomers } from "../../../../customers/utils/customersStorage";
+import { createCustomer, getStoredCustomers } from "../../../../customers/utils/customersStorage";
 import { getStoredProducts } from "../../../../products/utils/productsStorage";
 import { getStoredWarehouseStock } from "../../../../warehouse/utils/warehouseStorage";
 import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
@@ -27,6 +27,7 @@ import {
   Badge,
   Button,
   Card,
+  CreatableSelect,
   Input,
   LiveIcon,
   Modal,
@@ -59,7 +60,7 @@ const PAYMENT_METHODS = [
   { value: "DEBT", label: "Qarz" },
 ];
 
-const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+const moneyText = (value) => formatSaleMoney(value);
 
 const DECIMAL_UNITS = ["kg", "l", "litr", "metr"];
 
@@ -83,10 +84,10 @@ const POSTerminalPage = () => {
   const [warehouses] = useState(() =>
     getStoredWarehouses().filter((warehouse) => warehouse.status !== "INACTIVE"),
   );
-  const [customers] = useState(() =>
+  const [customers, setCustomers] = useState(() =>
     getStoredCustomers().filter((customer) => customer.status !== "INACTIVE"),
   );
-  const [agents] = useState(() =>
+  const [agents, setAgents] = useState(() =>
     getStoredAgents().filter((agent) => agent.status === "ACTIVE"),
   );
 
@@ -562,7 +563,7 @@ const POSTerminalPage = () => {
             setCart([]);
           }}
         />
-        <Select
+        <CreatableSelect
           label={translateText("Mijoz")}
           value={customerId}
           placeholder={translateText("Mijozsiz savdo")}
@@ -577,8 +578,13 @@ const POSTerminalPage = () => {
             setCustomerId(event.target.value);
             setAgentId("");
           }}
+          onCreate={async (name) => {
+            const created = await createCustomer({ name, fullName: name, status: "ACTIVE" });
+            setCustomers((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+            return created;
+          }}
         />
-        <Select
+        <CreatableSelect
           label={translateText("Agent")}
           value={agentId}
           placeholder={translateText("Agent tanlanmagan")}
@@ -590,6 +596,11 @@ const POSTerminalPage = () => {
             })),
           ]}
           onChange={(event) => setAgentId(event.target.value)}
+          onCreate={async (name) => {
+            const created = await createAgent({ name, status: "ACTIVE" });
+            setAgents((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+            return created;
+          }}
         />
       </section>
 
@@ -826,6 +837,10 @@ const CartPanel = ({
                 <Minus size={14} />
               </button>
               <input
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
                 value={item.quantity}
                 onChange={(event) => onQuantity(item.productId, Number(event.target.value))}
               />
@@ -879,13 +894,13 @@ const CartPanel = ({
 
     <div className="pos-terminal__summary">
       <span>
-        {translateText("Subtotal")} <b>{moneyText(totals.subtotal)}</b>
+        {translateText("Oraliq jami")} <b>{moneyText(totals.subtotal)}</b>
       </span>
       <span>
-        {translateText("Discount")} <b>-{moneyText(totals.discount)}</b>
+        {translateText("Chegirma")} <b>-{moneyText(totals.discount)}</b>
       </span>
       <strong>
-        {translateText("Total")} <b>{moneyText(totals.total)}</b>
+        {translateText("Jami")} <b>{moneyText(totals.total)}</b>
       </strong>
       <span>
         {translateText("To'langan")} <b>{moneyText(totals.paidAmount)}</b>
@@ -900,10 +915,10 @@ const CartPanel = ({
         {translateText("Saqlash")}
       </Button>
       <Button variant="secondary" leftIcon={<Warehouse size={17} />} onClick={onOpenHold}>
-        {translateText("Resume")}
+        {translateText("Davom ettirish")}
       </Button>
       <Button variant="danger" leftIcon={<Trash2 size={17} />} onClick={onClear} disabled={!cart.length}>
-        {translateText("Clear")}
+        {translateText("Tozalash")}
       </Button>
       <Button leftIcon={<ReceiptText size={17} />} onClick={onPayment} disabled={!cart.length}>
         {translateText("To'lov")}
@@ -957,13 +972,13 @@ const PaymentModal = ({
       <div className="pos-terminal__payment">
         <div className="pos-terminal__payment-summary">
           <span>
-            {translateText("Total")} <b>{moneyText(total)}</b>
+            {translateText("Jami")} <b>{moneyText(total)}</b>
           </span>
           <span>
-            {translateText("Paid")} <b>{moneyText(paid)}</b>
+            {translateText("To'langan")} <b>{moneyText(paid)}</b>
           </span>
           <span>
-            {translateText("Debt")} <b>{moneyText(debt)}</b>
+            {translateText("Qarz")} <b>{moneyText(debt)}</b>
           </span>
         </div>
 

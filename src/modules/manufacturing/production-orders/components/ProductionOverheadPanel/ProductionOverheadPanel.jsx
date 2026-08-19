@@ -66,7 +66,7 @@ const ProductionOverheadPanel = ({ order, readOnly = false, onChange }) => {
         <div className="production-overhead__summary">
           <LiveIcon icon={WalletCards} motion="pulse-soft" size={17} />
           <span>Jami overhead</span>
-          <strong>{formatManufacturingMoney(total)} so'm</strong>
+          <strong>{formatManufacturingMoney(total)}</strong>
         </div>
       </div>
 

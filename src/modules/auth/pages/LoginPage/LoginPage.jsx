@@ -1,6 +1,6 @@
 import { Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 
 import Button from "../../../../shared/ui/Button/Button";
@@ -25,6 +25,7 @@ import "../authPages.scss";
 const LoginPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [values, setValues] = useState({
     identifier: "",
     password: "",
@@ -89,6 +90,7 @@ const LoginPage = () => {
     >
       <form className="auth-form" onSubmit={handleSubmit}>
         {error && <div className="auth-form__error">{error}</div>}
+        {location.state?.message && <div className="auth-form__notice" role="status">{location.state.message}</div>}
 
         <Input
           label="Email yoki telefon"

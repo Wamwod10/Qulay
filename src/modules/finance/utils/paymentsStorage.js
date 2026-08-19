@@ -45,7 +45,9 @@ export const getStoredPayments = () => {
 
     return normalizedPayments;
   } catch (error) {
-    console.error("Payments storage read error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Payments storage read error:", error);
+    }
 
     return [];
   }

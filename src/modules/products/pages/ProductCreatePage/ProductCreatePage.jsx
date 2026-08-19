@@ -18,7 +18,7 @@ const ProductCreatePage = () => {
   const handleSubmit = async (product) => {
     const createdProduct = await createStoredProduct(product);
 
-    navigate(`/products/${createdProduct.id}`);
+    navigate("/products");
   };
 
   return (

@@ -8,6 +8,9 @@ const STORAGE_KEY =
 const MOVEMENTS_KEY =
     "warehouse_movements";
 
+const BATCHES_KEY =
+    "warehouse_batches";
+
 export const getStoredWarehouseStock = () => {
     const remoteStock = unwrapList(getCachedApiResponse("/inventory/stock"), ["stock"]);
 
@@ -36,6 +39,15 @@ export const getStoredWarehouseStock = () => {
     } catch {
         return [];
     }
+};
+
+export const getStoredBatches = () => {
+    const remoteBatches = unwrapList(getCachedApiResponse("/inventory/batches"), ["batches"]);
+    if (Array.isArray(remoteBatches)) {
+        tenantSet(BATCHES_KEY, remoteBatches);
+        return remoteBatches;
+    }
+    return tenantGet(BATCHES_KEY, []) || [];
 };
 
 export const saveWarehouseStock = (
@@ -498,9 +510,9 @@ export const inventoryAdjustStock = async ({
     reason,
     note,
 }) => {
-    const remoteProduct = await apiRequest(`/products/${productId}/stock`, {
-        method: "PATCH",
-        body: { warehouseId, newStock: countedQuantity, reason, note },
+    const remoteProduct = await apiRequest("/inventory/counts", {
+        method: "POST",
+        body: { warehouseId, productId, actualQuantity: countedQuantity, reason, note },
     });
 
     if (remoteProduct) {

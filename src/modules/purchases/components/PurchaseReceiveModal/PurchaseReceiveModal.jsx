@@ -9,6 +9,8 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
 
   const [error, setError] = useState("");
 
+  const [expiryDate, setExpiryDate] = useState("");
+
   useEffect(() => {
     if (!open || !purchase) {
       return;
@@ -27,6 +29,7 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
 
     setQuantities(next);
     setError("");
+    setExpiryDate("");
   }, [open, purchase]);
 
   if (!purchase) {
@@ -53,8 +56,8 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
         itemId: item.id,
 
         productId: item.productId,
-
-        quantity
+        quantity,
+        expiryDate: expiryDate || null
       };
     });
 
@@ -147,6 +150,8 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit }) => {
 
           })}
         </div>
+
+        <Input label={translateText("Batch yaroqlilik muddati (ixtiyoriy)")} type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} />
 
         {error && <div className="purchase-receive-modal__error">{error}</div>}
 

@@ -1,4 +1,11 @@
 .production-stages {
+  min-width: 0;
+
+  &__item,
+  &__content {
+    min-width: 0;
+  }
+
   &__header {
     margin-bottom: 18px;
 

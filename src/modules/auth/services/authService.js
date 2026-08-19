@@ -146,6 +146,13 @@ export const authService = {
     });
   },
 
+  async resetPassword(values) {
+    return request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(values),
+    });
+  },
+
 };
 
 export default authService;

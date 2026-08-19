@@ -33,7 +33,7 @@ const SalesTable = ({
   onReturn,
   onCancel,
 }) => {
-  const moneyText = (value) => `${formatSaleMoney(value)} ${translateText("so'm")}`;
+  const moneyText = (value) => formatSaleMoney(value);
   const columns = [
     {
       key: "number",

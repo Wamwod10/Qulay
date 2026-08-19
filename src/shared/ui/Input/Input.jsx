@@ -38,13 +38,25 @@ const Input = forwardRef(
         <div className="ui-input__control">
           {leftIcon && <span className="ui-input__icon">{leftIcon}</span>}
 
-          <input ref={ref} id={inputId} required={required} {...props} />
+          <input
+            ref={ref}
+            id={inputId}
+            required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? `${inputId}-error` : undefined}
+            inputMode={props.inputMode || (props.type === "number" ? "decimal" : undefined)}
+            step={props.type === "number" && props.step === undefined ? "any" : props.step}
+            onWheel={(event) => {
+              if (event.currentTarget.type === "number") event.currentTarget.blur();
+            }}
+            {...props}
+          />
 
           {rightIcon && <span className="ui-input__icon">{rightIcon}</span>}
         </div>
 
         {error ? (
-          <span className="ui-input__error">{error}</span>
+          <span id={`${inputId}-error`} className="ui-input__error">{error}</span>
         ) : hint ? (
           <span className="ui-input__hint">{hint}</span>
         ) : null}

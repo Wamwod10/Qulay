@@ -166,7 +166,7 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
 
         return `${formatWarehouseMoney(
           Number(value) * Number(row.quantity),
-        )} ${translateText("so'm")}`;
+        )}`;
       },
     },
     {

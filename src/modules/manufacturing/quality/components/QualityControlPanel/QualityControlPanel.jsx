@@ -17,6 +17,7 @@ import {
   getQualityStatusVariant,
   QUALITY_STATUS,
 } from "../../utils/qualityHelpers";
+import { translateText } from "../../../../../localization/i18n";
 
 import "./QualityControlPanel.scss";
 
@@ -135,8 +136,8 @@ const QualityControlPanel = ({ order, onSave }) => {
     <Card padding="lg" className="quality-control">
       <div className="quality-control__header">
         <div>
-          <h3>Quality Control</h3>
-          <p>Tayyor mahsulot sifat natijasini kiriting.</p>
+          <h3>{translateText("Sifat nazorati")}</h3>
+          <p>{translateText("Tayyor mahsulot sifat natijasini kiriting.")}</p>
         </div>
 
         <div className="quality-control__status">
@@ -191,7 +192,7 @@ const QualityControlPanel = ({ order, onSave }) => {
       {error && <div className="quality-control__error">{error}</div>}
 
       <div className="quality-control__actions">
-        <Button onClick={handleSubmit}>Quality Control saqlash</Button>
+        <Button onClick={handleSubmit}>{translateText("Sifat nazoratini saqlash")}</Button>
       </div>
     </Card>
   );

@@ -63,7 +63,7 @@ const PLATFORM_MODULES = [
   {
     key: "manufacturing",
     name: "Ishlab chiqarish",
-    description: "BOM, ishlab chiqarish buyurtmasi va tannarx.",
+    description: "Retsept, ishlab chiqarish buyurtmasi va tannarx.",
   },
   {
     key: "finance",

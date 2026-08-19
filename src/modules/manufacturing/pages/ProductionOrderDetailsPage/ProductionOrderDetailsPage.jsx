@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   AlertTriangle,
@@ -39,6 +39,7 @@ import {
 
 import {
   getProductionOrderById,
+  refreshProductionOrder,
   startProductionOrder,
 } from "../../utils/manufacturingStorage";
 
@@ -74,6 +75,7 @@ import {
 
 import { updateProductionOrderStages } from "../../utils/manufacturingStorage";
 import { useManufacturingSettings } from "../../../settings/selectors/settingsSelectors";
+import { aggregateQuantities } from "../../../../shared/utils/units";
 
 const ProductionOrderDetailsPage = () => {
   const manufacturingSettings = useManufacturingSettings();
@@ -83,6 +85,12 @@ const ProductionOrderDetailsPage = () => {
   const [order, setOrder] = useState(() => getProductionOrderById(orderId));
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [shortages, setShortages] = useState([]);
+
+  useEffect(() => {
+    refreshProductionOrder(orderId).then((freshOrder) => {
+      if (freshOrder) setOrder(freshOrder);
+    }).catch(() => undefined);
+  }, [orderId]);
 
   const warehouses = useMemo(() => getStoredWarehouses(), []);
   const warehouse = warehouses.find((item) => item.id === order?.warehouseId);
@@ -135,6 +143,7 @@ const ProductionOrderDetailsPage = () => {
   );
 
   const costDifference = actualProductionCost - plannedMaterialCost;
+  const materialSummary = aggregateQuantities(order?.requiredMaterials || [], "requiredQuantity");
 
   const handleStart = async () => {
     try {
@@ -149,9 +158,9 @@ const ProductionOrderDetailsPage = () => {
     }
   };
 
-  const handleSaveQuality = (qualityControl) => {
+  const handleSaveQuality = async (qualityControl) => {
     try {
-      const updated = updateProductionOrderQuality(order.id, qualityControl);
+      const updated = await updateProductionOrderQuality(order.id, qualityControl);
 
       setOrder(updated);
     } catch (error) {
@@ -159,9 +168,9 @@ const ProductionOrderDetailsPage = () => {
     }
   };
 
-  const handleSaveOverhead = (overheadItems) => {
+  const handleSaveOverhead = async (overheadItems) => {
     try {
-      const updated = updateProductionOrderOverhead(order.id, overheadItems);
+      const updated = await updateProductionOrderOverhead(order.id, overheadItems);
 
       setOrder(updated);
     } catch (error) {
@@ -215,15 +224,15 @@ const ProductionOrderDetailsPage = () => {
     {
       key: "totalCost",
       title: "Material qiymati",
-      render: (value) => `${formatManufacturingMoney(value)} so'm`,
+        render: (value) => formatManufacturingMoney(value),
     },
   ];
 
-  const handleStartStage = (stageId) => {
+  const handleStartStage = async (stageId) => {
     try {
       const nextStages = startProductionStage(stages, stageId);
 
-      const updated = updateProductionOrderStages(order.id, nextStages);
+      const updated = await updateProductionOrderStages(order.id, nextStages);
 
       setOrder(updated);
     } catch (error) {
@@ -231,11 +240,11 @@ const ProductionOrderDetailsPage = () => {
     }
   };
 
-  const handleCompleteStage = (stageId) => {
+  const handleCompleteStage = async (stageId) => {
     try {
       const nextStages = completeProductionStage(stages, stageId);
 
-      const updated = updateProductionOrderStages(order.id, nextStages);
+      const updated = await updateProductionOrderStages(order.id, nextStages);
 
       setOrder(updated);
     } catch (error) {
@@ -243,9 +252,9 @@ const ProductionOrderDetailsPage = () => {
     }
   };
 
-  const handleCompleteProduction = (values) => {
+  const handleCompleteProduction = async (values) => {
     try {
-      const updated = completeProductionOrder({
+      const updated = await completeProductionOrder({
         orderId: order.id,
 
         ...values,
@@ -362,7 +371,7 @@ const ProductionOrderDetailsPage = () => {
 
         <section className="production-order-details__summary">
           <OrderMetric label="Mahsulot" value={order.productName} />
-          <OrderMetric label="BOM" value={`v${order.bomVersion || "-"}`} />
+          <OrderMetric label="Retsept" value={`v${order.bomVersion || "-"}`} />
           <OrderMetric
             label="Reja"
             value={`${formatProductionQuantity(order.plannedQuantity)} ${
@@ -376,10 +385,21 @@ const ProductionOrderDetailsPage = () => {
           <OrderMetric label="Sana" value={order.plannedDate} />
           <OrderMetric
             label="Tannarx"
-            value={`${formatManufacturingMoney(
-              order.plannedMaterialCost,
-            )} so'm`}
+            value={formatManufacturingMoney(order.plannedMaterialCost)}
           />
+          <OrderMetric label="Real" value={`${formatProductionQuantity(order.producedQuantity || 0)} ${order.unit}`} />
+          <OrderMetric label="Yield" value={`${Number(order.yieldPercent || 0).toFixed(2)}%`} />
+          <OrderMetric label="Waste" value={`${Number(order.wastePercent || 0).toFixed(2)}%${order.abnormalWaste ? " · abnormal" : ""}`} />
+        </section>
+
+        <section className="production-order-details__material-summary" aria-label="Material yig'indisi">
+          {materialSummary.map((summary) => (
+            <OrderMetric
+              key={summary.dimension}
+              label={summary.dimension === "WEIGHT" ? "Jami og'irlik" : summary.dimension === "VOLUME" ? "Jami hajm" : summary.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona"}
+              value={`${formatProductionQuantity(summary.value)} ${summary.unit}`}
+            />
+          ))}
         </section>
 
         {["IN_PROGRESS", "COMPLETED"].includes(order.status) && (
@@ -465,7 +485,7 @@ const ProductionOrderDetailsPage = () => {
                   <span>Rejalashtirilgan material tannarxi</span>
 
                   <strong>
-                    {formatManufacturingMoney(plannedMaterialCost)} so'm
+                    {formatManufacturingMoney(plannedMaterialCost)}
                   </strong>
                 </div>
 
@@ -473,7 +493,7 @@ const ProductionOrderDetailsPage = () => {
                   <span>Real xomashyo tannarxi</span>
 
                   <strong>
-                    {formatManufacturingMoney(actualMaterialCost)} so'm
+                    {formatManufacturingMoney(actualMaterialCost)}
                   </strong>
                 </div>
 
@@ -481,7 +501,7 @@ const ProductionOrderDetailsPage = () => {
                   <span>1 birlik real tannarx</span>
 
                   <strong className="production-order-details__unit-cost">
-                    {formatManufacturingMoney(actualUnitCost)} so'm
+                    {formatManufacturingMoney(actualUnitCost)}
                   </strong>
                 </div>
 
@@ -489,7 +509,7 @@ const ProductionOrderDetailsPage = () => {
                   <span>Qo'shimcha xarajat</span>
 
                   <strong>
-                    {formatManufacturingMoney(completedOverheadCost)} so'm
+                    {formatManufacturingMoney(completedOverheadCost)}
                   </strong>
                 </div>
 
@@ -497,7 +517,7 @@ const ProductionOrderDetailsPage = () => {
                   <span>Jami real ishlab chiqarish tannarxi</span>
 
                   <strong>
-                    {formatManufacturingMoney(actualProductionCost)} so'm
+                    {formatManufacturingMoney(actualProductionCost)}
                   </strong>
                 </div>
 
@@ -514,7 +534,7 @@ const ProductionOrderDetailsPage = () => {
                     }
                   >
                     {costDifference > 0 ? "+" : ""}
-                    {formatManufacturingMoney(costDifference)} so'm
+                    {formatManufacturingMoney(costDifference)}
                   </strong>
                 </div>
               </div>

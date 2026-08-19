@@ -17,6 +17,7 @@ import {
   markSettingsHydrated,
 } from "../../../settings/utils/settingsStorage";
 import { preloadBusinessData } from "../../../../services/api/businessDataLoader";
+import { SUPPORTED_CURRENCIES } from "../../../../shared/utils/currency";
 
 import "../authPages.scss";
 
@@ -144,9 +145,7 @@ const RegisterPage = () => {
             <label className="auth-form__select">
               <span>Valyuta</span>
               <select value={values.currency} onChange={(event) => updateValue("currency", event.target.value)}>
-                <option value="UZS">UZS</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+                {SUPPORTED_CURRENCIES.map((currency) => <option key={currency.value} value={currency.value}>{currency.label}</option>)}
               </select>
             </label>
           </div>

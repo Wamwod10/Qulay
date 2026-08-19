@@ -110,7 +110,9 @@ const readJson = (key, fallback) => {
 
     return Array.isArray(fallback) && !Array.isArray(parsed) ? fallback : parsed;
   } catch (error) {
-    console.error(`HR storage read error (${key}):`, error);
+    if (import.meta.env.DEV) {
+      console.error(`HR storage read error (${key}):`, error);
+    }
 
     return fallback;
   }

@@ -1,5 +1,7 @@
 import { PRODUCT_TYPES } from "../constants/productTypes";
 import { getLocale, translateText } from "../../../localization/i18n";
+import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
+import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 
 export const getProductTypeLabel = (type) => {
   const productType = PRODUCT_TYPES.find((item) => item.value === type);
@@ -89,5 +91,5 @@ export const formatProductPrice = (value) => {
     return "-";
   }
 
-  return new Intl.NumberFormat(getLocale()).format(Number(value) || 0);
+  return formatMoneyWithSettings(Number(value) || 0, getPlatformSettings().formats);
 };

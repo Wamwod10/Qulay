@@ -226,7 +226,7 @@ const ProductDetailsPage = () => {
 
           <MetricCard
             label={translateText("Tannarx")}
-            value={`${formatProductPrice(product.cost)} ${translateText("so'm")}`}
+            value={formatProductPrice(product.cost)}
             description={`1 ${product.unit} ${translateText("uchun")}`} />
           
 
@@ -234,7 +234,7 @@ const ProductDetailsPage = () => {
             label={translateText("Sotuv narxi")}
             value={
             product.salePrice ?
-            `${formatProductPrice(product.salePrice)} ${translateText("so'm")}` :
+            formatProductPrice(product.salePrice) :
             "-"
             }
             description={
@@ -322,12 +322,12 @@ const GeneralTab = ({ product }) =>
       <div className="product-details__info-grid">
         <InfoItem
         label={translateText("Tannarx")}
-        value={`${formatProductPrice(product.cost)} so'm`} />
+        value={formatProductPrice(product.cost)} />
       
         <InfoItem
         label={translateText("Sotuv narxi")}
         value={
-        product.salePrice ? `${formatProductPrice(product.salePrice)} so'm` : "-"
+        product.salePrice ? formatProductPrice(product.salePrice) : "-"
         } />
       
         <InfoItem label="QQS" value={`${product.tax || 0}%`} />
@@ -394,7 +394,7 @@ const WarehouseTab = ({ product, history }) => {
         
         <MetricCard
           label={translateText("Ombor qiymati")}
-          value={`${formatProductPrice(product.stock * product.cost)} so'm`} />
+        value={formatProductPrice(product.stock * product.cost)} />
         
         <MetricCard
           label={translateText("Qoldiq holati")}
@@ -451,8 +451,8 @@ const SalesPurchasesTab = ({ product }) => {
     title: translateText("Miqdor"),
     render: (value) => `${value} ${product.unit}`
   },
-  { key: "price", title: translateText("Narx"), render: (value) => `${formatProductPrice(value)} so'm` },
-  { key: "total", title: translateText("Jami"), render: (value) => `${formatProductPrice(value)} so'm` }];
+  { key: "price", title: translateText("Narx"), render: (value) => formatProductPrice(value) },
+  { key: "total", title: translateText("Jami"), render: (value) => formatProductPrice(value) }];
 
 
   const purchaseColumns = [
@@ -464,8 +464,8 @@ const SalesPurchasesTab = ({ product }) => {
     title: translateText("Miqdor"),
     render: (value) => `${value} ${product.unit}`
   },
-  { key: "price", title: translateText("Narx"), render: (value) => `${formatProductPrice(value)} so'm` },
-  { key: "total", title: translateText("Jami"), render: (value) => `${formatProductPrice(value)} so'm` }];
+  { key: "price", title: translateText("Narx"), render: (value) => formatProductPrice(value) },
+  { key: "total", title: translateText("Jami"), render: (value) => formatProductPrice(value) }];
 
 
   return (
@@ -473,7 +473,7 @@ const SalesPurchasesTab = ({ product }) => {
       <div className="product-details__warehouse-summary">
         <MetricCard label={translateText("Sotuvlar soni")} value={`${salesRows.length} ta`} />
         <MetricCard label={translateText("Sotilgan miqdor")} value={`${soldQuantity} ${product.unit}`} />
-        <MetricCard label={translateText("Revenue")} value={`${formatProductPrice(revenue)} so'm`} />
+        <MetricCard label={translateText("Revenue")} value={formatProductPrice(revenue)} />
       </div>
 
       <Card>
@@ -564,11 +564,11 @@ const ManufacturingTab = ({ product }) => {
         <Card>
           <SectionHeader
             title={translateText("Xomashyo ishlatilishi")}
-            description={translateText("Backend ulangunga qadar demo BOM ma'lumotlari.")} />
+            description={translateText("Backend ulangunga qadar demo retsept ma'lumotlari.")} />
           
 
           <div className="product-details__info-grid">
-            <InfoItem label={translateText("Qaysi BOMda ishlatiladi")} value="Shokoladli pechenye v1" />
+            <InfoItem label={translateText("Qaysi retseptda ishlatiladi")} value="Shokoladli pechenye v1" />
             <InfoItem label={translateText("1 partiyaga sarf")} value={`25 ${product.unit}`} />
             <InfoItem label={translateText("Rezerv qilingan")} value={`40 ${product.unit}`} />
             <InfoItem
@@ -590,7 +590,7 @@ const ManufacturingTab = ({ product }) => {
     title: translateText("Ishlab chiqarildi"),
     render: (value) => `${value} ${product.unit}`
   },
-  { key: "cost", title: translateText("Tannarx"), render: (value) => `${formatProductPrice(value)} so'm` },
+  { key: "cost", title: translateText("Tannarx"), render: (value) => formatProductPrice(value) },
   { key: "status", title: translateText("Holat"), render: () => <Badge variant="success">{translateText("Tugallangan")}</Badge> }];
 
 
@@ -603,10 +603,10 @@ const ManufacturingTab = ({ product }) => {
         
 
         <div className="product-details__info-grid">
-          <InfoItem label={translateText("BOM / Recipe")} value={`${product.name} v1`} />
+          <InfoItem label={translateText("Retsept")} value={`${product.name} v1`} />
           <InfoItem
             label={translateText("Oxirgi tannarx")}
-            value={`${formatProductPrice(product.cost)} so'm`} />
+            value={formatProductPrice(product.cost)} />
           
           <InfoItem label={translateText("Oxirgi ishlab chiqarish")} value="PRD-2026-0042" />
           <InfoItem label={translateText("Jami qoldiq")} value={`${product.stock} ${product.unit}`} />

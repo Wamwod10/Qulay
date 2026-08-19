@@ -68,12 +68,12 @@ const SaleDetailsPage = () => {
     {
       key: "price",
       title: "Narx",
-      render: (value) => `${formatSaleMoney(value)} so'm`,
+      render: (value) => formatSaleMoney(value),
     },
     {
       key: "subtotal",
       title: "Jami",
-      render: (value) => `${formatSaleMoney(value)} so'm`,
+      render: (value) => formatSaleMoney(value),
     },
     {
       key: "returned",
@@ -187,9 +187,9 @@ const SaleDetailsPage = () => {
             </div>
           </div>
         </Card>
-        <Metric label="Total" value={`${formatSaleMoney(sale.total)} so'm`} />
-        <Metric label="Paid" value={`${formatSaleMoney(sale.paidAmount)} so'm`} />
-        <Metric label="Debt" value={`${formatSaleMoney(sale.debtAmount)} so'm`} />
+        <Metric label="Total" value={formatSaleMoney(sale.total)} />
+        <Metric label="Paid" value={formatSaleMoney(sale.paidAmount)} />
+        <Metric label="Debt" value={formatSaleMoney(sale.debtAmount)} />
       </section>
 
       <section className="sale-details__grid">
@@ -207,7 +207,7 @@ const SaleDetailsPage = () => {
               sale.payments.map((payment) => (
                 <span key={payment.id}>
                   {getPaymentMethodLabel(payment.method)}
-                  <b>{formatSaleMoney(payment.amount)} so'm</b>
+                  <b>{formatSaleMoney(payment.amount)}</b>
                 </span>
               ))
             ) : (
@@ -225,10 +225,10 @@ const SaleDetailsPage = () => {
       <Card padding="lg" className="sale-details__section">
         <SectionTitle title="Summary" />
         <div className="sale-details__totals">
-          <span>Subtotal <b>{formatSaleMoney(sale.subtotal)} so'm</b></span>
-          <span>Discount <b>-{formatSaleMoney(sale.discount)} so'm</b></span>
-          <span>Qaytarilgan <b>-{formatSaleMoney(sale.returnedAmount)} so'm</b></span>
-          <strong>Sof jami <b>{formatSaleMoney(sale.netTotal)} so'm</b></strong>
+          <span>Subtotal <b>{formatSaleMoney(sale.subtotal)}</b></span>
+          <span>Discount <b>-{formatSaleMoney(sale.discount)}</b></span>
+          <span>Qaytarilgan <b>-{formatSaleMoney(sale.returnedAmount)}</b></span>
+          <strong>Sof jami <b>{formatSaleMoney(sale.netTotal)}</b></strong>
         </div>
         {sale.note && <p className="sale-details__note">{sale.note}</p>}
       </Card>
@@ -240,7 +240,7 @@ const SaleDetailsPage = () => {
             columns={[
               { key: "productName", title: "Mahsulot" },
               { key: "quantity", title: "Miqdor", render: (value, row) => `${value} ${row.unit}` },
-              { key: "refundAmount", title: "Qaytariladigan summa", render: (value) => `${formatSaleMoney(value)} so'm` },
+              { key: "refundAmount", title: "Qaytariladigan summa", render: (value) => formatSaleMoney(value) },
               { key: "reason", title: "Sabab", render: (value) => value || "-" },
               { key: "createdAt", title: "Sana", render: formatSaleDate },
             ]}

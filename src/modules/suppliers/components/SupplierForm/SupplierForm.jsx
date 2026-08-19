@@ -10,6 +10,7 @@ import {
 } from "../../../../shared/ui";
 
 import "./SupplierForm.scss";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
 const CATEGORY_OPTIONS = [
   {
@@ -95,6 +96,7 @@ const SupplierForm = ({ initialValues, onSubmit, onCancel }) => {
     }
 
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) focusFirstInvalidField();
 
     return Object.keys(nextErrors).length === 0;
   };

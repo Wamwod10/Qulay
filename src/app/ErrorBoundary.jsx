@@ -1,5 +1,7 @@
 import { Component } from "react";
 
+import { translateText } from "../localization/i18n";
+
 export default class ErrorBoundary extends Component {
   state = { hasError: false };
 
@@ -20,9 +22,11 @@ export default class ErrorBoundary extends Component {
 
     return (
       <main role="alert" style={{ padding: 24, fontFamily: "inherit" }}>
-        <h1>Саҳифа кушода нашуд</h1>
-        <p>Лутфан саҳифаро аз нав кушоед.</p>
-        <button type="button" onClick={this.handleReload}>Аз нав кушодан</button>
+        <h1>{translateText("Sahifa ochilmadi")}</h1>
+        <p>{translateText("Iltimos, sahifani qayta yuklang.")}</p>
+        <button type="button" onClick={this.handleReload}>
+          {translateText("Qayta yuklash")}
+        </button>
       </main>
     );
   }

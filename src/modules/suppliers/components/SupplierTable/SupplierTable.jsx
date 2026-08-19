@@ -3,6 +3,7 @@ import { CircleDollarSign, Eye, Pencil } from "lucide-react";
 import { Badge, Button, LiveIcon, Table } from "../../../../shared/ui";
 
 import {
+  formatSupplierMoney,
   getSupplierStatusLabel,
   getSupplierStatusVariant,
 } from "../../utils/supplierHelpers";
@@ -90,7 +91,7 @@ const SupplierTable = ({
         return (
           <Badge variant="warning">
             <LiveIcon icon={CircleDollarSign} motion="pulse-soft" size={14} />
-            {new Intl.NumberFormat("uz-UZ").format(debt)} so‘m
+            {formatSupplierMoney(debt)}
           </Badge>
         );
       },

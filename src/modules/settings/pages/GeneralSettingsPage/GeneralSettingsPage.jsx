@@ -64,6 +64,7 @@ import {
   parsePlatformSettingsImport,
   serializePlatformSettings,
 } from "../../utils/settingsStorage";
+import { SUPPORTED_CURRENCIES } from "../../../../shared/utils/currency";
 
 import "./GeneralSettingsPage.scss";
 
@@ -475,6 +476,9 @@ const GeneralSettingsPage = () => {
             <SettingRow title="Standart to'lov turi" description="Savdo terminali, moliya va xodimlar to'lov oynalari uchun.">
               <Select value={settings.defaults.paymentMethod} options={PAYMENT_OPTIONS} onChange={(event) => dispatch(updateDefaults({ paymentMethod: event.target.value }))} />
             </SettingRow>
+            <SettingRow title="Standart QQS / VAT" description="Yangi mahsulot va formalar uchun foiz. Default 0%.">
+              <Input type="number" min="0" max="100" step="any" value={settings.defaults.vatRate} onChange={(event) => dispatch(updateDefaults({ vatRate: Number(event.target.value) }))} />
+            </SettingRow>
             <SettingRow title="Standart kassa" description="Moliya va oylik to'lovi uchun.">
               <Select value={safeValue(settings.defaults.cashboxId, entityOptions.cashboxes)} options={entityOptions.cashboxes} onChange={(event) => dispatch(updateDefaults({ cashboxId: event.target.value }))} />
             </SettingRow>
@@ -510,10 +514,10 @@ const GeneralSettingsPage = () => {
               <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm" }, { value: "comma-code", label: "1,250,000 UZS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Valyuta" description="Standart valyuta kodi.">
-              <Select value={settings.formats.currency} options={[{ value: "UZS", label: "UZS" }, { value: "USD", label: "USD" }]} onChange={(event) => dispatch(updateFormats({ currency: event.target.value }))} />
+              <Select value={settings.formats.currency} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ currency: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Son aniqligi" description="Pul va umumiy sonlar uchun kasr xonalari.">
-              <Select value={String(settings.formats.numberPrecision)} options={[0, 1, 2, 3].map((value) => ({ value: String(value), label: `${value}` }))} onChange={(event) => dispatch(updateFormats({ numberPrecision: Number(event.target.value) }))} />
+              <Select value={String(settings.formats.numberPrecision)} options={[2, 3, 4, 6].map((value) => ({ value: String(value), label: `${value}` }))} onChange={(event) => dispatch(updateFormats({ numberPrecision: Number(event.target.value) }))} />
             </SettingRow>
             <SettingRow title="Miqdor aniqligi" description="Kg/litr kabi miqdorlar uchun kasr xonalari.">
               <Select value={String(settings.formats.quantityPrecision)} options={[0, 1, 2, 3].map((value) => ({ value: String(value), label: `${value}` }))} onChange={(event) => dispatch(updateFormats({ quantityPrecision: Number(event.target.value) }))} />
@@ -811,6 +815,9 @@ const DomainSections = ({ settings, entityOptions, update, renderSection }) => (
         </SettingRow>
         <SettingRow title="Manfiy qoldiq qoidasi" description="Xavfsizlik uchun manfiy qoldiq bloklangan biznes qoida bo'lib qoladi.">
           <Select value={settings.warehouse.negativeStockPolicy} disabled options={[{ value: "blocked", label: "Bloklangan" }]} />
+        </SettingRow>
+        <SettingRow title="Batch sarfi siyosati" description="FEFO avval yaroqlilik muddati yaqin batchni, FIFO esa eng eski batchni sarflaydi.">
+          <Select value={settings.warehouse.inventoryPolicy || "FEFO"} options={[{ value: "FEFO", label: "FEFO — yaroqlilik muddati" }, { value: "FIFO", label: "FIFO — kirgan vaqti" }]} onChange={(event) => update("warehouse", { inventoryPolicy: event.target.value })} />
         </SettingRow>
         <SwitchGrid
           values={settings.warehouse}

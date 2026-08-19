@@ -3,6 +3,7 @@ import { tenantSet } from "../../modules/auth/utils/tenantStorage";
 
 const LISTS = [
   { path: "/products", key: "products", keys: ["products"] },
+  { path: "/categories", key: "categories", keys: ["categories"] },
   { path: "/customers", key: "customers", keys: ["customers"] },
   { path: "/sales", key: "sales", keys: ["sales"] },
   { path: "/purchases", key: "purchases", keys: ["purchases"] },
@@ -10,6 +11,8 @@ const LISTS = [
   { path: "/agents", key: "agents", keys: ["agents"] },
   { path: "/inventory/stock", key: "warehouse_stock", keys: ["stock"] },
   { path: "/inventory/movements", key: "warehouse_movements", keys: ["movements"] },
+  { path: "/inventory/batches", key: "warehouse_batches", keys: ["batches"] },
+  { path: "/inventory/counts", key: "inventory_counts", keys: ["counts"] },
   { path: "/warehouses", key: "warehouses", keys: ["warehouses"] },
   { path: "/finance/cashboxes", key: "finance_cashboxes", keys: ["cashboxes"] },
   { path: "/finance/transactions", key: "finance_transactions", keys: ["transactions"] },

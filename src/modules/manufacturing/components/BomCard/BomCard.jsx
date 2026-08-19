@@ -40,7 +40,7 @@ const BomCard = ({ bom, onView, onEdit }) => {
           <span>Chiqish</span>
 
           <strong>
-            {bom.outputQuantity} {bom.outputUnit}
+            {bom.outputQuantity} {bom.unit}
           </strong>
         </div>
 
@@ -61,13 +61,13 @@ const BomCard = ({ bom, onView, onEdit }) => {
         <div>
           <span>Batch tannarxi</span>
 
-          <strong>{formatManufacturingMoney(totalCost)} so‘m</strong>
+          <strong>{formatManufacturingMoney(totalCost)}</strong>
         </div>
 
         <div>
           <span>1 birlik tannarx</span>
 
-          <strong>{formatManufacturingMoney(unitCost)} so‘m</strong>
+          <strong>{formatManufacturingMoney(unitCost)}</strong>
         </div>
       </div>
 

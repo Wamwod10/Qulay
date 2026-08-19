@@ -78,14 +78,14 @@ const PurchaseTable = ({
     key: "total",
     title: translateText("Jami"),
 
-    render: (value) => <strong>{formatPurchaseMoney(value)}{translateText("so‘m")}</strong>
+    render: (value) => <strong>{formatPurchaseMoney(value)}</strong>
   },
 
   {
     key: "paidAmount",
     title: translateText("To‘langan"),
 
-    render: (value) => <span>{formatPurchaseMoney(value)}{translateText("so‘m")}</span>
+    render: (value) => <span>{formatPurchaseMoney(value)}</span>
   },
 
   {
@@ -101,7 +101,7 @@ const PurchaseTable = ({
 
       return (
         <div className="purchase-table__debt">
-            <strong>{formatPurchaseMoney(debt)}{translateText("so‘m")}</strong>
+            <strong>{formatPurchaseMoney(debt)}</strong>
 
             <Badge size="sm" variant="warning">
               <LiveIcon icon={Wallet} motion="pulse-soft" size={13} />{translateText("Qarz bor")}

@@ -38,6 +38,8 @@ import { buildManufacturingReport } from "../../utils/manufacturingReports";
 
 import { getStoredSales } from "../../../sales/utils/salesStorage";
 
+import { getStoredBatches } from "../../../warehouse/utils/warehouseStorage";
+
 import { formatSaleMoney } from "../../../sales/utils/salesHelpers";
 
 import {
@@ -112,10 +114,7 @@ const localizeOptions = (options = []) =>
     label: translateText(option.label),
   }));
 
-const moneyUnit = () => translateText("so'm");
-
-const moneyText = (value, formatter = formatFinanceMoney) =>
-  `${formatter(value)} ${moneyUnit()}`;
+const moneyText = (value, formatter = formatFinanceMoney) => formatter(value);
 
 const localizedUnit = (unit) => translateText(unit || "dona");
 
@@ -149,6 +148,8 @@ const ReportsPage = () => {
   const [orders] = useState(() => getStoredProductionOrders());
 
   const [sales] = useState(() => getStoredSales());
+
+  const [batches] = useState(() => getStoredBatches());
 
   const [period, setPeriod] = useState("month");
 
@@ -305,6 +306,14 @@ const ReportsPage = () => {
         .slice(0, 5),
     };
   }, [sales]);
+
+  const expiryRows = useMemo(
+    () =>
+      batches
+        .filter((batch) => ["expired", "near_expiry"].includes(batch.expiryStatus))
+        .sort((left, right) => Number(left.expiryDays ?? 0) - Number(right.expiryDays ?? 0)),
+    [batches],
+  );
 
   /* =========================================
    * FINANCE
@@ -471,6 +480,39 @@ const ReportsPage = () => {
               valueKey="total"
             />
           </div>
+        </ReportSection>
+
+        <ReportSection
+          title="Yaroqlilik muddati hisoboti"
+          description="Muddati o'tgan va yaqin qolgan xomashyo hamda tayyor mahsulot batchlari."
+        >
+          <LocalizedTable
+            columns={[
+              { key: "productName", title: "Mahsulot" },
+              { key: "batchNumber", title: "Batch" },
+              { key: "warehouseName", title: "Ombor" },
+              {
+                key: "expiryDate",
+                title: "Yaroqlilik sanasi",
+                render: (value) =>
+                  value ? new Date(value).toLocaleDateString(getLocale()) : "—",
+              },
+              {
+                key: "expiryStatus",
+                title: "Holat",
+                render: (value, row) => (
+                  <Badge variant={value === "expired" ? "danger" : "warning"}>
+                    {value === "expired"
+                      ? translateText("Muddati o'tgan")
+                      : `${row.expiryDays} ${translateText("kun qoldi")}`}
+                  </Badge>
+                ),
+              },
+            ]}
+            data={expiryRows}
+            rowKey="id"
+            emptyText="Yaroqlilik bo'yicha ogohlantirish yo'q."
+          />
         </ReportSection>
 
         {/* =========================
@@ -1305,7 +1347,6 @@ const MiniReportList = ({
           <strong>
             {formatter(row[valueKey])}
 
-            {suffix !== "" ? ` ${moneyUnit()}` : ""}
           </strong>
         </span>
       ))

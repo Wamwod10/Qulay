@@ -286,7 +286,7 @@ const WarehouseProductDetailsPage = () => {
           <WarehouseMetric
             icon={<Wallet size={20} />}
             label={translateText("Ombor qiymati")}
-            value={`${formatWarehouseMoney(stockValue)} ${translateText("so‘m")}`}
+            value={formatWarehouseMoney(stockValue)}
           />
         </section>
 
@@ -321,12 +321,12 @@ const WarehouseProductDetailsPage = () => {
 
               <InfoItem
                 label={translateText("Tannarx")}
-                value={`${formatWarehouseMoney(item.cost)} ${translateText("so‘m")}`}
+                value={formatWarehouseMoney(item.cost)}
               />
 
               <InfoItem
                 label={translateText("Ombor qiymati")}
-                value={`${formatWarehouseMoney(stockValue)} ${translateText("so‘m")}`}
+                value={formatWarehouseMoney(stockValue)}
               />
             </div>
           </Card>

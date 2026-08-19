@@ -25,7 +25,7 @@ const BomDetailsPage = () => {
 
   if (!bom) {
     return (
-      <PageContainer title="BOM topilmadi">
+      <PageContainer title="Retsept topilmadi">
         <Button variant="secondary" onClick={() => navigate("/manufacturing")}>
           Ortga
         </Button>
@@ -62,7 +62,7 @@ const BomDetailsPage = () => {
       key: "cost",
       title: "Tannarx",
 
-      render: (value) => `${formatManufacturingMoney(value)} so‘m`,
+      render: (value) => formatManufacturingMoney(value),
     },
 
     {
@@ -70,9 +70,7 @@ const BomDetailsPage = () => {
       title: "Jami",
 
       render: (_, material) =>
-        `${formatManufacturingMoney(
-          Number(material.quantity || 0) * Number(material.cost || 0),
-        )} so‘m`,
+        formatManufacturingMoney(Number(material.quantity || 0) * Number(material.cost || 0)),
     },
   ];
 
@@ -125,18 +123,18 @@ const BomDetailsPage = () => {
           <BomMetric
             icon={<Package size={20} />}
             label="Chiqish"
-            value={`${bom.outputQuantity} ${bom.outputUnit}`}
+            value={`${bom.outputQuantity} ${bom.unit}`}
           />
 
           <BomMetric
             icon={<Wallet size={20} />}
             label="Batch tannarxi"
-            value={`${formatManufacturingMoney(totalCost)} so‘m`}
+            value={formatManufacturingMoney(totalCost)}
           />
 
           <BomMetric
             label="1 birlik tannarx"
-            value={`${formatManufacturingMoney(unitCost)} so‘m`}
+            value={formatManufacturingMoney(unitCost)}
           />
         </section>
 

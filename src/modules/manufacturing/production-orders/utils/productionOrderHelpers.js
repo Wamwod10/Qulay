@@ -1,7 +1,8 @@
 import { getStoredProducts } from "../../../products/utils/productsStorage";
 import { getLocale } from "../../../../localization/i18n";
+import { roundDecimal } from "../../../../shared/utils/number";
 
-const roundQuantity = (value) => Math.round((Number(value) || 0) * 1000000) / 1000000;
+const roundQuantity = (value) => roundDecimal(value, 6);
 
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
@@ -28,7 +29,7 @@ export const getBomProductSnapshot = (bom) => {
     productName: product?.name || bom.productName || "",
     productSku: product?.sku || bom.productSku || "",
     outputQuantity: Number(bom.outputQuantity || 0),
-    outputUnit: product?.unit || bom.outputUnit || "dona",
+    unit: product?.unit || bom.unit || "dona",
     bomVersion: bom.version || "1.0",
   };
 };

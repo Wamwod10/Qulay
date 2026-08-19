@@ -312,7 +312,7 @@ const PurchasesPage = () => {
           <PurchaseStat
             icon={<Wallet size={21} />}
             label={translateText("Umumiy xarid")}
-            value={`${formatPurchaseMoney(stats.totalAmount)} so‘m`} />
+            value={formatPurchaseMoney(stats.totalAmount)} />
           
         </section>
 

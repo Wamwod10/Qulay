@@ -1,4 +1,5 @@
 .production-order-details {
+  min-width: 0;
   display: flex;
   flex-direction: column;
 
@@ -47,6 +48,13 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 
     gap: 16px;
+  }
+
+  &__material-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    min-width: 0;
   }
 
   &__metric {
@@ -146,6 +154,10 @@
     &__summary {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    &__material-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 }
 
@@ -157,7 +169,8 @@
       align-items: stretch;
     }
 
-    &__summary {
+    &__summary,
+    &__material-summary {
       grid-template-columns: 1fr;
     }
 

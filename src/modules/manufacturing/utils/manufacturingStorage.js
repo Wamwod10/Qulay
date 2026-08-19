@@ -172,7 +172,7 @@ export const updateBom = async (
     }) : null;
     if (remoteBom?.id) {
         const boms = getStoredBoms();
-        saveBoms(boms.map((bom) => (bom.id === remoteBom.id ? remoteBom : bom)));
+        saveBoms([remoteBom, ...boms.filter((bom) => bom.id !== updatedBom.id && bom.id !== remoteBom.id)]);
         return remoteBom;
     }
     const boms = getStoredBoms();
@@ -334,6 +334,14 @@ export const getProductionOrderById = (
         (order) =>
             order.id === orderId,
     );
+};
+
+export const refreshProductionOrder = async (orderId) => {
+    const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}`);
+    if (!remoteOrder?.id) return getProductionOrderById(orderId);
+    const orders = getStoredProductionOrders();
+    saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
+    return normalizeProductionOrder(remoteOrder);
 };
 
 export const updateProductionOrder = async (
@@ -572,10 +580,29 @@ export const startProductionOrder = async (
     return startedOrder;
 };
 
-export const updateProductionOrderStages = (
+export const updateProductionOrderStages = async (
     orderId,
     stages,
 ) => {
+    const current = getProductionOrderById(orderId);
+    const changedStage = stages.find((stage, index) => stage.status !== current?.stages?.[index]?.status);
+    if (current && changedStage?.id) {
+        const action = changedStage.status === "IN_PROGRESS" ? "start" : changedStage.status === "COMPLETED" ? "complete" : null;
+        if (action) {
+            const remoteStage = await apiRequest(`/manufacturing/orders/${orderId}/stages/${changedStage.id}/${action}`, {
+                method: "POST",
+                body: { notes: changedStage.notes },
+            });
+            if (remoteStage?.id) {
+                const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}`);
+                if (remoteOrder?.id) {
+                    const orders = getStoredProductionOrders();
+                    saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
+                    return normalizeProductionOrder(remoteOrder);
+                }
+            }
+        }
+    }
     const orders =
         getStoredProductionOrders();
 
@@ -608,10 +635,19 @@ export const updateProductionOrderStages = (
     return updatedOrder;
 };
 
-export const updateProductionOrderQuality = (
+export const updateProductionOrderQuality = async (
     orderId,
     qualityControl,
 ) => {
+    const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/quality`, {
+        method: "PATCH",
+        body: qualityControl,
+    });
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
+        return normalizeProductionOrder(remoteOrder);
+    }
     const orders =
         getStoredProductionOrders();
 
@@ -647,10 +683,19 @@ export const updateProductionOrderQuality = (
     return updatedOrder;
 };
 
-export const updateProductionOrderOverhead = (
+export const updateProductionOrderOverhead = async (
     orderId,
     overheadItems,
 ) => {
+    const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/overhead`, {
+        method: "PATCH",
+        body: { items: overheadItems },
+    });
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
+        return normalizeProductionOrder(remoteOrder);
+    }
     const orders =
         getStoredProductionOrders();
 

@@ -24,7 +24,7 @@ const AgentOrders = ({
   }, {
     key: "totalAmount",
     title: translateText("Summa"),
-    render: (value, order) => `${formatAgentMoney(value ?? order.total)} ${translateText("so'm")}`
+    render: (value, order) => formatAgentMoney(value ?? order.total)
   }, {
     key: "status",
     title: translateText("Holat"),

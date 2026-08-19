@@ -32,6 +32,7 @@ import {
   Table,
   Textarea,
 } from "../../../../shared/ui";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
 import {
   ATTENDANCE_STATUSES,
@@ -128,7 +129,7 @@ const paymentMethodOptions = PAYMENT_METHODS.map((value) => ({
   label: getPaymentMethodLabel(value),
 }));
 
-const money = (value) => `${formatFinanceMoney(value)} so'm`;
+const money = (value) => formatFinanceMoney(value);
 
 const optionize = (items, emptyLabel) => [
   { value: "", label: emptyLabel },
@@ -548,12 +549,24 @@ const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
     },
   );
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
-  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const update = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: "" }));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+    const nextErrors = {};
+    if (!String(form.fullName || "").trim()) nextErrors.fullName = "F.I.Sh. majburiy.";
+    if (!String(form.phone || "").trim()) nextErrors.phone = "Telefon majburiy.";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      focusFirstInvalidField();
+      return;
+    }
 
     try {
       const saved = await upsertEmployee({
@@ -572,13 +585,13 @@ const EmployeeFormPanel = ({ employee, shifts, onCancel, onSaved }) => {
     <Card padding="lg">
       <form className="hr-workspace__form" onSubmit={handleSubmit}>
         {error && <div className="hr-workspace__error">{error}</div>}
-        <Input label="F.I.Sh." required value={form.fullName} onChange={(event) => update("fullName", event.target.value)} />
-        <Input label="Telefon" required value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+        <Input label="F.I.Sh." required error={errors.fullName} value={form.fullName} onChange={(event) => update("fullName", event.target.value)} />
+        <Input label="Telefon" required error={errors.phone} value={form.phone} onChange={(event) => update("phone", event.target.value)} />
         <Input label="Email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} />
         <Input label="Lavozim" value={form.position} onChange={(event) => update("position", event.target.value)} />
         <Input label="Bolim" value={form.department} onChange={(event) => update("department", event.target.value)} />
         <Select
-          label="Role"
+          label="Rol"
           value={form.role}
           options={roleOptions.filter((option) => option.value)}
           onChange={(event) => update("role", event.target.value)}

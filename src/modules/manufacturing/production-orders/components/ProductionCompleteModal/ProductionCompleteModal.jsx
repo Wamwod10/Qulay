@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 import {
   Button,
   Input,
   LiveIcon,
   Modal,
+  Select,
   Textarea,
 } from "../../../../../shared/ui";
 
 import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
+import { getStoredProducts } from "../../../../products/utils/productsStorage";
 
 import {
   calculateActualProductionCost,
@@ -26,6 +28,10 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   const [wasteQuantity, setWasteQuantity] = useState("0");
 
   const [actualMaterials, setActualMaterials] = useState([]);
+
+  const [packagingRows, setPackagingRows] = useState([]);
+
+  const packagingProducts = useMemo(() => getStoredProducts().filter((product) => product.status !== "INACTIVE"), []);
 
   const [completionNote, setCompletionNote] = useState("");
 
@@ -57,6 +63,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     );
 
     setCompletionNote("");
+    setPackagingRows(Array.isArray(order.packaging) ? order.packaging : []);
     setError("");
   }, [open, order]);
 
@@ -86,6 +93,8 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   const defect = Number(defectQuantity || 0);
 
   const waste = Number(wasteQuantity || 0);
+
+  const packagingTotal = packagingRows.reduce((total, row) => total + Number(row.quantity || 0) * Number(row.packSize || 0), 0);
 
   const produced =
     qualityAcceptedQuantity !== null
@@ -120,6 +129,11 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     );
   };
 
+  const updatePackaging = (index, key, value) => setPackagingRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  const addPackaging = () => setPackagingRows((current) => [...current, { productName: "", quantity: "", packSize: "", packUnit: order.unit, materials: [] }]);
+  const removePackaging = (index) => setPackagingRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
+  const updatePackagingMaterial = (rowIndex, key, value) => setPackagingRows((current) => current.map((row, index) => index === rowIndex ? { ...row, materials: [{ ...(row.materials?.[0] || {}), [key]: value }] } : row));
+
   const handleSubmit = () => {
     setError("");
 
@@ -132,6 +146,11 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     if (defect + waste > plannedQuantity) {
       setError("Brak va yo'qotish reja miqdoridan oshmasligi kerak.");
 
+      return;
+    }
+
+    if (packagingTotal > produced) {
+      setError("Qadoqlangan jami miqdor tayyor mahsulotdan oshmasligi kerak.");
       return;
     }
 
@@ -161,6 +180,8 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       })),
 
       completionNote,
+
+      packaging: packagingRows.map((row) => ({ ...row, quantity: Number(row.quantity || 0), packSize: Number(row.packSize || 0) })),
     });
   };
 
@@ -246,6 +267,26 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           </div>
         </div>
 
+        <div className="production-complete__packaging">
+          <div className="production-complete__materials-title">
+            <div>
+              <h4>Qadoqlash</h4>
+              <p>Qadoqlangan jami: {packagingTotal} {order.unit}; qolgan bulk: {Math.max(produced - packagingTotal, 0)} {order.unit}.</p>
+            </div>
+            <Button variant="secondary" onClick={addPackaging} leftIcon={<Plus size={15} />}>Qadoq qo'shish</Button>
+          </div>
+          {packagingRows.map((row, index) => (
+            <div className="production-complete__package-row" key={row.id || index}>
+              <Input label="SKU nomi" value={row.productName || ""} onChange={(event) => updatePackaging(index, "productName", event.target.value)} />
+              <Input label="Soni" type="number" min="0" step="any" value={row.quantity || ""} onChange={(event) => updatePackaging(index, "quantity", event.target.value)} />
+              <Input label={`Hajmi (${order.unit})`} type="number" min="0" step="any" value={row.packSize || ""} onChange={(event) => updatePackaging(index, "packSize", event.target.value)} />
+              <Select label="Qop/material" value={row.materials?.[0]?.productId || ""} options={packagingProducts.map((product) => ({ value: product.id, label: `${product.name} (${product.unit})` }))} onChange={(event) => updatePackagingMaterial(index, "productId", event.target.value)} />
+              <Input label="Har bir qadoq materiali" type="number" min="0" step="any" value={row.materials?.[0]?.quantity || ""} onChange={(event) => updatePackagingMaterial(index, "quantity", event.target.value)} />
+              <Button variant="ghost" aria-label="Qadoqni o'chirish" onClick={() => removePackaging(index)} leftIcon={<Trash2 size={15} />} />
+            </div>
+          ))}
+        </div>
+
         <div className="production-complete__materials">
           <div className="production-complete__materials-header">
             <span>Xomashyo</span>
@@ -261,6 +302,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
             const difference =
               Number(material.actualQuantity || 0) -
               Number(material.plannedQuantity || 0);
+            const differencePercent = Number(material.plannedQuantity || 0) > 0 ? (difference / Number(material.plannedQuantity)) * 100 : 0;
 
             return (
               <div
@@ -271,7 +313,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                   <strong>{material.productName}</strong>
 
                   <span>
-                    {formatManufacturingMoney(material.cost)} so‘m /{" "}
+                    {formatManufacturingMoney(material.cost)} /{" "}
                     {material.unit}
                   </span>
                 </div>
@@ -300,7 +342,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                   }
                 >
                   {difference > 0 ? "+" : ""}
-                  {difference.toFixed(2)} {material.unit}
+                  {difference.toFixed(2)} {material.unit} ({differencePercent > 0 ? "+" : ""}{differencePercent.toFixed(2)}%)
                 </strong>
               </div>
             );
@@ -311,25 +353,25 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           <div>
             <span>Real xomashyo tannarxi</span>
 
-            <strong>{formatManufacturingMoney(actualMaterialCost)} so‘m</strong>
+            <strong>{formatManufacturingMoney(actualMaterialCost)}</strong>
           </div>
 
           <div>
             <span>Overhead</span>
 
-            <strong>{formatManufacturingMoney(overheadCost)} so'm</strong>
+            <strong>{formatManufacturingMoney(overheadCost)}</strong>
           </div>
 
           <div>
             <span>Jami real tannarx</span>
 
-            <strong>{formatManufacturingMoney(actualProductionCost)} so'm</strong>
+            <strong>{formatManufacturingMoney(actualProductionCost)}</strong>
           </div>
 
           <div>
             <span>1 birlik real tannarx</span>
 
-            <strong>{formatManufacturingMoney(actualUnitCost)} so‘m</strong>
+            <strong>{formatManufacturingMoney(actualUnitCost)}</strong>
           </div>
         </div>
 

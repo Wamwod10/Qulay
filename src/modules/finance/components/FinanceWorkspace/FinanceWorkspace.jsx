@@ -28,15 +28,17 @@ import {
   Input,
   LiveIcon,
   Modal,
+  CreatableSelect,
   Select,
   Table,
   Textarea,
 } from "../../../../shared/ui";
+import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
-import { getStoredAgents } from "../../../agents/utils/agentsStorage";
-import { getStoredCustomers } from "../../../customers/utils/customersStorage";
+import { createAgent, getStoredAgents } from "../../../agents/utils/agentsStorage";
+import { createCustomer, getStoredCustomers } from "../../../customers/utils/customersStorage";
 import { getStoredPurchases } from "../../../purchases/utils/purchasesStorage";
-import { getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
+import { createSupplier, getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
 import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 import {
   useDefaultSettings,
@@ -161,6 +163,7 @@ const FinanceWorkspace = ({ view = "overview" }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
+  const [modalErrors, setModalErrors] = useState({});
 
   useEffect(() => {
     const refresh = () => setRefreshKey((current) => current + 1);
@@ -240,6 +243,24 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     [location.search],
   );
 
+  const createFinanceCustomer = async (name) => {
+    const created = await createCustomer({ name, fullName: name, status: "ACTIVE" });
+    setRefreshKey((current) => current + 1);
+    return created;
+  };
+
+  const createFinanceSupplier = async (name) => {
+    const created = await createSupplier({ name, status: "ACTIVE" });
+    setRefreshKey((current) => current + 1);
+    return created;
+  };
+
+  const createFinanceAgent = async (name) => {
+    const created = await createAgent({ name, status: "ACTIVE" });
+    setRefreshKey((current) => current + 1);
+    return created;
+  };
+
   const openModal = (name, seed = {}) => {
     setForm({
       ...initialForm(),
@@ -258,6 +279,7 @@ const FinanceWorkspace = ({ view = "overview" }) => {
       ...seed,
     });
     setError("");
+    setModalErrors({});
     setIsSubmitting(false);
     setModal(name);
   };
@@ -265,6 +287,7 @@ const FinanceWorkspace = ({ view = "overview" }) => {
   const closeModal = () => {
     setModal(null);
     setError("");
+    setModalErrors({});
     setIsSubmitting(false);
   };
 
@@ -276,10 +299,26 @@ const FinanceWorkspace = ({ view = "overview" }) => {
 
   const updateForm = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
+    setModalErrors((current) => ({ ...current, [field]: "" }));
   };
 
   const submitModal = async () => {
     if (isSubmitting) {
+      return;
+    }
+
+    const nextErrors = {};
+    if (!Number(form.amount || 0) || Number(form.amount) < 0) {
+      nextErrors.amount = "Summani kiriting.";
+    }
+    if (modal === "customer-payment" && !form.customerId) nextErrors.customerId = "Mijozni tanlang.";
+    if (modal === "supplier-payment" && !form.supplierId) nextErrors.supplierId = "Yetkazib beruvchini tanlang.";
+    if (["agent-collection", "agent-handover"].includes(modal) && !form.agentId) nextErrors.agentId = "Agentni tanlang.";
+    if (modal === "cash-transfer" && !form.fromCashboxId) nextErrors.fromCashboxId = "Manba kassani tanlang.";
+    if (modal === "cash-transfer" && !form.toCashboxId) nextErrors.toCashboxId = "Qabul qiluvchi kassani tanlang.";
+    setModalErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      focusFirstInvalidField();
       return;
     }
 
@@ -397,6 +436,10 @@ const FinanceWorkspace = ({ view = "overview" }) => {
           agentOptions={agentOptions}
           cashboxOptions={cashboxOptions}
           selectedSupplierPurchases={selectedSupplierPurchases}
+          modalErrors={modalErrors}
+          onCreateCustomer={createFinanceCustomer}
+          onCreateSupplier={createFinanceSupplier}
+          onCreateAgent={createFinanceAgent}
         />
       </div>
     </PageContainer>
@@ -621,7 +664,7 @@ const CashboxesView = ({ cashboxBalances, openModal }) => (
         <Card key={row.cashboxId} variant="soft" padding="md" className="finance-workspace__cashbox">
           <strong>{row.cashbox?.name || row.cashboxId}</strong>
           <span>{row.cashbox?.type || "CASH"} / {row.cashbox?.currency || "UZS"}</span>
-          <b>{formatFinanceMoney(row.balance)} so'm</b>
+          <b>{formatFinanceMoney(row.balance)}</b>
           <small>Kirim {formatFinanceMoney(row.inAmount)} / chiqim {formatFinanceMoney(row.outAmount)}</small>
         </Card>
       ))}
@@ -749,6 +792,10 @@ const FinanceModal = ({
   agentOptions,
   cashboxOptions,
   selectedSupplierPurchases,
+  modalErrors,
+  onCreateCustomer,
+  onCreateSupplier,
+  onCreateAgent,
 }) => {
   const titleMap = {
     "customer-payment": "Mijoz to'lovi",
@@ -775,10 +822,10 @@ const FinanceModal = ({
     >
       {error && <div className="finance-workspace__error">{error}</div>}
       <div className="finance-workspace__form">
-        {modal === "customer-payment" && <Select label="Mijoz" value={form.customerId} options={customerOptions} onChange={updateForm("customerId")} />}
+        {modal === "customer-payment" && <CreatableSelect label="Mijoz" value={form.customerId} error={modalErrors.customerId} options={customerOptions} onChange={updateForm("customerId")} onCreate={onCreateCustomer} />}
         {modal === "supplier-payment" && (
           <>
-            <Select label="Yetkazib beruvchi" value={form.supplierId} options={supplierOptions} onChange={updateForm("supplierId")} />
+            <CreatableSelect label="Yetkazib beruvchi" value={form.supplierId} error={modalErrors.supplierId} options={supplierOptions} onChange={updateForm("supplierId")} onCreate={onCreateSupplier} />
             <Select
               label="Xarid ixtiyoriy"
               value={form.purchaseId}
@@ -787,19 +834,19 @@ const FinanceModal = ({
             />
           </>
         )}
-        {["agent-collection", "agent-handover"].includes(modal) && <Select label="Agent" value={form.agentId} options={agentOptions} onChange={updateForm("agentId")} />}
+        {["agent-collection", "agent-handover"].includes(modal) && <CreatableSelect label="Agent" value={form.agentId} error={modalErrors.agentId} options={agentOptions} onChange={updateForm("agentId")} onCreate={onCreateAgent} />}
         {modal === "agent-collection" && <Select label="Mijoz ixtiyoriy" value={form.customerId} options={customerOptions} onChange={updateForm("customerId")} />}
         {modal === "expense" && <Select label="Kategoriya" value={form.category} options={EXPENSE_CATEGORIES.map((category) => ({ value: category, label: category }))} onChange={updateForm("category")} />}
         {modal === "cash-movement" && <Select label="Turi" value={form.type} options={[{ value: "IN", label: "Kirim" }, { value: "OUT", label: "Chiqim" }]} onChange={updateForm("type")} />}
         {modal === "cash-transfer" ? (
           <>
-            <Select label="Qaysi kassadan" value={form.fromCashboxId} options={cashboxOptions} onChange={updateForm("fromCashboxId")} />
-            <Select label="Qaysi kassaga" value={form.toCashboxId} options={cashboxOptions} onChange={updateForm("toCashboxId")} />
+            <Select label="Qaysi kassadan" value={form.fromCashboxId} error={modalErrors.fromCashboxId} options={cashboxOptions} onChange={updateForm("fromCashboxId")} />
+            <Select label="Qaysi kassaga" value={form.toCashboxId} error={modalErrors.toCashboxId} options={cashboxOptions} onChange={updateForm("toCashboxId")} />
           </>
         ) : modal !== "agent-collection" ? (
           <Select label="Kassa" value={form.cashboxId} options={cashboxOptions} onChange={updateForm("cashboxId")} />
         ) : null}
-        <Input label="Summa" type="number" min="0" value={form.amount} onChange={updateForm("amount")} />
+        <Input label="Summa" type="number" min="0" error={modalErrors.amount} value={form.amount} onChange={updateForm("amount")} />
         {modal !== "cash-transfer" && <Select label="To'lov turi" value={form.paymentMethod} options={PAYMENT_OPTIONS.filter((option) => option.value)} onChange={updateForm("paymentMethod")} />}
         {modal === "expense" && <Input label="Mas'ul shaxs" value={form.responsiblePerson} onChange={updateForm("responsiblePerson")} />}
         <DatePicker label="Sana" value={form.date} onChange={updateForm("date")} />
@@ -816,7 +863,7 @@ const Kpi = ({ icon, label, value, variant = "" }) => (
     </div>
     <span>
       <small>{label}</small>
-      <strong>{formatFinanceMoney(value)} so'm</strong>
+      <strong>{formatFinanceMoney(value)}</strong>
     </span>
   </Card>
 );
@@ -846,7 +893,7 @@ const MiniBars = ({ rows, labelKey = "category", valueKey = "amount", emptyText 
 
         return (
           <div key={row.id || row.customerId || row.supplierId || row.agentId || label} className="finance-workspace__mini-bar">
-            <span><b>{label || "-"}</b><strong>{formatFinanceMoney(value)} so'm</strong></span>
+            <span><b>{label || "-"}</b><strong>{formatFinanceMoney(value)}</strong></span>
             <div><i style={{ width: `${max > 0 ? (value / max) * 100 : 0}%` }} /></div>
           </div>
         );
@@ -855,17 +902,17 @@ const MiniBars = ({ rows, labelKey = "category", valueKey = "amount", emptyText 
   );
 };
 
-const moneyCell = (value) => `${formatFinanceMoney(value)} so'm`;
+const moneyCell = (value) => formatFinanceMoney(value);
 
 const debtCell = (value) => {
   const amount = Number(value || 0);
 
   return amount > 0 ? (
     <Badge variant={amount > 1000000 ? "danger" : "warning"}>
-      {formatFinanceMoney(amount)} so'm
+      {formatFinanceMoney(amount)}
     </Badge>
   ) : (
-    <Badge variant="success">0 so'm</Badge>
+    <Badge variant="success">{formatFinanceMoney(0)}</Badge>
   );
 };
 

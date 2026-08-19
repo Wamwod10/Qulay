@@ -81,7 +81,7 @@ export const DEFAULT_SETTINGS = {
     timeFormat: "24h",
     moneyFormat: "space-symbol",
     currency: "UZS",
-    numberPrecision: 0,
+    numberPrecision: 2,
     quantityPrecision: 2,
   },
 
@@ -92,6 +92,7 @@ export const DEFAULT_SETTINGS = {
     paymentMethod: "CASH",
     cashboxId: "cashbox-main",
     currency: "UZS",
+    vatRate: 0,
     pageSize: 10,
     dashboardPeriod: "month",
     salesTab: "POS",
@@ -132,6 +133,7 @@ export const DEFAULT_SETTINGS = {
 
   warehouse: {
     defaultWarehouseId: "",
+    inventoryPolicy: "FEFO",
     lowStockWarning: true,
     lowStockThresholdMode: "product",
     negativeStockPolicy: "blocked",

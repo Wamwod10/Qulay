@@ -34,10 +34,12 @@ export const savePurchaseDraft = (
             },
         );
     } catch (error) {
-        console.error(
-            "Purchase draft save error:",
-            error,
-        );
+        if (import.meta.env.DEV) {
+            console.error(
+                "Purchase draft save error:",
+                error,
+            );
+        }
     }
 };
 

@@ -1,15 +1,13 @@
 import { getLocale, translateText } from "../../../localization/i18n";
+import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
+import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 
 export const formatAgentMoney = (
   value,
 ) => {
   const number = Number(value);
 
-  return new Intl.NumberFormat(
-    getLocale(),
-  ).format(
-    Number.isFinite(number) ? number : 0,
-  );
+  return formatMoneyWithSettings(Number.isFinite(number) ? number : 0, getPlatformSettings().formats);
 };
 
 export const getAgentStatusLabel = (

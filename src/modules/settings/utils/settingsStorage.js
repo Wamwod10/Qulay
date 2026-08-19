@@ -76,6 +76,7 @@ const normalizeAppearance = (stored = {}) => {
 const normalizeFormats = (stored = {}) => ({
   ...stored,
   language: normalizeLanguage(stored.language || stored.locale || getStoredLanguage()),
+  numberPrecision: Math.max(Number(stored.numberPrecision ?? DEFAULT_SETTINGS.formats.numberPrecision), 2),
 });
 
 const normalizeTables = (tables = {}) =>
@@ -209,7 +210,9 @@ export const loadPlatformSettings = async () => {
 
     return normalizeSettings();
   } catch (error) {
-    console.error("Settings load error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Settings load error:", error);
+    }
     return getPlatformSettings();
   }
 };
@@ -256,11 +259,15 @@ export const savePlatformSettings = (settings) => {
 
       return response;
     }).catch((error) => {
-      console.error("Settings save error:", error);
+      if (import.meta.env.DEV) {
+        console.error("Settings save error:", error);
+      }
       return null;
     });
   } catch (error) {
-    console.error("Settings save error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Settings save error:", error);
+    }
     return null;
   }
 };
@@ -273,7 +280,9 @@ export const clearPlatformSettings = () => {
 
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {
-    console.error("Settings clear error:", error);
+    if (import.meta.env.DEV) {
+      console.error("Settings clear error:", error);
+    }
   }
 };
 

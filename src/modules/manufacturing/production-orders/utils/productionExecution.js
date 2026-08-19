@@ -8,6 +8,7 @@ import {
     getStoredProducts,
 } from "../../../products/utils/productsStorage";
 import { getLocale } from "../../../../localization/i18n";
+import { apiRequest } from "../../../../services/api/apiClient";
 
 import {
     getStoredProductionOrders,
@@ -27,7 +28,7 @@ const createStockId = () =>
         .toString(36)
         .slice(2, 8)}`;
 
-export const completeProductionOrder = ({
+export const completeProductionOrder = async ({
     orderId,
     producedQuantity,
     defectQuantity = 0,
@@ -36,6 +37,17 @@ export const completeProductionOrder = ({
     overheadCost,
     completionNote = "",
 }) => {
+    const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/complete`, {
+        method: "POST",
+        body: { producedQuantity, defectQuantity, wasteQuantity, actualMaterials, overheadCost, completionNote },
+    });
+    if (remoteOrder?.id) {
+        const orders = getStoredProductionOrders();
+        saveProductionOrders(orders.map((item) => item.id === remoteOrder.id ? remoteOrder : item));
+        window.dispatchEvent(new Event("warehouse:changed"));
+        return remoteOrder;
+    }
+
     const orders =
         getStoredProductionOrders();
 
