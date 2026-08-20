@@ -55,7 +55,12 @@ const AppBootstrap = ({ children }) => {
               dispatch(setEnabledModules(result.modules));
             }
             if (result.user?.role !== SUPER_ADMIN_ROLE) {
-              await preloadBusinessData();
+              await preloadBusinessData({
+                user: result.user,
+                modules: result.modules,
+                permissions: result.user?.permissions,
+                role: result.user?.role,
+              });
               const settings = await loadPlatformSettings();
               markSettingsHydrated();
               dispatch(setSettings(settings));
