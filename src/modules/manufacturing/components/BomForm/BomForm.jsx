@@ -17,7 +17,6 @@ import ProductFormModal from "../../../products/components/ProductFormModal/Prod
 
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
 import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
-import { aggregateQuantities } from "../../../../shared/utils/units";
 import {
   aggregateQuantities,
   convertQuantity,
