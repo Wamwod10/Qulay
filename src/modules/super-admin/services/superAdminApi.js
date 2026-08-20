@@ -1,4 +1,5 @@
 import { API_ORIGIN } from "../../../services/api/apiUrl";
+import { getApiErrorMessage } from "../../../services/api/apiErrorHandler";
 
 const getToken = () => {
     let session = null;
@@ -48,17 +49,13 @@ const request = async (
     );
 
     if (!response.ok) {
-        let message =
-            "Server xatosi";
+        let message = "Amalni bajarib bo'lmadi. Qayta urinib ko'ring.";
 
         try {
             const data =
                 await response.json();
 
-            message =
-                data.message ||
-                data.error ||
-                message;
+            message = getApiErrorMessage({ status: response.status, code: data.code, data });
         } catch {
             // ignore
         }

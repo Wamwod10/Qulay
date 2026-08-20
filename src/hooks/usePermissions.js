@@ -9,6 +9,7 @@ const usePermissions = () => {
     const roles = useSelector(
         (state) => state.permissions.roles,
     );
+    const userRole = useSelector((state) => state.auth.user?.role);
 
     const can = useCallback(
         (permission) => {
@@ -16,9 +17,9 @@ const usePermissions = () => {
                 return true;
             }
 
-            return permissions.includes(permission);
+            return userRole === "OWNER" || userRole === "ADMIN" || permissions.includes("*") || permissions.includes(permission);
         },
-        [permissions],
+        [permissions, userRole],
     );
 
     const canAny = useCallback(
@@ -27,11 +28,9 @@ const usePermissions = () => {
                 return true;
             }
 
-            return requiredPermissions.some((permission) =>
-                permissions.includes(permission),
-            );
+            return userRole === "OWNER" || userRole === "ADMIN" || requiredPermissions.some((permission) => permissions.includes("*") || permissions.includes(permission));
         },
-        [permissions],
+        [permissions, userRole],
     );
 
     const canAll = useCallback(
@@ -40,11 +39,9 @@ const usePermissions = () => {
                 return true;
             }
 
-            return requiredPermissions.every((permission) =>
-                permissions.includes(permission),
-            );
+            return userRole === "OWNER" || userRole === "ADMIN" || requiredPermissions.every((permission) => permissions.includes("*") || permissions.includes(permission));
         },
-        [permissions],
+        [permissions, userRole],
     );
 
     return {

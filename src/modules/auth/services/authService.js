@@ -5,13 +5,14 @@ import {
 } from "../utils/authStorage";
 
 import { API_BASE_URL } from "../../../services/api/apiUrl";
+import { getApiErrorMessage } from "../../../services/api/apiErrorHandler";
 
 const getMessage = async (response) => {
   try {
     const data = await response.json();
-    return data.message || data.error || "Server xatosi";
+    return getApiErrorMessage({ status: response.status, code: data.code, data });
   } catch {
-    return "Server xatosi";
+    return getApiErrorMessage({ status: response.status });
   }
 };
 

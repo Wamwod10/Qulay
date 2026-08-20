@@ -6,6 +6,7 @@ import { setGlobalLoading } from "../store/slices/appSlice";
 import { setCompany } from "../store/slices/tenantSlice";
 import { setSettings } from "../store/slices/settingsSlice";
 import { setEnabledModules } from "../store/slices/modulesSlice";
+import { setPermissions, setRoles, clearPermissions } from "../store/slices/permissionsSlice";
 import authService from "../modules/auth/services/authService";
 import {
   loadPlatformSettings,
@@ -37,6 +38,8 @@ const AppBootstrap = ({ children }) => {
 
           if (result.isAuthenticated) {
             dispatch(setAuth(result));
+            dispatch(setPermissions(result.user?.permissions || []));
+            dispatch(setRoles(result.user?.role ? [result.user.role] : []));
             if (result.user?.role === SUPER_ADMIN_ROLE) {
               dispatch(resetTenant());
             } else if (result.account) {
@@ -59,6 +62,7 @@ const AppBootstrap = ({ children }) => {
             }
           } else {
             dispatch(logout());
+            dispatch(clearPermissions());
           }
         }
       } catch (error) {

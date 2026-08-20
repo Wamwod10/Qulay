@@ -243,23 +243,54 @@ const FinanceWorkspace = ({ view = "overview" }) => {
     [location.search],
   );
 
-  const createFinanceCustomer = async (name) => {
-    const created = await createCustomer({ name, fullName: name, status: "ACTIVE" });
-    setRefreshKey((current) => current + 1);
-    return created;
-  };
+ const createFinanceCustomer = async (name) => {
+  const created = await createCustomer(
+    {
+      name,
+      fullName: name,
+      status: "ACTIVE",
+    },
+    {
+      inlineModule: "finance",
+    },
+  );
 
-  const createFinanceSupplier = async (name) => {
-    const created = await createSupplier({ name, status: "ACTIVE" });
-    setRefreshKey((current) => current + 1);
-    return created;
-  };
+  setRefreshKey((current) => current + 1);
 
-  const createFinanceAgent = async (name) => {
-    const created = await createAgent({ name, status: "ACTIVE" });
-    setRefreshKey((current) => current + 1);
-    return created;
-  };
+  return created;
+};
+
+const createFinanceSupplier = async (name) => {
+  const created = await createSupplier(
+    {
+      name,
+      status: "ACTIVE",
+    },
+    {
+      inlineModule: "finance",
+    },
+  );
+
+  setRefreshKey((current) => current + 1);
+
+  return created;
+};
+
+const createFinanceAgent = async (name) => {
+  const created = await createAgent(
+    {
+      name,
+      status: "ACTIVE",
+    },
+    {
+      inlineModule: "finance",
+    },
+  );
+
+  setRefreshKey((current) => current + 1);
+
+  return created;
+};
 
   const openModal = (name, seed = {}) => {
     setForm({

@@ -1,19 +1,21 @@
 import { useMemo, useState } from "react";
-import { translateText } from "../../../../localization/i18n";
-
 import { Plus, Trash2 } from "lucide-react";
+
+import { translateText } from "../../../../localization/i18n";
 
 import {
   Button,
   Card,
   CreatableSelect,
   Input,
-  Select,
   Switch,
   Textarea,
 } from "../../../../shared/ui";
 
-import { createStoredProduct, getStoredProducts } from "../../../products/utils/productsStorage";
+import {
+  createStoredProduct,
+  getStoredProducts,
+} from "../../../products/utils/productsStorage";
 
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
 import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
@@ -22,13 +24,13 @@ import "./BomForm.scss";
 
 const createEmptyMaterial = () => ({
   id: `bm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-
   productId: "",
   quantity: "",
 });
 
 const BomForm = ({ initialValues, onSubmit, onCancel }) => {
   const [productList, setProductList] = useState(() => getStoredProducts());
+
   const products = productList;
 
   const finishedProducts = useMemo(
@@ -74,9 +76,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
           id:
             material.id ||
             `bm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-
           productId: material.productId,
-
           quantity: material.quantity,
         }))
       : [createEmptyMaterial()],
@@ -106,18 +106,13 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         );
 
         const quantity = Number(material.quantity || 0);
-
         const cost = Number(product?.cost || 0);
 
         return {
           ...material,
-
           product,
-
           quantity,
-
           cost,
-
           total: quantity * cost,
         };
       }),
@@ -163,15 +158,17 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
     const nextErrors = {};
 
     if (!name.trim()) {
-      nextErrors.name = "Retsept nomini kiriting.";
+      nextErrors.name = translateText("Retsept nomini kiriting.");
     }
 
     if (!productId) {
-      nextErrors.product = "Tayyor mahsulotni tanlang.";
+      nextErrors.product = translateText("Tayyor mahsulotni tanlang.");
     }
 
     if (Number(outputQuantity) <= 0) {
-      nextErrors.output = "Chiqish miqdori 0 dan katta bo‘lishi kerak.";
+      nextErrors.output = translateText(
+        "Chiqish miqdori 0 dan katta bo‘lishi kerak.",
+      );
     }
 
     const invalidMaterial = materials.some(
@@ -179,18 +176,24 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
     );
 
     if (invalidMaterial) {
-      nextErrors.materials = "Xomashyo va miqdorlarni tekshiring.";
+      nextErrors.materials = translateText(
+        "Xomashyo va miqdorlarni tekshiring.",
+      );
     }
 
     const ids = materials.map((material) => material.productId).filter(Boolean);
 
     if (new Set(ids).size !== ids.length) {
-      nextErrors.materials =
-        "Bir xil xomashyoni retsept ichida ikki marta qo‘shib bo‘lmaydi.";
+      nextErrors.materials = translateText(
+        "Bir xil xomashyoni retsept ichida ikki marta qo‘shib bo‘lmaydi.",
+      );
     }
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) focusFirstInvalidField();
+
+    if (Object.keys(nextErrors).length) {
+      focusFirstInvalidField();
+    }
 
     return Object.keys(nextErrors).length === 0;
   };
@@ -206,39 +209,24 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
     const prepared = preparedMaterials.map((item) => ({
       id: item.id,
-
       productId: item.product.id,
-
       productName: item.product.name,
-
       sku: item.product.sku,
-
       quantity: Number(item.quantity),
-
       unit: item.product.unit,
-
       cost: Number(item.product.cost || 0),
     }));
 
     onSubmit?.({
       id: initialValues?.id,
-
       name: name.trim(),
-
       productId,
-
       productName: selectedProduct?.name || "",
-
       outputQuantity: output,
-
       unit: selectedProduct?.unit || "dona",
-
       version: version.trim() || "1.0",
-
       status: status ? "ACTIVE" : "INACTIVE",
-
       materials: prepared,
-
       note: note.trim(),
     });
   };
@@ -248,19 +236,21 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
       <Card padding="lg" className="bom-form__section">
         <div className="bom-form__section-header">
           <div>
-            <h3>Retsept ma’lumotlari</h3>
+            <h3>{translateText("Retsept ma’lumotlari")}</h3>
 
             <p>
-              Qaysi mahsulot va qancha miqdorda ishlab chiqishini belgilang.
+              {translateText(
+                "Qaysi mahsulot va qancha miqdorda ishlab chiqishini belgilang.",
+              )}
             </p>
           </div>
         </div>
 
         <div className="bom-form__grid">
           <Input
-            label="Retsept nomi"
+            label={translateText("Retsept nomi")}
             value={name}
-            placeholder="Masalan: Shokoladli pechenye retsepti"
+            placeholder={translateText("Masalan: Shokoladli pechenye retsepti")}
             error={errors.name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -268,25 +258,51 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
           <CreatableSelect
             label={translateText("Natijada olinadigan mahsulot")}
             value={productId}
-            placeholder={translateText("Mahsulotni tanlang yoki yangi nom yozing")}
+            placeholder={translateText(
+              "Mahsulotni tanlang yoki yangi nom yozing",
+            )}
             options={finishedProductOptions}
             error={errors.product}
             onChange={(event) => setProductId(event.target.value)}
-            onCreate={async (name) => {
-              const created = await createStoredProduct({ name, type: "FINISHED_GOOD", unit: "dona", stock: 0, cost: 0, salePrice: null, status: "ACTIVE" });
-              setProductList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+            onCreate={async (newName) => {
+              const created = await createStoredProduct(
+                {
+                  name: newName,
+                  type: "FINISHED_GOOD",
+                  unit: "dona",
+                  stock: 0,
+                  cost: 0,
+                  salePrice: null,
+                  status: "ACTIVE",
+                },
+                {
+                  inlineModule: "manufacturing",
+                },
+              );
+
+              setProductList((current) => [
+                created,
+                ...current.filter((item) => item.id !== created.id),
+              ]);
+
               setProductId(created.id);
+
               return created;
             }}
           />
 
-          <p className="bom-form__helper">{translateText("Ushbu retsept bo‘yicha ishlab chiqariladigan mahsulotni tanlang yoki yarating.")}</p>
+          <p className="bom-form__helper">
+            {translateText(
+              "Ushbu retsept bo‘yicha ishlab chiqariladigan mahsulotni tanlang yoki yarating.",
+            )}
+          </p>
 
           <Input
-            label="Chiqish miqdori"
+            label={translateText("Chiqish miqdori")}
             type="number"
             min="0"
             step="any"
+            inputMode="decimal"
             value={outputQuantity}
             placeholder="100"
             error={errors.output}
@@ -294,7 +310,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
           />
 
           <Input
-            label="Versiya"
+            label={translateText("Versiya")}
             value={version}
             placeholder="1.0"
             onChange={(event) => setVersion(event.target.value)}
@@ -302,8 +318,10 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
           <Switch
             checked={status}
-            label="Retsept faol"
-            description="Faol retsept ishlab chiqarish buyurtmasida tanlanishi mumkin."
+            label={translateText("Retsept faol")}
+            description={translateText(
+              "Faol retsept ishlab chiqarish buyurtmasida tanlanishi mumkin.",
+            )}
             onChange={(event) => setStatus(event.target.checked)}
           />
         </div>
@@ -312,11 +330,14 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
       <Card padding="lg" className="bom-form__section">
         <div className="bom-form__section-header">
           <div>
-            <h3>Xomashyolar</h3>
+            <h3>{translateText("Xomashyolar")}</h3>
 
-            <p>Bitta ishlab chiqarish batch’i uchun kerakli materiallar.</p>
+            <p>
+              {translateText(
+                "Bitta ishlab chiqarish batch’i uchun kerakli materiallar.",
+              )}
+            </p>
           </div>
-
         </div>
 
         <div className="bom-form__materials">
@@ -325,9 +346,9 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
               <div className="bom-form__material-number">{index + 1}</div>
 
               <CreatableSelect
-                label="Xomashyo"
+                label={translateText("Xomashyo")}
                 value={material.productId}
-                placeholder="Tanlang yoki yangi nom yozing"
+                placeholder={translateText("Tanlang yoki yangi nom yozing")}
                 options={materialOptions}
                 onChange={(event) =>
                   handleMaterialChange(
@@ -336,19 +357,39 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
                     event.target.value,
                   )
                 }
-                onCreate={async (name) => {
-                  const created = await createStoredProduct({ name, type: "RAW_MATERIAL", unit: "dona", stock: 0, cost: 0, salePrice: null, status: "ACTIVE" });
-                  setProductList((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+                onCreate={async (newName) => {
+                  const created = await createStoredProduct(
+                    {
+                      name: newName,
+                      type: "RAW_MATERIAL",
+                      unit: "dona",
+                      stock: 0,
+                      cost: 0,
+                      salePrice: null,
+                      status: "ACTIVE",
+                    },
+                    {
+                      inlineModule: "manufacturing",
+                    },
+                  );
+
+                  setProductList((current) => [
+                    created,
+                    ...current.filter((item) => item.id !== created.id),
+                  ]);
+
                   handleMaterialChange(material.id, "productId", created.id);
+
                   return created;
                 }}
               />
 
               <Input
-                label="Miqdor"
+                label={translateText("Miqdor")}
                 type="number"
                 min="0"
                 step="any"
+                inputMode="decimal"
                 value={material.quantity || ""}
                 placeholder="0"
                 onChange={(event) =>
@@ -361,19 +402,19 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
               />
 
               <Input
-                label="Birlik"
+                label={translateText("Birlik")}
                 value={material.product?.unit || "—"}
                 disabled
               />
 
               <div className="bom-form__material-cost">
-                <span>Tannarx</span>
+                <span>{translateText("Tannarx")}</span>
 
                 <strong>{formatManufacturingMoney(material.cost)}</strong>
               </div>
 
               <div className="bom-form__material-cost">
-                <span>Jami</span>
+                <span>{translateText("Jami")}</span>
 
                 <strong>{formatManufacturingMoney(material.total)}</strong>
               </div>
@@ -382,7 +423,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                title="Olib tashlash"
+                title={translateText("Olib tashlash")}
                 disabled={materials.length <= 1}
                 onClick={() => handleRemoveMaterial(material.id)}
               >
@@ -395,8 +436,15 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         {errors.materials && (
           <div className="bom-form__error">{errors.materials}</div>
         )}
-        <Button type="button" variant="secondary" size="sm" leftIcon={<Plus size={16} />} onClick={handleAddMaterial}>
-          Xomashyo qo‘shish
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          leftIcon={<Plus size={16} />}
+          onClick={handleAddMaterial}
+        >
+          {translateText("Xomashyo qo‘shish")}
         </Button>
       </Card>
 
@@ -404,27 +452,31 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         <Card padding="lg" className="bom-form__section">
           <div className="bom-form__section-header">
             <div>
-              <h3>Tannarx preview</h3>
+              <h3>{translateText("Tannarx preview")}</h3>
 
-              <p>Hozirgi mahsulotlar tannarxlari asosida hisoblanadi.</p>
+              <p>
+                {translateText(
+                  "Hozirgi mahsulotlar tannarxlari asosida hisoblanadi.",
+                )}
+              </p>
             </div>
           </div>
 
           <div className="bom-form__cost-summary">
             <CostRow
-              label="Xomashyo tannarxi"
+              label={translateText("Xomashyo tannarxi")}
               value={formatManufacturingMoney(materialCost)}
             />
 
             <CostRow
-              label="Chiqish"
+              label={translateText("Chiqish")}
               value={`${Number(outputQuantity || 0)} ${
                 selectedProduct?.unit || ""
               }`}
             />
 
             <CostRow
-              label="1 birlik tannarx"
+              label={translateText("1 birlik tannarx")}
               value={formatManufacturingMoney(unitCost)}
               strong
             />
@@ -434,16 +486,18 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
         <Card padding="lg" className="bom-form__section">
           <div className="bom-form__section-header">
             <div>
-              <h3>Izoh</h3>
+              <h3>{translateText("Izoh")}</h3>
 
-              <p>Retsept bo‘yicha ichki ma’lumot.</p>
+              <p>{translateText("Retsept bo‘yicha ichki ma’lumot.")}</p>
             </div>
           </div>
 
           <Textarea
-            label="Izoh"
+            label={translateText("Izoh")}
             value={note}
-            placeholder="Masalan: standart ishlab chiqarish retsepti..."
+            placeholder={translateText(
+              "Masalan: standart ishlab chiqarish retsepti...",
+            )}
             onChange={(event) => setNote(event.target.value)}
           />
         </Card>
@@ -451,11 +505,13 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
       <div className="bom-form__actions">
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Bekor qilish
+          {translateText("Bekor qilish")}
         </Button>
 
         <Button type="submit">
-          {initialValues ? "O‘zgarishlarni saqlash" : "Retsept yaratish"}
+          {translateText(
+            initialValues ? "O‘zgarishlarni saqlash" : "Retsept yaratish",
+          )}
         </Button>
       </div>
     </form>

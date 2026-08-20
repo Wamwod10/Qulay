@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "products";
 const HISTORY_KEY = "product_history";
@@ -176,15 +176,18 @@ export const addProductHistory = (productId, data) => {
   return safeHistory[productId][0];
 };
 
-export const createStoredProduct = async (product) => {
+export const createStoredProduct = async (product, options = {}) => {
   const remoteProduct = await apiRequest("/products", {
     method: "POST",
     body: product,
+    inlineModule: options.inlineModule,
   });
 
   if (remoteProduct?.id) {
     const products = getStoredProducts();
-    saveProducts([remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)]);
+    const next = [remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)];
+    saveProducts(next);
+    primeApiCache("/products", { products: next, data: next });
     return normalizeProduct(remoteProduct);
   }
 

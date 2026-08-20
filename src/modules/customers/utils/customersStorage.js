@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 const STORAGE_KEY = "customers";
 const FOLLOW_UPS_KEY = "customer_followups";
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
@@ -98,14 +98,17 @@ export const saveCustomers = customers => {
 export const getCustomerById = customerId => {
   return getStoredCustomers().find(customer => customer.id === customerId) || null;
 };
-export const createCustomer = async customer => {
+export const createCustomer = async (customer, options = {}) => {
   const remoteCustomer = await apiRequest("/customers", {
     method: "POST",
-    body: customer
+    body: customer,
+    inlineModule: options.inlineModule,
   });
   if (remoteCustomer?.id) {
     const customers = getStoredCustomers();
-    saveCustomers([remoteCustomer, ...customers.filter(item => item.id !== remoteCustomer.id)]);
+    const next = [remoteCustomer, ...customers.filter(item => item.id !== remoteCustomer.id)];
+    saveCustomers(next);
+    primeApiCache("/customers", { customers: next, data: next });
     return normalizeCustomer(remoteCustomer);
   }
   const customers = getStoredCustomers();

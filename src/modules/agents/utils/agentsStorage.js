@@ -1,5 +1,5 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "agents";
 
@@ -141,14 +141,17 @@ export const getAgentById = (agentId) => {
   return getStoredAgents().find((agent) => agent.id === agentId) || null;
 };
 
-export const createAgent = async (values) => {
+export const createAgent = async (values, options = {}) => {
   const remoteAgent = await apiRequest("/agents", {
     method: "POST",
     body: values,
+    inlineModule: options.inlineModule,
   });
   if (remoteAgent?.id) {
     const agents = getStoredAgents();
-    saveAgents([remoteAgent, ...agents.filter((agent) => agent.id !== remoteAgent.id)]);
+    const next = [remoteAgent, ...agents.filter((agent) => agent.id !== remoteAgent.id)];
+    saveAgents(next);
+    primeApiCache("/agents", { agents: next, data: next });
     return normalizeAgent(remoteAgent);
   }
   const agents = getStoredAgents();

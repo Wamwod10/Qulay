@@ -13,7 +13,6 @@ import {
 } from "../../../localization/i18n";
 import { normalizeLanguage } from "../../../localization/languages";
 import { apiRequest } from "../../../services/api/apiClient";
-import { API_BASE_URL } from "../../../services/api/apiUrl";
 import { getStoredSession } from "../../auth/utils/authStorage";
 import { PLATFORM_ACCOUNT_ID, SUPER_ADMIN_ROLE } from "../../../constants/auth";
 
@@ -239,29 +238,16 @@ export const savePlatformSettings = (settings) => {
     tenantSet("settings", normalizedSettings);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedSettings));
 
-    const headers = {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
-      ...(session.accountId && session.accountId !== PLATFORM_ACCOUNT_ID
-        ? { "X-Company-Id": session.accountId }
-        : {}),
-    };
-
-    return fetch(`${API_BASE_URL}/settings`, {
+    return apiRequest("/settings", {
       method: "PATCH",
-      headers,
-      body: JSON.stringify({ settings: normalizedSettings }),
-    }).then((response) => {
-      if (!response.ok) {
-        throw new Error(`Settings save failed (${response.status})`);
-      }
-
-      return response;
+      body: {
+        settings: normalizedSettings,
+      },
     }).catch((error) => {
       if (import.meta.env.DEV) {
         console.error("Settings save error:", error);
       }
+
       return null;
     });
   } catch (error) {

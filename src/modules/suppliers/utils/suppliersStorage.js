@@ -2,7 +2,7 @@ import {
     syncSupplierReferences,
 } from "./supplierIntegration";
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY =
     "suppliers";
@@ -66,17 +66,18 @@ export const getSupplierById = (
     );
 };
 
-export const createSupplier = async (
-    supplier,
-) => {
+export const createSupplier = async (supplier, options = {}) => {
     const remoteSupplier = await apiRequest("/suppliers", {
         method: "POST",
         body: supplier,
+        inlineModule: options.inlineModule,
     });
 
     if (remoteSupplier?.id) {
         const suppliers = getStoredSuppliers();
-        saveSuppliers([remoteSupplier, ...suppliers.filter((item) => item.id !== remoteSupplier.id)]);
+        const next = [remoteSupplier, ...suppliers.filter((item) => item.id !== remoteSupplier.id)];
+        saveSuppliers(next);
+        primeApiCache("/suppliers", { suppliers: next, data: next });
         return remoteSupplier;
     }
 
