@@ -59,6 +59,7 @@ import {
   formatWarehouseMoney,
   getWarehouseStockStatus,
 } from "../../utils/warehouseHelpers";
+import { getDefaultWarehouseId } from "../../utils/warehouseDefaults";
 
 import "./WarehousePage.scss";
 
@@ -81,7 +82,7 @@ const WarehousePage = () => {
 
   const navigate = useNavigate();
 
-  const [warehouseId, setWarehouseId] = useState("wh-main");
+  const [warehouseId, setWarehouseId] = useState(() => getDefaultWarehouseId());
 
   const [search, setSearch] = useState("");
 

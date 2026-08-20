@@ -51,6 +51,13 @@
     gap: 11px;
   }
 
+  &__product-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
   &__material {
     display: grid;
 

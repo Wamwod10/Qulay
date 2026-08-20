@@ -31,6 +31,7 @@ import {
 import { getStoredProducts } from "../../../../products/utils/productsStorage";
 import { getStoredWarehouseStock } from "../../../../warehouse/utils/warehouseStorage";
 import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefaults";
 
 import {
   Badge,
@@ -121,11 +122,8 @@ const POSTerminalPage = () => {
     getStoredAgents().filter((agent) => agent.status === "ACTIVE"),
   );
 
-  const [warehouseId, setWarehouseId] = useState(
-    posSettings.defaultWarehouseId ||
-      defaults.warehouseId ||
-      warehouses[0]?.id ||
-      "",
+  const [warehouseId, setWarehouseId] = useState(() =>
+    getDefaultWarehouseId(warehouses, ["pos.defaultWarehouseId"]),
   );
 
   const [customerId, setCustomerId] = useState(
@@ -638,7 +636,10 @@ const POSTerminalPage = () => {
   };
 
   const resumeDraft = (sale) => {
-    setWarehouseId(sale.warehouseId || warehouses[0]?.id || "");
+    setWarehouseId(
+      sale.warehouseId ||
+        getDefaultWarehouseId(warehouses, ["pos.defaultWarehouseId"]),
+    );
 
     setCustomerId(sale.customerId || "");
 

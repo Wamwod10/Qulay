@@ -4,6 +4,14 @@
 
   gap: 30px;
 
+  &__submit-error {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    color: var(--color-danger);
+    font-size: 13px;
+  }
+
   &__section {
     display: flex;
     flex-direction: column;

@@ -9,14 +9,21 @@ import { Button } from "../../../../shared/ui";
 import BomForm from "../../components/BomForm/BomForm";
 
 import { createBom } from "../../utils/manufacturingStorage";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
+import { useState } from "react";
 
 const BomCreatePage = () => {
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState("");
 
   const handleSubmit = async (values) => {
-    const bom = await createBom(values);
-
-    navigate(`/manufacturing/boms/${bom.id}`);
+    setSubmitError("");
+    try {
+      const bom = await createBom(values);
+      navigate(`/manufacturing/boms/${bom.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -43,6 +50,7 @@ const BomCreatePage = () => {
 
         <BomForm
           onSubmit={handleSubmit}
+          submitError={submitError}
           onCancel={() => navigate("/manufacturing")}
         />
       </div>

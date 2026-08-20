@@ -9,6 +9,8 @@ import { Button } from "../../../../shared/ui";
 import PurchaseForm from "../../components/PurchaseForm/PurchaseForm";
 
 import { getPurchaseById, updatePurchase } from "../../utils/purchasesStorage";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
+import { useState } from "react";
 
 import "./PurchaseEditPage.scss";
 
@@ -18,6 +20,7 @@ const PurchaseEditPage = () => {
   const { purchaseId } = useParams();
 
   const purchase = getPurchaseById(purchaseId);
+  const [submitError, setSubmitError] = useState("");
 
   if (!purchase) {
     return (
@@ -49,16 +52,18 @@ const PurchaseEditPage = () => {
   }
 
   const handleSubmit = async (values) => {
-    const updated = await updatePurchase({
-      ...purchase,
-      ...values,
-
-      id: purchase.id,
-
-      number: purchase.number
-    });
-
-    navigate(`/purchases/${updated.id}`);
+    setSubmitError("");
+    try {
+      const updated = await updatePurchase({
+        ...purchase,
+        ...values,
+        id: purchase.id,
+        number: purchase.number,
+      });
+      navigate(`/purchases/${updated.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -80,6 +85,7 @@ const PurchaseEditPage = () => {
         <PurchaseForm
           initialValues={purchase}
           onSubmit={handleSubmit}
+          submitError={submitError}
           onCancel={() => navigate(`/purchases/${purchase.id}`)} />
         
       </div>

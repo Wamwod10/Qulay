@@ -9,16 +9,26 @@ import { Button, Card } from "../../../../shared/ui";
 import ProductForm from "../../components/ProductForm/ProductForm";
 
 import { createStoredProduct } from "../../utils/productsStorage";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
+import { useState } from "react";
 
 import "./ProductCreatePage.scss";
 
 const ProductCreatePage = () => {
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState("");
+  const [submitField, setSubmitField] = useState("");
 
   const handleSubmit = async (product) => {
-    const createdProduct = await createStoredProduct(product);
-
-    navigate("/products");
+    setSubmitError("");
+    setSubmitField("");
+    try {
+      await createStoredProduct(product);
+      navigate("/products");
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+      setSubmitField(error?.field || "");
+    }
   };
 
   return (
@@ -40,6 +50,8 @@ const ProductCreatePage = () => {
         <Card padding="lg" className="product-create-page__form-card">
           <ProductForm
             onSubmit={handleSubmit}
+            submitError={submitError}
+            submitField={submitField}
             onCancel={() => navigate("/products")} />
           
         </Card>

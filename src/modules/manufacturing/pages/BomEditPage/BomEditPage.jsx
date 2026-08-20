@@ -9,6 +9,8 @@ import { Button } from "../../../../shared/ui";
 import BomForm from "../../components/BomForm/BomForm";
 
 import { getStoredBoms, updateBom } from "../../utils/manufacturingStorage";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
+import { useState } from "react";
 
 const BomEditPage = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const BomEditPage = () => {
   const { bomId } = useParams();
 
   const bom = getStoredBoms().find((item) => item.id === bomId);
+  const [submitError, setSubmitError] = useState("");
 
   if (!bom) {
     return (
@@ -28,14 +31,17 @@ const BomEditPage = () => {
   }
 
   const handleSubmit = async (values) => {
-    const updated = await updateBom({
-      ...bom,
-      ...values,
-
-      id: bom.id,
-    });
-
-    navigate(`/manufacturing/boms/${updated.id}`);
+    setSubmitError("");
+    try {
+      const updated = await updateBom({
+        ...bom,
+        ...values,
+        id: bom.id,
+      });
+      navigate(`/manufacturing/boms/${updated.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -60,6 +66,7 @@ const BomEditPage = () => {
         <BomForm
           initialValues={bom}
           onSubmit={handleSubmit}
+          submitError={submitError}
           onCancel={() => navigate(`/manufacturing/boms/${bom.id}`)}
         />
       </div>

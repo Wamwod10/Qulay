@@ -22,6 +22,7 @@ import {
   getStoredCategories,
 } from "../../utils/categoriesStorage";
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
+import { getDefaultWarehouseId } from "../../../warehouse/utils/warehouseDefaults";
 import { tenantGet, tenantSet } from "../../../auth/utils/tenantStorage";
 import { UNIT_DEFINITIONS } from "../../../../shared/utils/units";
 import { getPlatformSettings } from "../../../settings/utils/settingsStorage";
@@ -62,6 +63,7 @@ const toFormValues = (initialValues) => {
     return {
       ...initialForm,
       unit: tenantGet("last_product_unit", "dona"),
+      warehouseId: getDefaultWarehouseId(),
       tax: String(getPlatformSettings().defaults.vatRate ?? 0),
     };
   }
@@ -129,7 +131,13 @@ const resizeImage = (file) =>
     reader.readAsDataURL(file);
   });
 
-const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
+const ProductForm = ({
+  initialValues,
+  onSubmit,
+  onCancel,
+  submitError = "",
+  submitField = "",
+}) => {
   const fileInputRef = useRef(null);
 
   const [errors, setErrors] = useState({});
@@ -260,6 +268,10 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
       nextErrors.unit = "O'lchov birligini tanlang.";
     }
 
+    if (submitField && submitError) {
+      nextErrors[submitField] = submitError;
+    }
+
     validateNumber("stock", "Qoldiq", 0, null, nextErrors);
     validateNumber("minimumStock", "Minimal qoldiq", 0, null, nextErrors);
     validateNumber(
@@ -335,6 +347,11 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
 
   return (
     <form className="product-form" onSubmit={handleSubmit}>
+      {submitError && (
+        <div className="product-form__submit-error" role="alert">
+          {submitField ? `${submitError} (${submitField})` : submitError}
+        </div>
+      )}
       <section className="product-form__section">
         <div className="product-form__section-header">
           <h3>{translateText("Mahsulot rasmi")}</h3>
@@ -475,6 +492,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             label="SKU"
             placeholder={translateText("Masalan: 4821")}
             value={form.sku}
+            error={errors.sku || (submitField === "sku" ? submitError : "")}
             onChange={(event) => handleChange("sku", event.target.value)}
           />
 
@@ -482,6 +500,7 @@ const ProductForm = ({ initialValues, onSubmit, onCancel }) => {
             label={translateText("Shtrix-kod")}
             placeholder="4780012345000"
             value={form.barcode}
+            error={errors.barcode || (submitField === "barcode" ? submitError : "")}
             onChange={(event) => handleChange("barcode", event.target.value)}
           />
 

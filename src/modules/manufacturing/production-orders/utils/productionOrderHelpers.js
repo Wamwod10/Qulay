@@ -1,6 +1,7 @@
 import { getStoredProducts } from "../../../products/utils/productsStorage";
 import { getLocale } from "../../../../localization/i18n";
 import { roundDecimal } from "../../../../shared/utils/number";
+import { convertQuantity } from "../../../../shared/utils/units";
 
 const roundQuantity = (value) => roundDecimal(value, 6);
 
@@ -52,7 +53,11 @@ export const calculateRequiredMaterials = ({ bom, plannedQuantity }) => {
   return (bom.materials || []).map((material) => {
     const product = products.get(material.productId);
     const bomQuantity = Number(material.quantity || 0);
-    const requiredQuantity = roundQuantity(bomQuantity * multiplier);
+    const recipeUnit = material.unit || product?.unit || "dona";
+    const productUnit = product?.unit || recipeUnit;
+    const requiredQuantity = roundQuantity(
+      convertQuantity(bomQuantity * multiplier, recipeUnit, productUnit),
+    );
     const cost = Number(product?.cost ?? material.cost ?? 0);
 
     return {
@@ -60,7 +65,7 @@ export const calculateRequiredMaterials = ({ bom, plannedQuantity }) => {
       productId: material.productId,
       productName: product?.name || material.productName || "",
       sku: product?.sku || material.sku || "",
-      unit: product?.unit || material.unit || "",
+      unit: productUnit,
       bomQuantity,
       requiredQuantity,
       cost,

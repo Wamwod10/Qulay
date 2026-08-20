@@ -12,6 +12,8 @@ import {
   getStoredProductById,
   updateStoredProduct } from
 "../../utils/productsStorage";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
+import { useState } from "react";
 
 import "./ProductEditPage.scss";
 
@@ -19,6 +21,8 @@ const ProductEditPage = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
   const product = getStoredProductById(productId);
+  const [submitError, setSubmitError] = useState("");
+  const [submitField, setSubmitField] = useState("");
 
   if (!product) {
     return (
@@ -34,10 +38,16 @@ const ProductEditPage = () => {
   }
 
   const handleSubmit = async (updatedProduct) => {
-    const savedProduct = await updateStoredProduct(updatedProduct);
-
-    if (savedProduct) {
-      navigate(`/products/${savedProduct.id}`);
+    setSubmitError("");
+    setSubmitField("");
+    try {
+      const savedProduct = await updateStoredProduct(updatedProduct);
+      if (savedProduct) {
+        navigate(`/products/${savedProduct.id}`);
+      }
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+      setSubmitField(error?.field || "");
     }
   };
 
@@ -61,6 +71,8 @@ const ProductEditPage = () => {
           <ProductForm
             initialValues={product}
             onSubmit={handleSubmit}
+            submitError={submitError}
+            submitField={submitField}
             onCancel={() => navigate(`/products/${product.id}`)} />
           
         </Card>

@@ -22,6 +22,7 @@ import {
 import { ConfirmDialog } from "../../../../shared/ui";
 
 import "./PurchaseCreatePage.scss";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
 
 const PurchaseCreatePage = () => {
   const navigate = useNavigate();
@@ -39,14 +40,18 @@ const PurchaseCreatePage = () => {
   const supplierId = searchParams.get("supplierId");
 
   const [useDraft, setUseDraft] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
 
   const handleSubmit = async (values) => {
-    const purchase = await createPurchase(values);
-
-    clearPurchaseDraft();
-
-    navigate(`/purchases/${purchase.id}`);
+    setSubmitError("");
+    try {
+      const purchase = await createPurchase(values);
+      clearPurchaseDraft();
+      navigate(`/purchases/${purchase.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   const handleDraftChange = (values) => {
@@ -83,6 +88,7 @@ const PurchaseCreatePage = () => {
           undefined
           }
           onSubmit={handleSubmit}
+          submitError={submitError}
           onCancel={() => navigate("/purchases")} />
 
         }

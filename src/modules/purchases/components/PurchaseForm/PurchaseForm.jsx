@@ -21,12 +21,11 @@ import {
 
 import { getStoredPurchases } from "../../utils/purchasesStorage";
 
-import {
-  createStoredProduct,
-  getStoredProducts,
-} from "../../../products/utils/productsStorage";
+import { getStoredProducts } from "../../../products/utils/productsStorage";
+import ProductFormModal from "../../../products/components/ProductFormModal/ProductFormModal";
 
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
+import { getDefaultWarehouseId } from "../../../warehouse/utils/warehouseDefaults";
 
 import {
   createSupplier,
@@ -49,7 +48,7 @@ const createEmptyItem = () => ({
   unit: "dona",
 });
 
-const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
+const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submitError = "" }) => {
   const [productList, setProductList] = useState(() =>
     getStoredProducts().filter(
       (product) => product.status === "ACTIVE" && product.type !== "SERVICE",
@@ -69,7 +68,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
   const [supplierId, setSupplierId] = useState(initialValues?.supplierId || "");
 
   const [warehouseId, setWarehouseId] = useState(
-    initialValues?.warehouseId || warehouses[0]?.id || "",
+    initialValues?.warehouseId || getDefaultWarehouseId(warehouses),
   );
 
   const [orderDate, setOrderDate] = useState(
@@ -107,6 +106,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
   );
 
   const [errors, setErrors] = useState({});
+  const [productModalItemId, setProductModalItemId] = useState(null);
 
   const productOptions = products.map((product) => ({
     value: product.id,
@@ -327,7 +327,9 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
   };
 
   return (
-    <form className="purchase-form" onSubmit={handleSubmit}>
+    <>
+      <form className="purchase-form" onSubmit={handleSubmit}>
+      {submitError && <div className="purchase-form__error" role="alert">{submitError}</div>}
       <Card padding="lg" className="purchase-form__section">
         <div className="purchase-form__section-header">
           <div>
@@ -443,40 +445,26 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
                 <div className="purchase-form__item-number">{index + 1}</div>
 
                 <div className="purchase-form__item-product">
-                  <CreatableSelect
-                    label={translateText("Mahsulot")}
-                    value={item.productId}
-                    placeholder={translateText("Mahsulot tanlang")}
-                    options={productOptions}
-                    onChange={(event) =>
-                      handleProductSelect(item.id, event.target.value)
-                    }
-                    onCreate={async (name) => {
-                      const created = await createStoredProduct(
-                        {
-                          name,
-                          type: "RAW_MATERIAL",
-                          unit: "dona",
-                          stock: 0,
-                          cost: 0,
-                          salePrice: null,
-                          status: "ACTIVE",
-                        },
-                        {
-                          inlineModule: "purchases",
-                        },
-                      );
-
-                      setProductList((current) => [
-                        created,
-                        ...current.filter((entry) => entry.id !== created.id),
-                      ]);
-
-                      handleProductSelect(item.id, created.id);
-
-                      return created;
-                    }}
-                  />
+                  <div className="purchase-form__product-picker">
+                    <Select
+                      label={translateText("Mahsulot")}
+                      value={item.productId}
+                      placeholder={translateText("Mahsulot tanlang")}
+                      options={productOptions}
+                      onChange={(event) =>
+                        handleProductSelect(item.id, event.target.value)
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<Plus size={15} />}
+                      onClick={() => setProductModalItemId(item.id)}
+                    >
+                      {translateText("+ Yangi mahsulot qo'shish")}
+                    </Button>
+                  </div>
                 </div>
 
                 <Select
@@ -671,7 +659,21 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange }) => {
           )}
         </Button>
       </div>
-    </form>
+      </form>
+      <ProductFormModal
+        open={Boolean(productModalItemId)}
+        onClose={() => setProductModalItemId(null)}
+        defaultValues={{ type: "RAW_MATERIAL" }}
+        inlineModule="purchases"
+        onCreated={(created) => {
+          setProductList((current) => [
+            created,
+            ...current.filter((item) => item.id !== created.id),
+          ]);
+          handleProductSelect(productModalItemId, created.id);
+        }}
+      />
+    </>
   );
 };
 

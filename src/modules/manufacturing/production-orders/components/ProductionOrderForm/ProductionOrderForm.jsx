@@ -18,6 +18,7 @@ import {
 import { getStoredBoms } from "../../../utils/manufacturingStorage";
 
 import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefaults";
 
 import {
   calculateProductionMaterialCost,
@@ -57,7 +58,9 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
 
   const [plannedQuantity, setPlannedQuantity] = useState("");
 
-  const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || "");
+  const [warehouseId, setWarehouseId] = useState(
+    getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]),
+  );
 
   const [plannedDate, setPlannedDate] = useState(getToday());
 

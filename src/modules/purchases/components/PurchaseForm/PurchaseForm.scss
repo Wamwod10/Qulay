@@ -73,6 +73,13 @@
     box-shadow: var(--shadow-inset);
   }
 
+  &__product-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
   &__item-number {
     display: flex;
     align-items: center;
