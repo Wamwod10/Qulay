@@ -10,6 +10,14 @@ const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const getProductMap = () =>
   new Map(getStoredProducts().map((product) => [product.id, product]));
 
+const safeConvertQuantity = (value, from, to) => {
+  try {
+    return convertQuantity(value, from, to);
+  } catch {
+    return Number(value || 0);
+  }
+};
+
 export const formatProductionQuantity = (value) => {
   const number = roundQuantity(value);
 
@@ -56,7 +64,7 @@ export const calculateRequiredMaterials = ({ bom, plannedQuantity }) => {
     const recipeUnit = material.unit || product?.unit || "dona";
     const productUnit = product?.unit || recipeUnit;
     const requiredQuantity = roundQuantity(
-      convertQuantity(bomQuantity * multiplier, recipeUnit, productUnit),
+      safeConvertQuantity(bomQuantity * multiplier, recipeUnit, productUnit),
     );
     const cost = Number(product?.cost ?? material.cost ?? 0);
 

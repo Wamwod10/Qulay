@@ -6,14 +6,16 @@ import { translateText } from "../../../../localization/i18n";
 import {
   Button,
   Card,
+  CreatableSelect,
   Input,
-  Select,
   Switch,
   Textarea,
 } from "../../../../shared/ui";
 
-import { getStoredProducts } from "../../../products/utils/productsStorage";
-import ProductFormModal from "../../../products/components/ProductFormModal/ProductFormModal";
+import {
+  createStoredProduct,
+  getStoredProducts,
+} from "../../../products/utils/productsStorage";
 
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
 import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
@@ -21,10 +23,7 @@ import {
   aggregateQuantities,
   convertQuantity,
   normalizeUnit,
-  UNIT_DEFINITIONS,
-  UNIT_OPTIONS,
 } from "../../../../shared/utils/units";
-import { formatProductionQuantity } from "../../production-orders/utils/productionOrderHelpers";
 
 import "./BomForm.scss";
 
@@ -35,9 +34,16 @@ const createEmptyMaterial = () => ({
   unit: "",
 });
 
-const PRODUCT_MODAL_DEFAULTS = {
-  FINISHED_GOOD: { type: "FINISHED_GOOD" },
-  RAW_MATERIAL: { type: "RAW_MATERIAL" },
+const getConvertedUnitCost = (product, unit) => {
+  if (!product) {
+    return 0;
+  }
+
+  try {
+    return Number(product.cost || 0) * convertQuantity(1, unit, product.unit);
+  } catch {
+    return Number(product.cost || 0);
+  }
 };
 
 const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
@@ -96,11 +102,6 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
   );
 
   const [errors, setErrors] = useState({});
-  const [productModal, setProductModal] = useState({
-    open: false,
-    type: "RAW_MATERIAL",
-    materialId: null,
-  });
 
   const selectedProduct = finishedProducts.find(
     (product) => product.id === productId,
@@ -125,9 +126,7 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
 
         const quantity = Number(material.quantity || 0);
         const unit = normalizeUnit(material.unit || product?.unit || "dona");
-        const cost = product
-          ? Number(product.cost || 0) * convertQuantity(1, unit, product.unit)
-          : 0;
+        const cost = getConvertedUnitCost(product, unit);
 
         return {
           ...material,

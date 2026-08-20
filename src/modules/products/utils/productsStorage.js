@@ -279,6 +279,13 @@ export const createStoredProduct = async (product, options = {}) => {
 };
 
 export const updateStoredProduct = async (updatedProduct) => {
+  const products = getStoredProducts();
+  const existingProduct = products.find((product) => product.id === updatedProduct.id);
+  const stockWasChanged =
+    updatedProduct?.stock !== undefined &&
+    existingProduct &&
+    Number(updatedProduct.stock || 0) !== Number(existingProduct.stock || 0);
+
   const remoteProduct = updatedProduct?.id
     ? await apiRequest(`/products/${updatedProduct.id}`, {
         method: "PATCH",
@@ -287,17 +294,25 @@ export const updateStoredProduct = async (updatedProduct) => {
     : null;
 
   if (remoteProduct?.id) {
-    const products = getStoredProducts();
+    const adjustedProduct = stockWasChanged
+      ? await apiRequest(`/products/${remoteProduct.id}/stock`, {
+          method: "PATCH",
+          body: {
+            warehouseId: updatedProduct.warehouseId || remoteProduct.warehouseId || null,
+            newStock: Number(updatedProduct.stock) || 0,
+            reason: "PRODUCT_EDIT",
+            cost: updatedProduct.cost ?? remoteProduct.cost,
+          },
+        })
+      : null;
+    const finalProduct = adjustedProduct?.id ? adjustedProduct : remoteProduct;
     const nextProducts = products.map((product) =>
-      product.id === remoteProduct.id ? remoteProduct : product,
+      product.id === finalProduct.id ? finalProduct : product,
     );
     saveProducts(nextProducts);
     primeApiCache("/products", { products: nextProducts, data: nextProducts });
-    return normalizeProduct(remoteProduct);
+    return normalizeProduct(finalProduct);
   }
-
-  const products = getStoredProducts();
-  const existingProduct = products.find((product) => product.id === updatedProduct.id);
 
   if (!existingProduct) {
     return null;
