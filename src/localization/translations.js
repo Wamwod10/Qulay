@@ -210,6 +210,10 @@ terminologyTranslations.tj = {
 };
 
 export const tajikPhraseMap = {
+  "Jami massa": "Массаи умумӣ",
+  "Jami hajm": "Ҳаҷми умумӣ",
+  "Jami uzunlik": "Дарозии умумӣ",
+  "Jami dona": "Шумораи умумӣ",
   "58mm": "58mm",
   "80mm": "80mm",
   "Account topilmadi.": "Аккаунт ёфт нашуд.",
@@ -925,6 +929,15 @@ export const tajikPhraseMap = {
 };
 
 Object.assign(tajikPhraseMap, {
+  "Sahifada": "Дар як саҳифа",
+  "Qo'llash": "Татбиқ кардан",
+  "Qadoq soni butun son, qadoq hajmi esa 0 dan katta bo'lishi kerak.": "Шумораи баста бояд адади бутун ва ҳаҷми баста аз 0 зиёд бошад.",
+  "Qadoq hajmi 0 dan katta bo'lishi kerak.": "Ҳаҷми баста бояд аз 0 зиёд бошад.",
+  "Qadoqlangan jami mahsulot ishlab chiqarilgan miqdordan oshmasin.": "Ҳаҷми умумии маҳсулоти бастабандишуда аз миқдори истеҳсолшуда зиёд набошад.",
+  "Qadoqlash materiali o'lchov birligi mos emas.": "Воҳиди ченкунии маводи бастабандӣ мувофиқ нест.",
+  "Qadoqlash materiali omborda yetarli emas.": "Маводи бастабандӣ дар анбор кофӣ нест.",
+  "Bu ishlab chiqarish allaqachon boshlangan.": "Ин истеҳсолот аллакай оғоз шудааст.",
+  "Ishlab chiqarishni boshlash uchun xomashyo yetarli emas. Yetishmayotgan miqdorlarni tekshiring.": "Барои оғоз кардани истеҳсол ашёи хом кофӣ нест. Миқдори камбудиро санҷед.",
   "Barcha sozlamalar tiklansinmi?": "Оё ҳамаи танзимот барқарор карда шавад?",
   "Ushbu amalni davom ettirmoqchimisiz?": "Оё мехоҳед ин амалро идома диҳед?",
   "Savatchani tozalaysizmi?": "Оё сабадро тоза мекунед?",

@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { translateText } from "../../../../localization/i18n";
+import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
 
 import {
   AlertTriangle,
@@ -85,10 +88,15 @@ const ProductionOrderDetailsPage = () => {
   const [order, setOrder] = useState(() => getProductionOrderById(orderId));
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [shortages, setShortages] = useState([]);
+  const [startPending, setStartPending] = useState(false);
+  const [startError, setStartError] = useState("");
+  const refreshGeneration = useRef(0);
 
   useEffect(() => {
+    const generation = refreshGeneration.current + 1;
+    refreshGeneration.current = generation;
     refreshProductionOrder(orderId).then((freshOrder) => {
-      if (freshOrder) setOrder(freshOrder);
+      if (freshOrder && generation === refreshGeneration.current) setOrder(freshOrder);
     }).catch(() => undefined);
   }, [orderId]);
 
@@ -146,6 +154,19 @@ const ProductionOrderDetailsPage = () => {
   const materialSummary = aggregateQuantities(order?.requiredMaterials || [], "requiredQuantity");
 
   const handleStart = async () => {
+    if (startPending || order.status !== "PLANNED") {
+      setStartError(
+        order.status === "IN_PROGRESS"
+          ? "Bu ishlab chiqarish allaqachon boshlangan."
+          : "Bu ishlab chiqarishni hozir boshlash mumkin emas.",
+      );
+      return;
+    }
+
+    setStartPending(true);
+    setStartError("");
+    refreshGeneration.current += 1;
+
     try {
       const startedOrder = await startProductionOrder(order.id);
 
@@ -154,7 +175,13 @@ const ProductionOrderDetailsPage = () => {
       setConfirmOpen(false);
     } catch (error) {
       setShortages(error.shortages || []);
-      setConfirmOpen(false);
+      setStartError(
+        error.shortages?.length
+          ? "Xomashyo yetarli emas. Yetishmayotgan miqdorlarni tekshiring."
+          : getApiErrorMessage(error),
+      );
+    } finally {
+      setStartPending(false);
     }
   };
 
@@ -254,6 +281,7 @@ const ProductionOrderDetailsPage = () => {
 
   const handleCompleteProduction = async (values) => {
     try {
+      refreshGeneration.current += 1;
       const updated = await completeProductionOrder({
         orderId: order.id,
 
@@ -264,7 +292,8 @@ const ProductionOrderDetailsPage = () => {
 
       setCompleteOpen(false);
     } catch (error) {
-      alert(error.message || "Ishlab chiqarishni yakunlashda xatolik.");
+      const message = getApiErrorMessage(error);
+      throw new Error(message);
     }
   };
 
@@ -329,7 +358,11 @@ const ProductionOrderDetailsPage = () => {
                 leftIcon={
                   <LiveIcon icon={Play} motion="pulse-soft" size={17} />
                 }
-                onClick={() => setConfirmOpen(true)}
+                onClick={() => {
+                  setStartError("");
+                  setShortages([]);
+                  setConfirmOpen(true);
+                }}
               >
                 Ishlab chiqarishni boshlash
               </Button>
@@ -396,7 +429,15 @@ const ProductionOrderDetailsPage = () => {
           {materialSummary.map((summary) => (
             <OrderMetric
               key={summary.dimension}
-              label={summary.dimension === "WEIGHT" ? "Jami og'irlik" : summary.dimension === "VOLUME" ? "Jami hajm" : summary.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona"}
+              label={translateText(
+                summary.dimension === "WEIGHT"
+                  ? "Jami massa"
+                  : summary.dimension === "VOLUME"
+                    ? "Jami hajm"
+                    : summary.dimension === "LENGTH"
+                      ? "Jami uzunlik"
+                      : "Jami dona",
+              )}
               value={`${formatProductionQuantity(summary.value)} ${summary.unit}`}
             />
           ))}
@@ -445,6 +486,29 @@ const ProductionOrderDetailsPage = () => {
                 </strong>
               </Card>
             </section>
+
+            {Array.isArray(order.packaging) && order.packaging.length > 0 && (
+              <Card>
+                <div className="production-order-details__section-title">
+                  <h3>Qadoqlash natijasi</h3>
+                  <p>Qadoqlangan mahsulotlar va qolgan bulk miqdori.</p>
+                </div>
+                <div className="production-order-details__plan-actual">
+                  {order.packaging.map((row) => (
+                    <div className="production-order-details__plan-row" key={row.id || `${row.productId}-${row.packSize}`}>
+                      <div><strong>{row.productName || "Qadoqlangan SKU"}</strong></div>
+                      <div><span>Qadoq soni</span><strong>{formatProductionQuantity(row.quantity || 0)} dona</strong></div>
+                      <div><span>Hajmi</span><strong>{formatProductionQuantity(row.packSize || 0)} {row.packUnit || order.unit}</strong></div>
+                      <div><span>Jami</span><strong>{formatProductionQuantity(Number(row.quantity || 0) * Number(row.packSize || 0))} {order.unit}</strong></div>
+                    </div>
+                  ))}
+                  <OrderMetric
+                    label="Qolgan bulk"
+                    value={`${formatProductionQuantity(order.remainingBulkQuantity || 0)} ${order.unit}`}
+                  />
+                </div>
+              </Card>
+            )}
 
             <Card>
               <div className="production-order-details__section-title">
@@ -654,7 +718,14 @@ const ProductionOrderDetailsPage = () => {
         description="Xomashyo real qoldiq bo'yicha tekshiriladi va yetarli bo'lsa reserved miqdori oshiriladi."
         confirmText="Boshlash"
         cancelText="Bekor qilish"
-        onClose={() => setConfirmOpen(false)}
+        loading={startPending}
+        error={startError}
+        onClose={() => {
+          if (!startPending) {
+            setConfirmOpen(false);
+            setStartError("");
+          }
+        }}
         onConfirm={handleStart}
       />
       <ProductionCompleteModal

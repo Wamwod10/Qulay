@@ -15,7 +15,7 @@ import { getInitialColumnOrder } from "../../utils/tableSettingsHelpers";
 
 import "./Tablesettingss.scss";
 
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100].map((value) => ({
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100, 150, 300, 500].map((value) => ({
   value: String(value),
   label: `${value} qator`,
 }));

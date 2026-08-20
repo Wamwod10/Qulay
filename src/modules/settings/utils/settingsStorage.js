@@ -1,6 +1,8 @@
 import {
   DEFAULT_SETTINGS,
   DEFAULT_TABLE_STATE,
+  MAX_TABLE_PAGE_SIZE,
+  MIN_TABLE_PAGE_SIZE,
   SETTINGS_SCHEMA_VERSION,
 } from "../constants/settingsDefaults";
 import {
@@ -86,7 +88,10 @@ const normalizeTables = (tables = {}) =>
       columnOrder: Array.isArray(value?.columnOrder) ? value.columnOrder : [],
       hiddenColumns: Array.isArray(value?.hiddenColumns) ? value.hiddenColumns : [],
       columnWidths: isPlainObject(value?.columnWidths) ? value.columnWidths : {},
-      defaultPageSize: Number(value?.defaultPageSize) || DEFAULT_TABLE_STATE.defaultPageSize,
+      defaultPageSize: Math.min(
+        Math.max(Number(value?.defaultPageSize) || DEFAULT_TABLE_STATE.defaultPageSize, MIN_TABLE_PAGE_SIZE),
+        MAX_TABLE_PAGE_SIZE,
+      ),
     };
 
     return result;

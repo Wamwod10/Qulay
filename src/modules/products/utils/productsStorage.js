@@ -131,6 +131,66 @@ export const getStoredProducts = () => {
   return storedProducts.map(normalizeProduct);
 };
 
+export const getStoredProductsPage = async ({
+  page = 1,
+  limit = 20,
+  search = "",
+  type = "",
+  category = "",
+  status = "ACTIVE,INACTIVE",
+} = {}) => {
+  const params = new URLSearchParams({
+    page: String(Math.max(Number(page) || 1, 1)),
+    limit: String(Math.min(Math.max(Number(limit) || 20, 1), 500)),
+  });
+
+  if (search.trim()) params.set("search", search.trim());
+  if (type) params.set("type", type);
+  if (category) params.set("category", category);
+  if (status) params.set("status", status);
+
+  let remoteResult = null;
+  try {
+    remoteResult = await apiRequest(`/products?${params.toString()}`);
+  } catch {
+    return {
+      products: getStoredProducts(),
+      remote: false,
+      meta: null,
+    };
+  }
+  const remoteProducts = unwrapList(remoteResult, ["products"]);
+
+  if (Array.isArray(remoteProducts)) {
+    const normalized = remoteProducts.map(normalizeProduct);
+    const stored = readJson(STORAGE_KEY, []);
+    const merged = [
+      ...normalized,
+      ...(Array.isArray(stored) ? stored : []).filter(
+        (storedProduct) => !normalized.some((product) => product.id === storedProduct.id),
+      ),
+    ];
+    writeJson(STORAGE_KEY, merged);
+
+    return {
+      products: normalized,
+      remote: true,
+      meta: remoteResult?.meta || {
+        page: Number(page) || 1,
+        limit: Number(limit) || 20,
+        total: normalized.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  return {
+    products: getStoredProducts(),
+    remote: false,
+    meta: null,
+  };
+};
+
 export const saveProducts = (products) => {
   if (!Array.isArray(products)) {
     return false;

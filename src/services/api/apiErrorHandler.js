@@ -28,6 +28,9 @@ const getResponseMessage = (error) => {
   return Array.isArray(message) ? message.join(", ") : message;
 };
 
+const isGenericMessage = (message) =>
+  !message || /^(server xatosi|server error|database|amalni bajarib bo'lmadi)/i.test(message);
+
 export const getApiErrorMessage = (error) => {
   const messages = MESSAGES[getCurrentLanguage() === "tj" ? "tj" : "uz"];
   if (!error) return messages.unknown;
@@ -42,18 +45,17 @@ export const getApiErrorMessage = (error) => {
 
   const status = error?.status || error?.statusCode;
   const code = error?.code || error?.data?.code;
-  if (status === 401 && ["UNAUTHENTICATED", "INVALID_TOKEN"].includes(code)) {
+  if (status === 401) {
     return messages.unauthorized;
   }
   if (status === 403 && ["ACCOUNT_BLOCKED", "COMPANY_BLOCKED", "TENANT_REQUIRED"].includes(code)) {
     return getResponseMessage(error) || messages.forbidden;
   }
   if (status === 403) return messages.forbidden;
+  const responseMessage = getResponseMessage(error);
+  if (responseMessage && !isGenericMessage(responseMessage)) return responseMessage;
   if (status === 409) return messages.conflict;
   if (status === 500 || status === 503) return messages.server;
-
-  const responseMessage = getResponseMessage(error);
-  if (responseMessage) return responseMessage;
   if (error?.message && !/^Server xatosi|^Server error|^Database/i.test(error.message)) return error.message;
 
   switch (status) {

@@ -19,6 +19,8 @@ import {
 
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
 import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
+import { aggregateQuantities } from "../../../../shared/utils/units";
+import { formatProductionQuantity } from "../../production-orders/utils/productionOrderHelpers";
 
 import "./BomForm.scss";
 
@@ -126,6 +128,18 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
 
   const unitCost =
     Number(outputQuantity) > 0 ? materialCost / Number(outputQuantity) : 0;
+
+  const materialSummary = useMemo(
+    () =>
+      aggregateQuantities(
+        preparedMaterials.map((material) => ({
+          quantity: material.quantity,
+          unit: material.product?.unit || material.unit,
+        })),
+        "quantity",
+      ),
+    [preparedMaterials],
+  );
 
   const handleAddMaterial = () => {
     setMaterials((current) => [...current, createEmptyMaterial()]);
@@ -467,6 +481,22 @@ const BomForm = ({ initialValues, onSubmit, onCancel }) => {
               label={translateText("Xomashyo tannarxi")}
               value={formatManufacturingMoney(materialCost)}
             />
+
+            {materialSummary.map((summary) => (
+              <CostRow
+                key={summary.dimension}
+                label={translateText(
+                  summary.dimension === "WEIGHT"
+                    ? "Jami massa"
+                    : summary.dimension === "VOLUME"
+                      ? "Jami hajm"
+                      : summary.dimension === "LENGTH"
+                        ? "Jami uzunlik"
+                        : "Jami dona",
+                )}
+                value={`${formatProductionQuantity(summary.value)} ${summary.unit}`}
+              />
+            ))}
 
             <CostRow
               label={translateText("Chiqish")}

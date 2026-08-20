@@ -5,6 +5,7 @@ import {
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { convertQuantity, normalizeUnit } from "../../../shared/utils/units";
 
 import {
     calculateProductionMaterialCost,
@@ -32,6 +33,21 @@ const BOM_STORAGE_KEY =
 
 const PRODUCTION_STORAGE_KEY =
     "production_orders";
+
+const refreshWarehouseStock = async (warehouseId) => {
+    if (!warehouseId) return;
+
+    try {
+        const result = await apiRequest(`/inventory/stock?warehouseId=${encodeURIComponent(warehouseId)}`);
+        const stock = unwrapList(result, ["stock"]);
+        if (Array.isArray(stock)) {
+            saveWarehouseStock(stock);
+            window.dispatchEvent(new Event("warehouse:changed"));
+        }
+    } catch {
+        // The order mutation already succeeded. A later warehouse refresh can recover the view.
+    }
+};
 
 const normalizeProductionOrder = (order) => {
     const overheadItems =
@@ -387,12 +403,14 @@ export const startProductionOrder = async (
 ) => {
     const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/start`, {
         method: "POST",
+        idempotencyKey: `production-start:${orderId}`,
         body: {},
     });
     if (remoteOrder?.id) {
         const orders = getStoredProductionOrders();
         saveProductionOrders(orders.map((order) => (order.id === remoteOrder.id ? remoteOrder : order)));
         window.dispatchEvent(new Event("warehouse:changed"));
+        void refreshWarehouseStock(remoteOrder.warehouseId);
         return normalizeProductionOrder(remoteOrder);
     }
     const orders =
@@ -475,18 +493,20 @@ export const startProductionOrder = async (
                 return item;
             }
 
-            const available =
-                Math.max(
-                    Number(
-                        item.quantity ||
-                        0,
-                    ) -
-                    Number(
-                        item.reserved ||
-                        0,
-                    ),
-                    0,
+            const productUnit = normalizeUnit(
+                availability.find((material) => material.productId === item.productId)?.unit || item.unit,
+            );
+            const stockUnit = normalizeUnit(item.unit || productUnit);
+            let available;
+            try {
+                available = convertQuantity(
+                    Math.max(Number(item.quantity || 0) - Number(item.reserved || 0), 0),
+                    stockUnit,
+                    productUnit,
                 );
+            } catch {
+                return item;
+            }
 
             const reservedNow =
                 Math.min(
@@ -500,18 +520,18 @@ export const startProductionOrder = async (
                 reservedNow,
             );
 
+            let reservedInStockUnit;
+            try {
+                reservedInStockUnit = convertQuantity(reservedNow, productUnit, stockUnit);
+            } catch {
+                return item;
+            }
+
             return {
                 ...item,
 
                 reserved:
-                    Number(
-                        item.reserved ||
-                        0,
-                    ) +
-                    Number(
-                        reservedNow ||
-                        0,
-                    ),
+                    Number(item.reserved || 0) + Number(reservedInStockUnit || 0),
             };
         });
 

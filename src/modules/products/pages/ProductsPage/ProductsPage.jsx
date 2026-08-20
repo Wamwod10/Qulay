@@ -1,8 +1,10 @@
-import { translateText } from "../../../../localization/i18n";import { useEffect, useMemo, useState } from "react";
+import { translateText } from "../../../../localization/i18n";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Boxes, CircleAlert, Package, PackageCheck, Plus } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
@@ -10,6 +12,7 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  Input,
   LiveIcon,
   Pagination,
   Select,
@@ -30,6 +33,7 @@ import {
   deleteStoredProduct,
   duplicateStoredProduct,
   getStoredProducts,
+  getStoredProductsPage,
   restoreStoredProduct,
   toggleStoredProductStatus,
   updateStoredProductPrices } from
@@ -40,24 +44,35 @@ import {
   useTableSettings,
   useTerminology } from
 "../../../settings/selectors/settingsSelectors";
+import { updateTableSettings } from "../../../../store/slices/settingsSlice";
 
 import "./ProductsPage.scss";
 
 const PAGE_SIZE = 10;
+const MIN_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 500;
 
 const ProductsPage = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { tTerm } = useTerminology();
   const productTableSettings = useTableSettings("products");
-  const pageSize = productTableSettings.defaultPageSize || PAGE_SIZE;
+  const pageSize = Math.min(
+    Math.max(Number(productTableSettings.defaultPageSize) || PAGE_SIZE, MIN_PAGE_SIZE),
+    MAX_PAGE_SIZE,
+  );
 
   const [products, setProducts] = useState(() => getStoredProducts());
+  const [statsProducts, setStatsProducts] = useState(products);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [stockFilter, setStockFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSizeInput, setPageSizeInput] = useState(String(pageSize));
+  const [pageSizeError, setPageSizeError] = useState("");
+  const [remoteMeta, setRemoteMeta] = useState(null);
 
   const [barcodeProduct, setBarcodeProduct] = useState(null);
   const [stockProduct, setStockProduct] = useState(null);
@@ -65,9 +80,29 @@ const ProductsPage = () => {
   const [archiveProduct, setArchiveProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
 
-  const refreshProducts = () => {
-    setProducts(getStoredProducts());
-  };
+  const refreshProducts = useCallback(async () => {
+    const usesLocalStockFilter = Boolean(stockFilter);
+    const result = await getStoredProductsPage({
+      page: usesLocalStockFilter ? 1 : page,
+      limit: usesLocalStockFilter ? MAX_PAGE_SIZE : pageSize,
+      search,
+      type: typeFilter,
+      category: categoryFilter,
+      status: statusFilter || "ACTIVE,INACTIVE",
+    });
+
+    setProducts(result.products);
+    setRemoteMeta(result.remote && !usesLocalStockFilter ? result.meta : null);
+    setStatsProducts((current) => {
+      if (!result.remote) return result.products;
+      const merged = [...result.products, ...current.filter((item) => !result.products.some((product) => product.id === item.id))];
+      return merged;
+    });
+  }, [categoryFilter, page, pageSize, search, statusFilter, stockFilter, typeFilter]);
+
+  useEffect(() => {
+    void refreshProducts();
+  }, [refreshProducts]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -101,16 +136,21 @@ const ProductsPage = () => {
     });
   }, [products, search, typeFilter, categoryFilter, statusFilter, stockFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const usesRemotePagination = Boolean(remoteMeta) && !stockFilter;
+  const totalPages = usesRemotePagination
+    ? Math.max(1, Number(remoteMeta.totalPages) || 1)
+    : Math.max(1, Math.ceil(filteredProducts.length / pageSize));
 
   const paginatedProducts = useMemo(() => {
+    if (usesRemotePagination) return filteredProducts;
+
     const startIndex = (page - 1) * pageSize;
 
     return filteredProducts.slice(startIndex, startIndex + pageSize);
-  }, [filteredProducts, page, pageSize]);
+  }, [filteredProducts, page, pageSize, usesRemotePagination]);
 
   const stats = useMemo(() => {
-    const visibleProducts = products.filter((product) => product.status !== "ARCHIVED");
+    const visibleProducts = statsProducts.filter((product) => product.status !== "ARCHIVED");
 
     return {
       total: visibleProducts.length,
@@ -122,7 +162,7 @@ const ProductsPage = () => {
         (product) => getStockStatus(product) === "OUT_OF_STOCK"
       ).length
     };
-  }, [products]);
+  }, [statsProducts]);
 
   useEffect(() => {
     setPage(1);
@@ -134,52 +174,71 @@ const ProductsPage = () => {
     }
   }, [page, totalPages]);
 
+  useEffect(() => {
+    setPageSizeInput(String(pageSize));
+  }, [pageSize]);
+
+  const applyPageSize = () => {
+    const parsed = Number(pageSizeInput);
+    if (!Number.isInteger(parsed) || parsed < MIN_PAGE_SIZE || parsed > MAX_PAGE_SIZE) {
+      setPageSizeError(`${MIN_PAGE_SIZE} dan ${MAX_PAGE_SIZE} gacha butun son kiriting.`);
+      return;
+    }
+
+    dispatch(updateTableSettings({
+      tableId: "products",
+      changes: { defaultPageSize: parsed },
+    }));
+    setPage(1);
+    setPageSizeError("");
+  };
+
   const hasActiveFilters = Boolean(
     search || typeFilter || categoryFilter || statusFilter || stockFilter
   );
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSearch("");
     setTypeFilter("");
     setCategoryFilter("");
     setStatusFilter("");
     setStockFilter("");
-  };
+  }, []);
 
-  const handleToggleStatus = async (product) => {
+  const handleToggleStatus = useCallback(async (product) => {
     await toggleStoredProductStatus(product.id);
-    refreshProducts();
-  };
+    await refreshProducts();
+  }, [refreshProducts]);
 
-  const handleDuplicate = async (product) => {
+  const handleDuplicate = useCallback(async (product) => {
     const duplicatedProduct = await duplicateStoredProduct(product.id);
 
-    refreshProducts();
+    await refreshProducts();
 
     if (duplicatedProduct) {
       navigate(`/products/${duplicatedProduct.id}/edit`);
     }
-  };
+  }, [navigate, refreshProducts]);
 
-  const handleStockAdjustment = async (values) => {
+  const handleStockAdjustment = useCallback(async (values) => {
     const updatedProduct = await adjustStoredProductStock(values);
 
     if (updatedProduct) {
       setStockProduct(null);
-      refreshProducts();
+      await refreshProducts();
     }
-  };
+  }, [refreshProducts]);
 
-  const handlePriceChange = async (values) => {
+  const handlePriceChange = useCallback(async (values) => {
     const updatedProduct = await updateStoredProductPrices(values);
 
     if (updatedProduct) {
       setPriceProduct(null);
-      refreshProducts();
+      await refreshProducts();
     }
-  };
+  }, [refreshProducts]);
 
-  const handleArchiveOrRestore = async () => {
+  const handleArchiveOrRestore = useCallback(async () => {
     if (!archiveProduct) {
       return;
     }
@@ -191,18 +250,26 @@ const ProductsPage = () => {
     }
 
     setArchiveProduct(null);
-    refreshProducts();
-  };
+    await refreshProducts();
+  }, [archiveProduct, refreshProducts]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteProduct) {
       return;
     }
 
     await deleteStoredProduct(deleteProduct.id);
     setDeleteProduct(null);
-    refreshProducts();
-  };
+    await refreshProducts();
+  }, [deleteProduct, refreshProducts]);
+
+  const handleView = useCallback((product) => navigate(`/products/${product.id}`), [navigate]);
+  const handleEdit = useCallback((product) => navigate(`/products/${product.id}/edit`), [navigate]);
+  const handleBarcode = useCallback((product) => setBarcodeProduct(product), []);
+  const handleStockProduct = useCallback((product) => setStockProduct(product), []);
+  const handlePriceProduct = useCallback((product) => setPriceProduct(product), []);
+  const handleArchiveProduct = useCallback((product) => setArchiveProduct(product), []);
+  const handleDeleteProduct = useCallback((product) => setDeleteProduct(product), []);
 
   const archiveDialogIsRestore = archiveProduct?.status === "ARCHIVED";
 
@@ -334,24 +401,49 @@ const ProductsPage = () => {
 
           <div className="products-page__result-info">
             <span>
-              {filteredProducts.length} {translateText("ta mahsulot")}
+              {remoteMeta?.total ?? filteredProducts.length} {translateText("ta mahsulot")}
               {statusFilter ? "" : ` (${translateText("arxivsiz")})`}
             </span>
+          </div>
+
+          <div className="products-page__page-size">
+            <Input
+              label={translateText("Sahifada")}
+              type="number"
+              min={MIN_PAGE_SIZE}
+              max={MAX_PAGE_SIZE}
+              step="1"
+              value={pageSizeInput}
+              error={pageSizeError}
+              onChange={(event) => {
+                setPageSizeInput(event.target.value);
+                setPageSizeError("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyPageSize();
+                }
+              }}
+            />
+            <Button type="button" variant="secondary" size="sm" onClick={applyPageSize}>
+              {translateText("Qo'llash")}
+            </Button>
           </div>
 
           <ProductTable
             products={paginatedProducts}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={handleClearFilters}
-            onView={(product) => navigate(`/products/${product.id}`)}
-            onEdit={(product) => navigate(`/products/${product.id}/edit`)}
+            onView={handleView}
+            onEdit={handleEdit}
             onToggleStatus={handleToggleStatus}
             onDuplicate={handleDuplicate}
-            onBarcode={(product) => setBarcodeProduct(product)}
-            onStockAdjustment={(product) => setStockProduct(product)}
-            onPriceChange={(product) => setPriceProduct(product)}
-            onArchive={(product) => setArchiveProduct(product)}
-            onDelete={(product) => setDeleteProduct(product)} />
+            onBarcode={handleBarcode}
+            onStockAdjustment={handleStockProduct}
+            onPriceChange={handlePriceProduct}
+            onArchive={handleArchiveProduct}
+            onDelete={handleDeleteProduct} />
           
 
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />

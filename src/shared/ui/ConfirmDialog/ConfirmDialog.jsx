@@ -4,6 +4,8 @@ import Button from "../Button/Button";
 import Modal from "../Modal/Modal";
 import { translateText } from "../../../localization/i18n";
 
+import "./ConfirmDialog.scss";
+
 const ConfirmDialog = ({
   open,
   onClose,
@@ -14,6 +16,7 @@ const ConfirmDialog = ({
   cancelText = "Bekor qilish",
   danger = false,
   loading = false,
+  error = "",
 }) => {
   return (
     <Modal
@@ -38,15 +41,21 @@ const ConfirmDialog = ({
         </>
       }
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: "12px 0 4px",
-        }}
-      >
-        <AlertTriangle size={42} strokeWidth={1.4} />
-      </div>
+      {error ? (
+        <div className="ui-confirm-dialog__error" role="alert">
+          {translateText(error)}
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "12px 0 4px",
+          }}
+        >
+          <AlertTriangle size={42} strokeWidth={1.4} />
+        </div>
+      )}
     </Modal>
   );
 };

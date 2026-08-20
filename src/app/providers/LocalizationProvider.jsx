@@ -58,18 +58,16 @@ const LocalizationProvider = ({ children }) => {
     const pendingRoots = new Set();
     const scheduleLocalization = (mutations) => {
       mutations.forEach((mutation) => {
-        const target = mutation.target?.nodeType === Node.ELEMENT_NODE
-          ? mutation.target
-          : mutation.target?.parentElement;
-
-        if (target) {
-          pendingRoots.add(target);
+        if (mutation.type === "attributes") {
+          const target = mutation.target?.nodeType === Node.ELEMENT_NODE
+            ? mutation.target
+            : mutation.target?.parentElement;
+          if (target) pendingRoots.add(target);
+          return;
         }
 
         mutation.addedNodes?.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            pendingRoots.add(node);
-          }
+          if (node.nodeType === Node.ELEMENT_NODE) pendingRoots.add(node);
         });
       });
 

@@ -121,6 +121,17 @@
     }
   }
 
+  &__page-size {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 14px;
+
+    .ui-input {
+      width: 150px;
+    }
+  }
+
   &__modal-form {
     display: grid;
 
@@ -155,6 +166,14 @@
 
     &__filter {
       width: 100%;
+    }
+
+    &__page-size {
+      align-items: stretch;
+
+      .ui-input {
+        width: 100%;
+      }
     }
 
     &__filters {

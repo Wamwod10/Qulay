@@ -84,6 +84,28 @@ const matchesQuery = (query, ...values) =>
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+let headerDataCache = { key: null, data: null };
+
+const getHeaderData = (key) => {
+  if (headerDataCache.key === key && headerDataCache.data) return headerDataCache.data;
+
+  headerDataCache = {
+    key,
+    data: {
+      products: getStoredProducts(),
+      customers: getStoredCustomers(),
+      sales: getStoredSales(),
+      purchases: getStoredPurchases(),
+      suppliers: getStoredSuppliers(),
+      agents: getStoredAgents(),
+      productionOrders: getStoredProductionOrders(),
+      followUps: getStoredCustomerFollowUps(),
+    },
+  };
+
+  return headerDataCache.data;
+};
+
 const isPastDate = (value) => {
   if (!value) {
     return false;
@@ -95,7 +117,7 @@ const isPastDate = (value) => {
 const hasEnoughMaterials = (availability = []) =>
   availability.every((material) => material.enough);
 
-const getSearchResults = (query) => {
+const getSearchResults = (query, cacheKey) => {
   const normalizedQuery = query.trim().toLowerCase();
 
   if (normalizedQuery.length < 2) {
@@ -103,8 +125,9 @@ const getSearchResults = (query) => {
   }
 
   const results = [];
+  const data = getHeaderData(cacheKey);
 
-  getStoredProducts().forEach((product) => {
+  data.products.forEach((product) => {
     if (matchesQuery(normalizedQuery, product.name, product.sku, product.barcode, product.category)) {
       results.push({
         id: `product-${product.id}`,
@@ -118,7 +141,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredCustomers().forEach((customer) => {
+  data.customers.forEach((customer) => {
     const name = getCustomerDisplayName(customer);
 
     if (matchesQuery(normalizedQuery, name, customer.phone, customer.companyName, customer.email)) {
@@ -132,7 +155,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredSales().forEach((sale) => {
+  data.sales.forEach((sale) => {
     if (matchesQuery(normalizedQuery, sale.number, sale.customerName, sale.agentName, sale.total)) {
       results.push({
         id: `sale-${sale.id}`,
@@ -146,7 +169,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredPurchases().forEach((purchase) => {
+  data.purchases.forEach((purchase) => {
     if (matchesQuery(normalizedQuery, purchase.number, purchase.supplierName, purchase.status)) {
       results.push({
         id: `purchase-${purchase.id}`,
@@ -160,7 +183,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredSuppliers().forEach((supplier) => {
+  data.suppliers.forEach((supplier) => {
     if (matchesQuery(normalizedQuery, supplier.name, supplier.phone, supplier.companyName, supplier.email)) {
       results.push({
         id: `supplier-${supplier.id}`,
@@ -172,7 +195,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredAgents().forEach((agent) => {
+  data.agents.forEach((agent) => {
     if (matchesQuery(normalizedQuery, agent.name, agent.phone, agent.region, agent.route)) {
       results.push({
         id: `agent-${agent.id}`,
@@ -184,7 +207,7 @@ const getSearchResults = (query) => {
     }
   });
 
-  getStoredProductionOrders().forEach((order) => {
+  data.productionOrders.forEach((order) => {
     if (matchesQuery(normalizedQuery, order.number, order.productName, order.status)) {
       results.push({
         id: `production-${order.id}`,
@@ -199,11 +222,12 @@ const getSearchResults = (query) => {
   return results.slice(0, SEARCH_LIMIT);
 };
 
-const getNotificationItems = (notifications) => {
+const getNotificationItems = (notifications, cacheKey) => {
   const items = [];
+  const data = getHeaderData(cacheKey);
 
   if (notifications.lowStockWarning || notifications.outOfStockWarning) {
-    getStoredProducts().forEach((product) => {
+    data.products.forEach((product) => {
       const status = getStockStatus(product);
 
       if (status === "OUT_OF_STOCK" && notifications.outOfStockWarning) {
@@ -259,7 +283,7 @@ const getNotificationItems = (notifications) => {
   }
 
   if (notifications.latePurchaseWarning) {
-    getStoredPurchases()
+    data.purchases
       .filter((purchase) =>
         !["RECEIVED", "CANCELLED"].includes(purchase.status) && isPastDate(purchase.expectedDate),
       )
@@ -276,7 +300,7 @@ const getNotificationItems = (notifications) => {
   }
 
   if (notifications.productionShortageWarning) {
-    getStoredProductionOrders()
+    data.productionOrders
       .filter((order) => ["PLANNED", "IN_PROGRESS"].includes(order.status))
       .forEach((order) => {
         const availability = checkMaterialAvailability({
@@ -297,9 +321,9 @@ const getNotificationItems = (notifications) => {
   }
 
   if (notifications.overdueCrmFollowUp) {
-    const customers = new Map(getStoredCustomers().map((customer) => [customer.id, customer]));
+    const customers = new Map(data.customers.map((customer) => [customer.id, customer]));
 
-    getStoredCustomerFollowUps()
+    data.followUps
       .filter((followUp) => followUp.status === "OPEN" && isPastDate(followUp.date))
       .slice(0, 8)
       .forEach((followUp) => {
@@ -373,7 +397,7 @@ const Header = () => {
   const notificationCount = notificationItems.length;
 
   const searchResults = useMemo(
-    () => getSearchResults(debouncedSearch),
+    () => getSearchResults(debouncedSearch, refreshKey),
     [debouncedSearch, refreshKey],
   );
 
@@ -386,7 +410,7 @@ const Header = () => {
 
     const loadNotifications = () => {
       if (!disposed) {
-        setNotificationItems(getNotificationItems(notifications));
+        setNotificationItems(getNotificationItems(notifications, refreshKey));
       }
     };
 

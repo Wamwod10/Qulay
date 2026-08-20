@@ -1,4 +1,5 @@
-import { translateText } from "../../../../localization/i18n";import { useState } from "react";
+import { translateText } from "../../../../localization/i18n";
+import { memo, useState } from "react";
 
 import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 import {
@@ -290,4 +291,4 @@ const ProductStockIcon = ({ product, notifications }) => {
   return null;
 };
 
-export default ProductTable;
+export default memo(ProductTable);

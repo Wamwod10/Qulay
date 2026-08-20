@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import { translateText } from "../../../../../localization/i18n";
+
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import {
@@ -351,7 +353,19 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
             ))}
             <div className="production-order-form__material-summary">
               <strong>Jami miqdorlar</strong>
-              {materialSummary.map((item) => <span key={item.dimension}>Jami {item.dimension === "WEIGHT" ? "og‘irlik" : item.dimension === "VOLUME" ? "hajm" : item.dimension === "LENGTH" ? "uzunlik" : "dona"}: {item.value} {item.unit}</span>)}
+              {materialSummary.map((item) => (
+                <span key={item.dimension}>
+                  {translateText(
+                    item.dimension === "WEIGHT"
+                      ? "Jami massa"
+                      : item.dimension === "VOLUME"
+                        ? "Jami hajm"
+                        : item.dimension === "LENGTH"
+                          ? "Jami uzunlik"
+                          : "Jami dona",
+                  )}: {item.value} {item.unit}
+                </span>
+              ))}
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@ import {
 } from "../../../warehouse/utils/warehouseStorage";
 
 import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { convertQuantity, normalizeUnit } from "../../../../shared/utils/units";
 
 const SOURCE_CACHE_TTL_MS = 5000;
 let sourceCache = null;
@@ -55,20 +56,19 @@ export const checkMaterialAvailability = ({
                 material.productId,
             );
 
-            const available =
-                stockItems.reduce(
-                    (total, item) =>
-                        total +
-                        Number(
-                            item.quantity ||
-                            0,
-                        ) -
-                        Number(
-                            item.reserved ||
-                            0,
-                        ),
-                    0,
-                );
+            const productUnit = product?.unit || material.unit || stockItem?.unit || "dona";
+            const toProductUnit = (value, item) => {
+                try {
+                    return convertQuantity(value, item.unit || productUnit, productUnit);
+                } catch {
+                    return 0;
+                }
+            };
+
+            const available = stockItems.reduce(
+                (total, item) => total + toProductUnit(Number(item.quantity || 0), item) - toProductUnit(Number(item.reserved || 0), item),
+                0,
+            );
 
             const required =
                 Number(
@@ -98,35 +98,15 @@ export const checkMaterialAvailability = ({
                     stockItem?.sku ||
                     "",
 
-                unit:
-                    product?.unit ||
-                    material.unit ||
-                    stockItem?.unit ||
-                    "",
+                unit: normalizeUnit(productUnit),
 
                 cost,
 
                 warehouseQuantity:
-                    stockItems.reduce(
-                        (total, item) =>
-                            total +
-                            Number(
-                                item.quantity ||
-                                0,
-                            ),
-                        0,
-                    ),
+                    stockItems.reduce((total, item) => total + toProductUnit(Number(item.quantity || 0), item), 0),
 
                 reservedQuantity:
-                    stockItems.reduce(
-                        (total, item) =>
-                            total +
-                            Number(
-                                item.reserved ||
-                                0,
-                            ),
-                        0,
-                    ),
+                    stockItems.reduce((total, item) => total + toProductUnit(Number(item.reserved || 0), item), 0),
 
                 availableQuantity:
                     Math.max(

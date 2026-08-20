@@ -28,6 +28,9 @@ export const TERMINOLOGY_DEFAULTS = {
   waste: "Chiqindi",
 };
 
+export const MIN_TABLE_PAGE_SIZE = 10;
+export const MAX_TABLE_PAGE_SIZE = 500;
+
 export const DEFAULT_TABLE_STATE = {
   columnOrder: [],
   hiddenColumns: [],
