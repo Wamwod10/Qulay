@@ -38,16 +38,10 @@ const ProductEditPage = () => {
   }
 
   const handleSubmit = async (updatedProduct) => {
-    setSubmitError("");
-    setSubmitField("");
-    try {
-      const savedProduct = await updateStoredProduct(updatedProduct);
-      if (savedProduct) {
-        navigate(`/products/${savedProduct.id}`);
-      }
-    } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
-      setSubmitField(error?.field || "");
+    const savedProduct = await updateStoredProduct(updatedProduct);
+
+    if (savedProduct) {
+      navigate(`/products/${savedProduct.id}`);
     }
   };
 

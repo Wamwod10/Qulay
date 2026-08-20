@@ -40,7 +40,7 @@ import "./ProductionOrderForm.scss";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
-const ProductionOrderForm = ({ onSubmit, onCancel }) => {
+const ProductionOrderForm = ({ onSubmit, onCancel, submitError = "" }) => {
   const boms = useMemo(
     () => getStoredBoms().filter((bom) => bom.status === "ACTIVE"),
     [],
@@ -185,6 +185,12 @@ const ProductionOrderForm = ({ onSubmit, onCancel }) => {
 
   return (
     <form className="production-order-form" onSubmit={handleSubmit}>
+      {submitError && (
+        <div className="production-order-form__error" role="alert">
+          {submitError}
+        </div>
+      )}
+
       <Card padding="lg" className="production-order-form__section">
         <div className="production-order-form__section-header">
           <div>

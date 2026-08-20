@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Boxes, CircleAlert, Package, PackageCheck, Plus } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
@@ -16,7 +15,8 @@ import {
   LiveIcon,
   Pagination,
   Select,
-  TableToolbar } from
+  TableToolbar,
+  Toast } from
 "../../../../shared/ui";
 
 import BarcodeQrModal from "../../components/BarcodeQrModal/BarcodeQrModal";
@@ -53,7 +53,6 @@ const MIN_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 500;
 
 const ProductsPage = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { tTerm } = useTerminology();
   const productTableSettings = useTableSettings("products");
@@ -272,12 +271,25 @@ const ProductsPage = () => {
   const handleDeleteProduct = useCallback((product) => setDeleteProduct(product), []);
 
   const archiveDialogIsRestore = archiveProduct?.status === "ARCHIVED";
+  const successMessage = location.state?.successMessage;
+  const dismissSuccess = () => navigate(location.pathname, {
+    replace: true,
+    state: { ...location.state, successMessage: undefined },
+  });
 
   return (
     <PageContainer
       title={tTerm("products")}
       description={translateText("Xomashyo, yarim tayyor, tayyor va savdo mahsulotlarini boshqarish.")}>
-      
+      {successMessage && (
+        <Toast
+          type="success"
+          title={translateText("Saqlandi")}
+          message={successMessage}
+          onClose={dismissSuccess}
+        />
+      )}
+
       <div className="products-page">
         <section className="products-page__stats">
           <Card variant="soft" padding="md" className="products-page__stat-card">

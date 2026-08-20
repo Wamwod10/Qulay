@@ -5,18 +5,25 @@ import { useNavigate } from "react-router-dom";
 import PageContainer from "../../../../../components/PageContainer/PageContainer";
 
 import { Button } from "../../../../../shared/ui";
+import { getApiErrorMessage } from "../../../../../services/api/apiErrorHandler";
 
 import ProductionOrderForm from "../../components/ProductionOrderForm/ProductionOrderForm";
 
 import { createProductionOrder } from "../../../utils/manufacturingStorage";
+import { useState } from "react";
 
 const ProductionOrderCreatePage = () => {
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState("");
 
   const handleSubmit = async (values) => {
-    const order = await createProductionOrder(values);
-
-    navigate(`/manufacturing/orders/${order.id}`);
+    setSubmitError("");
+    try {
+      const order = await createProductionOrder(values);
+      navigate(`/manufacturing/orders/${order.id}`);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -43,6 +50,7 @@ const ProductionOrderCreatePage = () => {
 
         <ProductionOrderForm
           onSubmit={handleSubmit}
+          submitError={submitError}
           onCancel={() => navigate("/manufacturing")}
         />
       </div>

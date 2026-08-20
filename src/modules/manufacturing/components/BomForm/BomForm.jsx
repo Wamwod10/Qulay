@@ -188,21 +188,6 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
     );
   };
 
-  const handleMaterialProductSelect = (materialId, productId) => {
-    const product = rawMaterials.find((item) => item.id === productId);
-    setMaterials((current) =>
-      current.map((material) =>
-        material.id === materialId
-          ? { ...material, productId, unit: product?.unit || "dona" }
-          : material,
-      ),
-    );
-  };
-
-  const openProductModal = (type, materialId = null) => {
-    setProductModal({ open: true, type, materialId });
-  };
-
   const validate = () => {
     const nextErrors = {};
 
@@ -281,17 +266,11 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
   };
 
   return (
-    <>
-      <form className="bom-form" onSubmit={handleSubmit}>
-        {submitError && (
-          <div className="bom-form__error" role="alert">
-            {submitError}
-          </div>
-        )}
-        <Card padding="lg" className="bom-form__section">
-          <div className="bom-form__section-header">
-            <div>
-              <h3>{translateText("Retsept ma’lumotlari")}</h3>
+    <form className="bom-form" onSubmit={handleSubmit}>
+      <Card padding="lg" className="bom-form__section">
+        <div className="bom-form__section-header">
+          <div>
+            <h3>{translateText("Retsept ma’lumotlari")}</h3>
 
               <p>
                 {translateText(
@@ -312,25 +291,41 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
               onChange={(event) => setName(event.target.value)}
             />
 
-            <div className="bom-form__product-picker">
-              <Select
-                label={translateText("Natijada olinadigan mahsulot")}
-                value={productId}
-                placeholder={translateText("Mahsulotni tanlang")}
-                options={finishedProductOptions}
-                error={errors.product}
-                onChange={(event) => setProductId(event.target.value)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                leftIcon={<Plus size={15} />}
-                onClick={() => openProductModal("FINISHED_GOOD")}
-              >
-                {translateText("+ Yangi mahsulot qo'shish")}
-              </Button>
-            </div>
+          <CreatableSelect
+            label={translateText("Natijada olinadigan mahsulot")}
+            value={productId}
+            placeholder={translateText(
+              "Mahsulotni tanlang yoki yangi nom yozing",
+            )}
+            options={finishedProductOptions}
+            error={errors.product}
+            onChange={(event) => setProductId(event.target.value)}
+            onCreate={async (newName) => {
+              const created = await createStoredProduct(
+                {
+                  name: newName,
+                  type: "FINISHED_GOOD",
+                  unit: "dona",
+                  stock: 0,
+                  cost: 0,
+                  salePrice: null,
+                  status: "ACTIVE",
+                },
+                {
+                  inlineModule: "manufacturing",
+                },
+              );
+
+              setProductList((current) => [
+                created,
+                ...current.filter((item) => item.id !== created.id),
+              ]);
+
+              setProductId(created.id);
+
+              return created;
+            }}
+          />
 
             <p className="bom-form__helper">
               {translateText(
@@ -386,31 +381,44 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
               <div key={material.id} className="bom-form__material">
                 <div className="bom-form__material-number">{index + 1}</div>
 
-                <div className="bom-form__product-picker">
-                  <Select
-                    label={translateText("Xomashyo")}
-                    value={material.productId}
-                    placeholder={translateText("Xomashyoni tanlang")}
-                    options={materialOptions}
-                    onChange={(event) =>
-                      handleMaterialProductSelect(
-                        material.id,
-                        event.target.value,
-                      )
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<Plus size={15} />}
-                    onClick={() =>
-                      openProductModal("RAW_MATERIAL", material.id)
-                    }
-                  >
-                    {translateText("+ Yangi mahsulot qo'shish")}
-                  </Button>
-                </div>
+              <CreatableSelect
+                label={translateText("Xomashyo")}
+                value={material.productId}
+                placeholder={translateText("Tanlang yoki yangi nom yozing")}
+                options={materialOptions}
+                onChange={(event) =>
+                  handleMaterialChange(
+                    material.id,
+                    "productId",
+                    event.target.value,
+                  )
+                }
+                onCreate={async (newName) => {
+                  const created = await createStoredProduct(
+                    {
+                      name: newName,
+                      type: "RAW_MATERIAL",
+                      unit: "dona",
+                      stock: 0,
+                      cost: 0,
+                      salePrice: null,
+                      status: "ACTIVE",
+                    },
+                    {
+                      inlineModule: "manufacturing",
+                    },
+                  );
+
+                  setProductList((current) => [
+                    created,
+                    ...current.filter((item) => item.id !== created.id),
+                  ]);
+
+                  handleMaterialChange(material.id, "productId", created.id);
+
+                  return created;
+                }}
+              />
 
                 <Input
                   label={translateText("Miqdor")}
@@ -429,27 +437,11 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
                   }
                 />
 
-                <Select
-                  label={translateText("Birlik")}
-                  value={material.unit || material.product?.unit || ""}
-                  placeholder={translateText("Birlik tanlang")}
-                  options={
-                    material.product
-                      ? UNIT_OPTIONS.filter(
-                          (option) =>
-                            option.dimension ===
-                            UNIT_DEFINITIONS[material.product.unit]?.dimension,
-                        )
-                      : UNIT_OPTIONS
-                  }
-                  onChange={(event) =>
-                    handleMaterialChange(
-                      material.id,
-                      "unit",
-                      event.target.value,
-                    )
-                  }
-                />
+              <Input
+                label={translateText("Birlik")}
+                value={material.product?.unit || "—"}
+                disabled
+              />
 
                 <div className="bom-form__material-cost">
                   <span>{translateText("Tannarx")}</span>
@@ -506,27 +498,11 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
               </div>
             </div>
 
-            <div className="bom-form__cost-summary">
-              <CostRow
-                label={translateText("Xomashyo tannarxi")}
-                value={formatManufacturingMoney(materialCost)}
-              />
-
-              {materialSummary.map((summary) => (
-                <CostRow
-                  key={summary.dimension}
-                  label={translateText(
-                    summary.dimension === "WEIGHT"
-                      ? "Jami massa"
-                      : summary.dimension === "VOLUME"
-                        ? "Jami hajm"
-                        : summary.dimension === "LENGTH"
-                          ? "Jami uzunlik"
-                          : "Jami dona",
-                  )}
-                  value={`${formatProductionQuantity(summary.value)} ${summary.unit}`}
-                />
-              ))}
+          <div className="bom-form__cost-summary">
+            <CostRow
+              label={translateText("Xomashyo tannarxi")}
+              value={formatManufacturingMoney(materialCost)}
+            />
 
               <CostRow
                 label={translateText("Chiqish")}
@@ -568,33 +544,13 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
             {translateText("Bekor qilish")}
           </Button>
 
-          <Button type="submit">
-            {translateText(
-              initialValues ? "O‘zgarishlarni saqlash" : "Retsept yaratish",
-            )}
-          </Button>
-        </div>
-      </form>
-      <ProductFormModal
-        open={productModal.open}
-        onClose={() =>
-          setProductModal((current) => ({ ...current, open: false }))
-        }
-        defaultValues={PRODUCT_MODAL_DEFAULTS[productModal.type]}
-        inlineModule="manufacturing"
-        onCreated={(created) => {
-          setProductList((current) => [
-            created,
-            ...current.filter((item) => item.id !== created.id),
-          ]);
-          if (productModal.materialId) {
-            handleMaterialProductSelect(productModal.materialId, created.id);
-          } else if (productModal.type === "FINISHED_GOOD") {
-            setProductId(created.id);
-          }
-        }}
-      />
-    </>
+        <Button type="submit">
+          {translateText(
+            initialValues ? "O‘zgarishlarni saqlash" : "Retsept yaratish",
+          )}
+        </Button>
+      </div>
+    </form>
   );
 };
 

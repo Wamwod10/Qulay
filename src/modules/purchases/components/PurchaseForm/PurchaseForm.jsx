@@ -68,7 +68,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
   const [supplierId, setSupplierId] = useState(initialValues?.supplierId || "");
 
   const [warehouseId, setWarehouseId] = useState(
-    initialValues?.warehouseId || getDefaultWarehouseId(warehouses),
+    initialValues?.warehouseId || warehouses[0]?.id || "",
   );
 
   const [orderDate, setOrderDate] = useState(
@@ -180,8 +180,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
     onDraftChange,
   ]);
 
-  const handleProductSelect = (itemId, productId) => {
-    const product = products.find((item) => item.id === productId);
+  const handleProductSelect = (itemId, productId, selectedProduct = null) => {
+    const product = selectedProduct || products.find((item) => item.id === productId);
 
     setItems((current) =>
       current.map((item) =>
@@ -659,21 +659,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           )}
         </Button>
       </div>
-      </form>
-      <ProductFormModal
-        open={Boolean(productModalItemId)}
-        onClose={() => setProductModalItemId(null)}
-        defaultValues={{ type: "RAW_MATERIAL" }}
-        inlineModule="purchases"
-        onCreated={(created) => {
-          setProductList((current) => [
-            created,
-            ...current.filter((item) => item.id !== created.id),
-          ]);
-          handleProductSelect(productModalItemId, created.id);
-        }}
-      />
-    </>
+    </form>
   );
 };
 

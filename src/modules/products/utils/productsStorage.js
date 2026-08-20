@@ -44,6 +44,11 @@ const normalizeProduct = (product) => ({
       : product.category || "",
   brand: product.brand || "",
   unit: product.unit || "dona",
+  warehouseId:
+    product.warehouseId ||
+    product.stockItems?.find((item) => Number(item.quantity || 0) > 0)?.warehouseId ||
+    product.stockItems?.[0]?.warehouseId ||
+    "",
   stock: Number(product.stock) || 0,
   minimumStock: Number(product.minimumStock) || 0,
   cost: Number(product.cost) || 0,
@@ -283,7 +288,11 @@ export const updateStoredProduct = async (updatedProduct) => {
 
   if (remoteProduct?.id) {
     const products = getStoredProducts();
-    saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    const nextProducts = products.map((product) =>
+      product.id === remoteProduct.id ? remoteProduct : product,
+    );
+    saveProducts(nextProducts);
+    primeApiCache("/products", { products: nextProducts, data: nextProducts });
     return normalizeProduct(remoteProduct);
   }
 
