@@ -197,6 +197,17 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
     );
   };
 
+  const handleProductCreated = (product) => {
+    setProductList((current) => [
+      product,
+      ...current.filter((item) => item.id !== product.id),
+    ]);
+
+    if (productModalItemId) {
+      handleProductSelect(productModalItemId, product.id, product);
+    }
+  };
+
   const handleAddItem = () => {
     setItems((current) => [...current, createEmptyItem()]);
   };
@@ -659,7 +670,16 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           )}
         </Button>
       </div>
-    </form>
+      </form>
+
+      <ProductFormModal
+        open={Boolean(productModalItemId)}
+        onClose={() => setProductModalItemId(null)}
+        onCreated={handleProductCreated}
+        inlineModule="purchases"
+        defaultValues={{ warehouseId }}
+      />
+    </>
   );
 };
 
