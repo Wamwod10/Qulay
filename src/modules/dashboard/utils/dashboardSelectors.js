@@ -597,7 +597,7 @@ export const getDashboardRecentActivity = (period = "today") => {
   return byDateDesc([...map.values()]).slice(0, 10);
 };
 
-export const getDashboardData = (period = "today") => {
+export const getDashboardData = (period = "today", serverData = null) => {
   if (!isBrowser()) {
     return null;
   }
@@ -606,13 +606,42 @@ export const getDashboardData = (period = "today") => {
   const finance = getDashboardFinanceSummary(period);
   const debts = getDashboardDebtSummary();
   const warehouse = getDashboardWarehouseAlerts();
+  const canonicalSales = serverData?.sales;
+  const canonicalFinance = serverData?.finance;
+  const canonicalInventory = serverData?.inventory;
+  const dashboardSales = canonicalSales
+    ? {
+        ...sales,
+        total: toSafeNumber(canonicalSales.total),
+        paidAmount: toSafeNumber(canonicalSales.paid),
+        debtAmount: toSafeNumber(canonicalSales.debt),
+        count: toSafeNumber(canonicalSales.count),
+        cogs: toSafeNumber(canonicalSales.cogs),
+        profit: toSafeNumber(canonicalSales.profit),
+      }
+    : sales;
+  const dashboardFinance = canonicalFinance
+    ? {
+        ...finance,
+        inAmount: toSafeNumber(canonicalFinance.income),
+        outAmount: toSafeNumber(canonicalFinance.outcome),
+        netCashflow: toSafeNumber(canonicalFinance.net),
+      }
+    : finance;
+  const dashboardWarehouse = canonicalInventory
+    ? {
+        ...warehouse,
+        expiredBatches: toSafeNumber(canonicalInventory.expiredBatches),
+        nearExpiryBatches: toSafeNumber(canonicalInventory.nearExpiryBatches),
+      }
+    : warehouse;
 
   return {
     period,
-    sales,
-    finance,
+    sales: dashboardSales,
+    finance: dashboardFinance,
     debts,
-    warehouse,
+    warehouse: dashboardWarehouse,
     manufacturing: getDashboardManufacturingSummary(period),
     purchases: getDashboardPurchaseAlerts(period),
     agents: getDashboardAgentPerformance(period),
@@ -623,21 +652,21 @@ export const getDashboardData = (period = "today") => {
       {
         id: "sales",
         label: "Savdo",
-        value: sales.total,
-        meta: `${sales.count} chek`,
+        value: dashboardSales.total,
+        meta: `${dashboardSales.count} chek`,
         path: "/sales/history",
       },
       {
         id: "income",
         label: "Tushum",
-        value: finance.inAmount,
+        value: dashboardFinance.inAmount,
         meta: "Moliya kirimi",
         path: "/finance/cashflow",
       },
       {
         id: "cashflow",
         label: "Sof pul oqimi",
-        value: finance.netCashflow,
+        value: dashboardFinance.netCashflow,
         meta: "Kirim - chiqim",
         path: "/finance/cashflow",
       },

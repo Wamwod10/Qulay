@@ -16,13 +16,14 @@ import {
 "../../../../shared/ui";
 
 import PurchasePaymentModal from "../../components/PurchasePaymentModal/PurchasePaymentModal";
+import PurchaseReceiveModal from "../../components/PurchaseReceiveModal/PurchaseReceiveModal";
 import PurchaseTable from "../../components/PurchaseTable/PurchaseTable";
 
 import { PURCHASE_STATUS_OPTIONS } from "../../constants/purchasesMock";
 
 import {
   cancelPurchase,
-  duplicatePurchase,
+  fetchStoredPurchases,
   getStoredPurchases,
   updatePurchasePayment } from
 "../../utils/purchasesStorage";
@@ -30,7 +31,6 @@ import {
 import { receivePurchaseIntoWarehouse } from "../../utils/receivePurchase";
 
 import {
-  applyPurchaseReceipt,
   formatPurchaseMoney } from
 "../../utils/purchaseHelpers";
 
@@ -62,10 +62,34 @@ const PurchasesPage = () => {
   const [receivePurchase, setReceivePurchase] = useState(null);
 
   const [cancelPurchaseItem, setCancelPurchaseItem] = useState(null);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [receiveSubmitting, setReceiveSubmitting] = useState(false);
 
   const refreshPurchases = () => {
     setPurchases(getStoredPurchases());
   };
+
+  useEffect(() => {
+    let alive = true;
+    const timer = setTimeout(() => {
+      fetchStoredPurchases({
+        search,
+        status: statusFilter,
+        supplierId: supplierFilter,
+      })
+        .then((items) => {
+          if (alive) setPurchases(items);
+        })
+        .catch(() => {
+          if (alive) refreshPurchases();
+        });
+    }, 250);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [search, statusFilter, supplierFilter]);
 
   const supplierOptions = useMemo(() => {
     const map = new Map();
@@ -187,19 +211,8 @@ const PurchasesPage = () => {
     setPage(1);
   };
 
-  const handleDuplicate = (purchase) => {
-    try {
-      const duplicated = duplicatePurchase(purchase.id);
-
-      refreshPurchases();
-
-      navigate(`/purchases/${duplicated.id}/edit`);
-    } catch (error) {
-      alert(error.message || "Xaridni nusxalashda xatolik yuz berdi.");
-    }
-  };
-
   const handlePaymentUpdate = async (values) => {
+    setPaymentSubmitting(true);
     try {
       await updatePurchasePayment(values);
 
@@ -208,14 +221,17 @@ const PurchasesPage = () => {
       refreshPurchases();
     } catch (error) {
       alert(error.message || "To‘lovni yangilashda xatolik yuz berdi.");
+    } finally {
+      setPaymentSubmitting(false);
     }
   };
 
-  const handleReceive = async (receivedItems) => {
+  const handleReceive = async ({ receivedItems, receivedDate, idempotencyKey }) => {
     if (!receivePurchase) {
       return;
     }
 
+    setReceiveSubmitting(true);
     try {
       const currentPurchase = getStoredPurchases().find(
         (purchase) => purchase.id === receivePurchase.id
@@ -232,23 +248,23 @@ const PurchasesPage = () => {
         throw new Error("Bu xaridni qabul qilib bo‘lmaydi.");
       }
 
-      await receivePurchaseIntoWarehouse({
+      const result = await receivePurchaseIntoWarehouse({
         purchase: currentPurchase,
-
-        receivedItems
-      });
-
-      applyPurchaseReceipt({
-        purchaseId: currentPurchase.id,
-
-        receivedItems
+        receivedItems,
+        receivedDate,
+        idempotencyKey,
       });
 
       setReceivePurchase(null);
-
-      refreshPurchases();
+      if (result?.purchase) {
+        setPurchases((current) => current.map((item) => (item.id === result.purchase.id ? result.purchase : item)));
+      } else {
+        refreshPurchases();
+      }
     } catch (error) {
       alert(error.message || "Xaridni qabul qilishda xatolik yuz berdi.");
+    } finally {
+      setReceiveSubmitting(false);
     }
   };
 
@@ -413,8 +429,7 @@ const PurchasesPage = () => {
               }
               onPayment={(purchase) => setPaymentPurchase(purchase)}
               onReceive={(purchase) => setReceivePurchase(purchase)}
-              onCancel={(purchase) => setCancelPurchaseItem(purchase)}
-              onDuplicate={handleDuplicate} />
+              onCancel={(purchase) => setCancelPurchaseItem(purchase)} />
             
 
               {totalPages > 1 &&
@@ -471,7 +486,15 @@ const PurchasesPage = () => {
         open={Boolean(paymentPurchase)}
         purchase={paymentPurchase}
         onClose={() => setPaymentPurchase(null)}
-        onSubmit={handlePaymentUpdate} />
+        onSubmit={handlePaymentUpdate}
+        submitting={paymentSubmitting} />
+
+      <PurchaseReceiveModal
+        open={Boolean(receivePurchase)}
+        purchase={receivePurchase}
+        onClose={() => setReceivePurchase(null)}
+        onSubmit={handleReceive}
+        submitting={receiveSubmitting} />
       
 
       <ConfirmDialog

@@ -7,7 +7,7 @@ import { getStoredAgents } from "../../../agents/utils/agentsStorage";
 import { getStoredCustomers } from "../../../customers/utils/customersStorage";
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
 
-import { Badge, Card, DatePicker, Modal, Pagination, Select, TableToolbar } from "../../../../shared/ui";
+import { Badge, Button, Card, DatePicker, Modal, Pagination, Select, TableToolbar, Textarea, Toast } from "../../../../shared/ui";
 
 import SalesTable from "../../components/SalesTable/SalesTable";
 import ReceiptPreview from "../../pos/components/ReceiptPreview/ReceiptPreview";
@@ -38,6 +38,10 @@ const SalesHistoryPage = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const customers = useMemo(() => getStoredCustomers(), []);
   const agents = useMemo(() => getStoredAgents().filter((agent) => agent.status === "ACTIVE"), []);
@@ -116,21 +120,29 @@ const SalesHistoryPage = () => {
   const totalPages = Math.max(Math.ceil(filteredSales.length / PAGE_SIZE), 1);
   const pagedSales = filteredSales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleCancel = async (sale) => {
-    const reason = window.prompt(translateText("Bekor qilish sababi:"));
+  const openCancel = (sale) => {
+    setCancelTarget(sale);
+    setCancelReason("");
+    setActionError("");
+  };
 
-    if (reason === null) {
+  const submitCancel = async () => {
+    if (!cancelTarget) {
       return;
     }
-
+    setCancelLoading(true);
     try {
       await cancelSale({
-        saleId: sale.id,
-        reason,
+        saleId: cancelTarget.id,
+        reason: cancelReason,
       });
       setSales(getStoredSales());
+      setCancelTarget(null);
+      setCancelReason("");
     } catch (error) {
-      window.alert(error.message);
+      setActionError(error.message || translateText("Savdoni bekor qilib bo'lmadi."));
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -141,6 +153,7 @@ const SalesHistoryPage = () => {
 
   return (
     <div className="sales-page">
+      {actionError && <Toast type="error" message={actionError} onClose={() => setActionError("")} />}
       <section className="sales-page__stats">
         <SaleStat icon={<ShoppingBag size={21} />} label="Sotuvlar" value={stats.count} />
         <SaleStat
@@ -241,7 +254,7 @@ const SalesHistoryPage = () => {
           onReceipt={setReceiptSale}
           onPrint={handlePrint}
           onReturn={(sale) => navigate(`/sales/history/${sale.id}`)}
-          onCancel={handleCancel}
+          onCancel={openCancel}
         />
 
         <div className="sales-page__pagination">
@@ -257,6 +270,34 @@ const SalesHistoryPage = () => {
         onClose={() => setReceiptSale(null)}
       >
         <ReceiptPreview sale={receiptSale} onPrint={() => window.print()} />
+      </Modal>
+      <Modal
+        open={Boolean(cancelTarget)}
+        title={translateText("Savdoni bekor qilish")}
+        description={translateText("Bekor qilish ombor, moliya va mijoz qarziga teskari yozuvlar bilan ta'sir qiladi.")}
+        size="sm"
+        onClose={() => {
+          if (!cancelLoading) {
+            setCancelTarget(null);
+          }
+        }}
+        footer={
+          <>
+            <Button variant="secondary" disabled={cancelLoading} onClick={() => setCancelTarget(null)}>
+              {translateText("Bekor qilish")}
+            </Button>
+            <Button variant="danger" loading={cancelLoading} onClick={submitCancel}>
+              {translateText("Savdoni bekor qilish")}
+            </Button>
+          </>
+        }
+      >
+        <Textarea
+          label={translateText("Sabab")}
+          value={cancelReason}
+          rows={4}
+          onChange={(event) => setCancelReason(event.target.value)}
+        />
       </Modal>
     </div>
   );

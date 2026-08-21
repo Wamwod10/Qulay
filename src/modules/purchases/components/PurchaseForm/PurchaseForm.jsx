@@ -14,6 +14,7 @@ import {
 } from "../../../../shared/ui";
 
 import {
+  getCanonicalUnitCost,
   formatPurchaseMoney,
   getLastPurchasePrice,
   getPriceDifference,
@@ -32,7 +33,7 @@ import {
   getStoredSuppliers,
 } from "../../../suppliers/utils/suppliersStorage";
 
-import { UNIT_DEFINITIONS, UNIT_OPTIONS } from "../../../../shared/utils/units";
+import { UNIT_DEFINITIONS, UNIT_OPTIONS, convertQuantity, safeNormalizeUnit } from "../../../../shared/utils/units";
 
 import { focusFirstInvalidField } from "../../../../shared/utils/formFocus";
 
@@ -45,10 +46,10 @@ const createEmptyItem = () => ({
   productId: "",
   quantity: "",
   purchasePrice: "",
-  unit: "dona",
+  unit: "",
 });
 
-const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submitError = "" }) => {
+const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submitError = "", submitting = false }) => {
   const [productList, setProductList] = useState(() =>
     getStoredProducts().filter(
       (product) => product.status === "ACTIVE" && product.type !== "SERVICE",
@@ -68,7 +69,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
   const [supplierId, setSupplierId] = useState(initialValues?.supplierId || "");
 
   const [warehouseId, setWarehouseId] = useState(
-    initialValues?.warehouseId || warehouses[0]?.id || "",
+    initialValues?.warehouseId || getDefaultWarehouseId(warehouses) || "",
   );
 
   const [orderDate, setOrderDate] = useState(
@@ -81,7 +82,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
   const [status, setStatus] = useState(initialValues?.status || "ORDERED");
 
-  const [paidAmount, setPaidAmount] = useState(initialValues?.paidAmount ?? "");
+  const [paidAmount] = useState(initialValues?.paidAmount ?? 0);
 
   const [note, setNote] = useState(initialValues?.note || "");
 
@@ -98,9 +99,9 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
       ? initialValues.items.map((item) => ({
           id: item.id || `item-${Date.now()}-${Math.random()}`,
           productId: item.productId,
-          quantity: item.quantity,
-          purchasePrice: item.purchasePrice ?? item.cost,
-          unit: item.purchaseUnit || item.unit || "dona",
+          quantity: item.purchaseQuantity ?? item.quantity,
+          purchasePrice: item.purchasePrice ?? item.total ?? item.subtotal,
+          unit: item.purchaseUnit || item.unit || "",
         }))
       : [createEmptyItem()],
   );
@@ -127,14 +128,14 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
     () =>
       items.reduce(
         (total, item) =>
-          total + Number(item.quantity || 0) * Number(item.purchasePrice || 0),
+          total + Number(item.purchasePrice || 0),
         0,
       ),
     [items],
   );
 
   const paid = Number(paidAmount || 0);
-  const debt = Math.max(subtotal - paid, 0);
+  const debt = 0;
 
   const handleItemChange = (itemId, field, value) => {
     setItems((current) =>
@@ -161,7 +162,6 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
         orderDate,
         expectedDate,
         status,
-        paidAmount,
         note,
         items,
       });
@@ -174,7 +174,6 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
     orderDate,
     expectedDate,
     status,
-    paidAmount,
     note,
     items,
     onDraftChange,
@@ -189,8 +188,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           ? {
               ...item,
               productId,
-              purchasePrice: product?.cost ?? item.purchasePrice,
-              unit: product?.unit || item.unit || "dona",
+              purchasePrice: item.purchasePrice,
+              unit: product?.unit || item.unit || "",
             }
           : item,
       ),
@@ -227,23 +226,22 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
       nextErrors.warehouse = "Omborni tanlang.";
     }
 
-    const hasInvalidItem = items.some(
-      (item) =>
-        !item.productId ||
-        Number(item.quantity) <= 0 ||
-        Number(item.purchasePrice) < 0,
-    );
+    const hasInvalidItem = items.some((item) => {
+      const product = products.find((productItem) => productItem.id === item.productId);
+      if (!product || Number(item.quantity) <= 0 || Number(item.purchasePrice) < 0) {
+        return true;
+      }
+
+      try {
+        convertQuantity(Number(item.quantity), item.unit || product.unit, product.unit);
+        return false;
+      } catch {
+        return true;
+      }
+    });
 
     if (hasInvalidItem) {
       nextErrors.items = "Mahsulot, miqdor va xarid narxini tekshiring.";
-    }
-
-    if (paid < 0) {
-      nextErrors.payment = "To‘lov manfiy bo‘lishi mumkin emas.";
-    }
-
-    if (paid > subtotal) {
-      nextErrors.payment = "To‘lov jami summadan katta bo‘lishi mumkin emas.";
     }
 
     setErrors(nextErrors);
@@ -278,6 +276,21 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
       const quantity = Number(item.quantity);
 
       const purchasePrice = Number(item.purchasePrice);
+      const purchaseUnit = item.unit || product.unit;
+      let canonicalQuantity = 0;
+      let canonicalUnitCost = 0;
+
+      try {
+        canonicalQuantity = convertQuantity(quantity, purchaseUnit, product.unit);
+        canonicalUnitCost = getCanonicalUnitCost({
+          quantity,
+          purchaseUnit,
+          productUnit: product.unit,
+          lineTotal: purchasePrice,
+        });
+      } catch {
+        canonicalQuantity = 0;
+      }
 
       return {
         id: item.id,
@@ -285,15 +298,18 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
         productName: product.name,
         sku: product.sku,
         unit: product.unit,
-        purchaseUnit: item.unit || product.unit,
+        purchaseUnit,
+        purchaseQuantity: quantity,
         quantity,
         receivedQuantity: initialValues
           ? Number(item.receivedQuantity || 0)
           : 0,
         purchasePrice,
-        cost: purchasePrice,
+        cost: canonicalUnitCost,
         salePrice: product.salePrice,
-        total: quantity * purchasePrice,
+        total: purchasePrice,
+        subtotal: purchasePrice,
+        canonicalQuantity,
       };
     });
 
@@ -427,8 +443,16 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
               (productItem) => productItem.id === item.productId,
             );
 
-            const rowTotal =
-              Number(item.quantity || 0) * Number(item.purchasePrice || 0);
+            const rowTotal = Number(item.purchasePrice || 0);
+            const purchaseUnit = item.unit || product?.unit || "";
+            const canonicalUnitCost = product
+              ? getCanonicalUnitCost({
+                  quantity: item.quantity,
+                  purchaseUnit,
+                  productUnit: product.unit,
+                  lineTotal: item.purchasePrice,
+                })
+              : 0;
 
             const lastPurchasePrice = item.productId
               ? getLastPurchasePrice({
@@ -439,16 +463,15 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
               : null;
 
             const priceDifference = getPriceDifference(
-              item.purchasePrice,
+              canonicalUnitCost,
               lastPurchasePrice,
             );
 
             const allowedUnitOptions = product
-              ? UNIT_OPTIONS.filter(
-                  (option) =>
-                    option.dimension ===
-                    UNIT_DEFINITIONS[product.unit]?.dimension,
-                )
+              ? UNIT_OPTIONS.filter((option) => {
+                  const productUnit = safeNormalizeUnit(product.unit);
+                  return option.dimension === UNIT_DEFINITIONS[productUnit]?.dimension;
+                })
               : UNIT_OPTIONS;
 
             return (
@@ -480,7 +503,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
                 <Select
                   label={translateText("Birlik")}
-                  value={item.unit || product?.unit || "dona"}
+                  value={item.unit || product?.unit || ""}
                   options={allowedUnitOptions}
                   onChange={(event) =>
                     handleItemChange(item.id, "unit", event.target.value)
@@ -521,10 +544,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
                   <div className="purchase-form__last-price">
                     <span>
                       {translateText("Oxirgi xarid:")}{" "}
-                      <strong>{formatPurchaseMoney(lastPurchasePrice)}</strong>
+                      <strong>{formatPurchaseMoney(lastPurchasePrice)} / {product?.unit}</strong>
                     </span>
 
-                    {priceDifference && Number(item.purchasePrice) > 0 && (
+                    {priceDifference && canonicalUnitCost > 0 && (
                       <small
                         className={
                           priceDifference.amount > 0
@@ -556,7 +579,13 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
                   <strong>{formatPurchaseMoney(rowTotal)}</strong>
 
-                  {product && <small>{item.unit || product.unit}</small>}
+                  {product && (
+                    <small>
+                      {canonicalUnitCost > 0
+                        ? `${formatPurchaseMoney(canonicalUnitCost)} / ${product.unit}`
+                        : `${item.unit || product.unit}`}
+                    </small>
+                  )}
                 </div>
 
                 <Button
@@ -598,7 +627,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
               inputMode="decimal"
               value={paidAmount}
               placeholder="0"
-              onChange={(event) => setPaidAmount(event.target.value)}
+              disabled
+              hint={translateText("To'lov xarid qabul qilingandan keyin alohida kiritiladi.")}
             />
 
             <div className="purchase-form__payment-summary">
@@ -664,7 +694,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           {translateText("Bekor qilish")}
         </Button>
 
-        <Button type="submit">
+        <Button type="submit" disabled={submitting}>
           {translateText(
             initialValues ? "O‘zgarishlarni saqlash" : "Xarid yaratish",
           )}
@@ -677,7 +707,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
         onClose={() => setProductModalItemId(null)}
         onCreated={handleProductCreated}
         inlineModule="purchases"
-        defaultValues={{ warehouseId }}
+        defaultValues={{ warehouseId, supplierId: supplierId || "" }}
       />
     </>
   );

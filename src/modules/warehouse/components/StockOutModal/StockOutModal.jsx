@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
 import { translateOptions, translateText } from "../../../../localization/i18n";
+import { convertQuantity, UNIT_OPTIONS } from "../../../../shared/utils/units";
 
 import { getAvailableStock } from "../../utils/warehouseHelpers";
 
@@ -15,12 +16,15 @@ const StockOutModal = ({
   const [productId, setProductId] = useState("");
 
   const [quantity, setQuantity] = useState("");
+  const [inputUnit, setInputUnit] = useState("");
 
   const [reason, setReason] = useState("Ichki foydalanish");
 
   const [note, setNote] = useState("");
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   const warehouseItems = useMemo(() => {
     return stock.filter((item) => item.warehouseId === warehouseId);
@@ -43,13 +47,23 @@ const StockOutModal = ({
 
     setProductId("");
     setQuantity("");
+    setInputUnit("");
     setReason("Ichki foydalanish");
     setNote("");
     setError("");
+    setSubmitting(false);
+    setIdempotencyKey(`stock-out:${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   }, [open]);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    if (selectedItem) {
+      setInputUnit(selectedItem.unit || "");
+    }
+  }, [selectedItem]);
+
+  const handleSubmit = async () => {
     setError("");
+    if (submitting) return;
 
     if (!productId) {
       setError(translateText("Mahsulotni tanlang."));
@@ -65,23 +79,40 @@ const StockOutModal = ({
       return;
     }
 
-    if (selectedItem && amount > Number(selectedItem.quantity)) {
+    let canonicalAmount = amount;
+    try {
+      canonicalAmount = selectedItem ? convertQuantity(amount, inputUnit || selectedItem.unit, selectedItem.unit) : amount;
+    } catch {
+      setError(translateText("Tanlangan birlik mahsulot birligi bilan mos emas."));
+      return;
+    }
+
+    if (selectedItem && canonicalAmount > Number(getAvailableStock(selectedItem))) {
       setError(
         translateText(
-          `Omborda faqat ${selectedItem.quantity} ${selectedItem.unit} mavjud.`,
+          `Mavjud qoldiq yetarli emas. Mavjud: ${getAvailableStock(selectedItem)} ${selectedItem.unit}.`,
         ),
       );
 
       return;
     }
 
-    onSubmit?.({
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
       warehouseId,
       productId,
       quantity: amount,
+      inputUnit: inputUnit || selectedItem?.unit,
       reason,
       note,
+      idempotencyKey,
     });
+    } catch (submitError) {
+      setError(translateText(submitError.message || "Chiqim qilishda xatolik yuz berdi."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -129,6 +160,13 @@ const StockOutModal = ({
           value={quantity}
           placeholder="0"
           onChange={(event) => setQuantity(event.target.value)}
+        />
+
+        <Select
+          label={translateText("Chiqim birligi")}
+          value={inputUnit}
+          options={UNIT_OPTIONS}
+          onChange={(event) => setInputUnit(event.target.value)}
         />
 
         <Select
@@ -192,7 +230,9 @@ const StockOutModal = ({
             {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>{translateText("Chiqim qilish")}</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {translateText(submitting ? "Saqlanmoqda..." : "Chiqim qilish")}
+          </Button>
         </div>
       </div>
     </Modal>

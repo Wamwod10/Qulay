@@ -15,7 +15,22 @@ export const UNIT_OPTIONS = Object.entries(UNIT_DEFINITIONS).map(([value, defini
   dimension: definition.dimension,
 }));
 
-export const normalizeUnit = (unit) => UNIT_DEFINITIONS[unit] ? unit : "dona";
+export const normalizeUnit = (unit) => {
+  const key = String(unit || "").trim().toLowerCase();
+  if (!UNIT_DEFINITIONS[key]) {
+    throw new Error(`INVALID_UNIT:${unit ?? ""}`);
+  }
+
+  return key;
+};
+
+export const safeNormalizeUnit = (unit, fallback = "") => {
+  try {
+    return normalizeUnit(unit);
+  } catch {
+    return UNIT_DEFINITIONS[fallback] ? fallback : "";
+  }
+};
 
 export const convertQuantity = (value, from, to) => {
   const source = UNIT_DEFINITIONS[normalizeUnit(from)];

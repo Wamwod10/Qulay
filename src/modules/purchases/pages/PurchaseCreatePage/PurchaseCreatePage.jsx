@@ -41,16 +41,20 @@ const PurchaseCreatePage = () => {
 
   const [useDraft, setUseDraft] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
 
   const handleSubmit = async (values) => {
     setSubmitError("");
+    setSubmitting(true);
     try {
       const purchase = await createPurchase(values);
       clearPurchaseDraft();
       navigate(`/purchases/${purchase.id}`);
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -81,6 +85,8 @@ const PurchaseCreatePage = () => {
         {!draftPromptOpen &&
         <PurchaseForm
           initialValues={
+          useDraft && draft ?
+          draft :
           supplierId ?
           {
             supplierId
@@ -89,6 +95,7 @@ const PurchaseCreatePage = () => {
           }
           onSubmit={handleSubmit}
           submitError={submitError}
+          submitting={submitting}
           onCancel={() => navigate("/purchases")} />
 
         }

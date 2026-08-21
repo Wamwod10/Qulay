@@ -19,6 +19,8 @@ const InventoryModal = ({
   const [note, setNote] = useState("");
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   const warehouseItems = useMemo(() => {
     return stock.filter((item) => item.warehouseId === warehouseId);
@@ -49,6 +51,8 @@ const InventoryModal = ({
     setReason("Rejali inventarizatsiya");
     setNote("");
     setError("");
+    setSubmitting(false);
+    setIdempotencyKey(`inventory-count:${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   }, [open]);
 
   useEffect(() => {
@@ -57,8 +61,9 @@ const InventoryModal = ({
     }
   }, [selectedItem]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
+    if (submitting) return;
 
     if (!productId) {
       setError(translateText("Mahsulotni tanlang."));
@@ -78,7 +83,14 @@ const InventoryModal = ({
       return;
     }
 
-    onSubmit?.({
+    if (!reason.trim()) {
+      setError(translateText("Sababni kiriting."));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
       warehouseId,
       productId,
 
@@ -86,7 +98,13 @@ const InventoryModal = ({
 
       reason,
       note,
+      idempotencyKey,
     });
+    } catch (submitError) {
+      setError(translateText(submitError.message || "Inventarizatsiyada xatolik yuz berdi."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -229,7 +247,9 @@ const InventoryModal = ({
             {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>{translateText("Tasdiqlash")}</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {translateText(submitting ? "Saqlanmoqda..." : "Tasdiqlash")}
+          </Button>
         </div>
       </div>
     </Modal>

@@ -36,6 +36,15 @@ const StockTable = ({ items = [], onView }) => {
     },
 
     {
+      key: "warehouseName",
+      title: translateText("Ombor"),
+
+      render: (value) => (
+        <span className="warehouse-stock-table__muted">{value || "-"}</span>
+      ),
+    },
+
+    {
       key: "category",
       title: translateText("Kategoriya"),
 
@@ -89,6 +98,26 @@ const StockTable = ({ items = [], onView }) => {
           <StockStatusIcon item={item} />
           {getWarehouseStockStatusLabel(item)}
         </Badge>
+      ),
+    },
+
+    {
+      key: "cost",
+      title: translateText("Tannarx"),
+
+      render: (_, item) => (
+        <span>{formatWarehouseMoney(item.cost || 0)} / {item.unit}</span>
+      ),
+    },
+
+    {
+      key: "expiry",
+      title: translateText("Yaroqlilik"),
+
+      render: (_, item) => (
+        <span className="warehouse-stock-table__muted">
+          {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "-"}
+        </span>
       ),
     },
 

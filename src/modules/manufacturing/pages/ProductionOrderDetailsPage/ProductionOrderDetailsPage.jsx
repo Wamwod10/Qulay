@@ -101,7 +101,8 @@ const ProductionOrderDetailsPage = () => {
   }, [orderId]);
 
   const warehouses = useMemo(() => getStoredWarehouses(), []);
-  const warehouse = warehouses.find((item) => item.id === order?.warehouseId);
+  const materialWarehouse = warehouses.find((item) => item.id === (order?.materialWarehouseId || order?.warehouseId));
+  const outputWarehouse = warehouses.find((item) => item.id === (order?.outputWarehouseId || order?.warehouseId));
 
   const [completeOpen, setCompleteOpen] = useState(false);
 
@@ -112,9 +113,14 @@ const ProductionOrderDetailsPage = () => {
       return [];
     }
 
+    const materials = order.requiredMaterials || [];
+    if (materials.some((material) => material.available !== undefined || material.availableQuantity !== undefined)) {
+      return materials;
+    }
+
     return checkMaterialAvailability({
-      warehouseId: order.warehouseId,
-      requiredMaterials: order.requiredMaterials || [],
+      warehouseId: order.materialWarehouseId || order.warehouseId,
+      requiredMaterials: materials,
     });
   }, [order]);
 
@@ -411,10 +417,8 @@ const ProductionOrderDetailsPage = () => {
               order.unit
             }`}
           />
-          <OrderMetric
-            label="Ombor"
-            value={warehouse?.name || order.warehouseId}
-          />
+          <OrderMetric label="Xomashyo ombori" value={materialWarehouse?.name || order.materialWarehouseId || order.warehouseId} />
+          <OrderMetric label="Tayyor mahsulot ombori" value={outputWarehouse?.name || order.outputWarehouseId || order.warehouseId} />
           <OrderMetric label="Sana" value={order.plannedDate} />
           <OrderMetric
             label="Tannarx"
@@ -715,7 +719,7 @@ const ProductionOrderDetailsPage = () => {
       <ConfirmDialog
         open={confirmOpen}
         title="Ishlab chiqarishni boshlash"
-        description="Xomashyo real qoldiq bo'yicha tekshiriladi va yetarli bo'lsa reserved miqdori oshiriladi."
+        description="Xomashyo real qoldiq bo'yicha tekshiriladi, rezerv yetarli bo'lsa batchlardan FIFO/FEFO bo'yicha sarflanadi."
         confirmText="Boshlash"
         cancelText="Bekor qilish"
         loading={startPending}

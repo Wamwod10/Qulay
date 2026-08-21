@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CircleDollarSign, Eye, HandCoins, MoreHorizontal, Pencil, Plus, ReceiptText, UserCheck, Users, Wallet } from "lucide-react";
 import PageContainer from "../../../../components/PageContainer/PageContainer";
-import { Badge, Card, LiveIcon, Pagination, Select, Table, TableToolbar } from "../../../../shared/ui";
+import { Badge, Card, ConfirmDialog, LiveIcon, Pagination, Select, Table, TableToolbar, Toast } from "../../../../shared/ui";
 import { getStoredAgents } from "../../../agents/utils/agentsStorage";
 import { formatSaleDate, formatSaleMoney } from "../../../sales/utils/salesHelpers";
 import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
@@ -30,6 +30,9 @@ const CustomersPage = () => {
   const [regionFilter, setRegionFilter] = useState("");
   const [page, setPage] = useState(1);
   const [actionMenuId, setActionMenuId] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
   useEffect(() => {
     const refresh = () => setVersion(current => current + 1);
     window.addEventListener("customers:changed", refresh);
@@ -81,18 +84,30 @@ const CustomersPage = () => {
   const totalPages = Math.max(Math.ceil(filteredRows.length / pageSize), 1);
   const pagedRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
   const refresh = () => setVersion(current => current + 1);
-  const handleDelete = async customer => {
-    const safety = getCustomerDeleteSafety(customer.id);
+  const handleDelete = customer => {
+    setActionMenuId("");
+    setPendingDelete({
+      customer,
+      safety: getCustomerDeleteSafety(customer.id)
+    });
+  };
+  const confirmDelete = async () => {
+    if (!pendingDelete) {
+      return;
+    }
+    const { customer, safety } = pendingDelete;
+    setActionError("");
     if (!safety.canDelete) {
-      window.alert(`${translateText("Mijoz tarixi mavjud")}: ${safety.blockingReasons.join(", ")}. ${translateText("O'chirish o'rniga faol emas qilindi.")}`);
       await deactivateCustomer(customer.id);
+      setPendingDelete(null);
+      setActionMessage(`${translateText("Mijoz tarixi mavjud")}: ${safety.blockingReasons.join(", ")}. ${translateText("Mijoz faol emas qilindi.")}`);
       refresh();
       return;
     }
-    if (window.confirm(`${customer.displayName} ${translateText("o'chirilsinmi?")}`)) {
-      await deleteCustomer(customer.id);
-      refresh();
-    }
+    await deleteCustomer(customer.id);
+    setPendingDelete(null);
+    setActionMessage(translateText("Mijoz o'chirildi."));
+    refresh();
   };
   const handleStatusToggle = async customer => {
     await updateCustomer({
@@ -178,6 +193,8 @@ const CustomersPage = () => {
   const configuredColumns = useConfiguredColumns("customers", columns);
   return <PageContainer title={tTerm("customers")} description={translateText("CRM mijozlar markazi: savdo, moliya va agentlarning real ma'lumotlari asosida.")}>
       <div className="customers-page">
+        {actionMessage && <Toast type="success" message={actionMessage} onClose={() => setActionMessage("")} />}
+        {actionError && <Toast type="error" message={actionError} onClose={() => setActionError("")} />}
         <section className="customers-page__kpis">
           <Metric icon={<Users size={20} />} label={translateText("Jami mijoz")} value={stats.total} />
           <Metric icon={<UserCheck size={20} />} label={translateText("Faol mijoz")} value={stats.active} variant="success" />
@@ -277,6 +294,17 @@ const CustomersPage = () => {
             </div>
           </Card>}
       </div>
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        danger={pendingDelete?.safety?.canDelete}
+        title={pendingDelete?.safety?.canDelete ? "Mijoz o'chirilsinmi?" : "Mijoz faol emas qilinsinmi?"}
+        description={pendingDelete?.safety?.canDelete ? `${pendingDelete?.customer?.displayName || translateText("Mijoz")} ${translateText("o'chiriladi.")}` : `${translateText("Mijoz tarixi mavjud")}: ${pendingDelete?.safety?.blockingReasons?.join(", ") || "-"}. ${translateText("O'chirish o'rniga faol emas qilinadi.")}`}
+        confirmText={pendingDelete?.safety?.canDelete ? "O'chirish" : "Faol emas qilish"}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          confirmDelete().catch((error) => setActionError(error.message || translateText("Amalni bajarib bo'lmadi.")));
+        }}
+      />
     </PageContainer>;
 };
 const Metric = ({

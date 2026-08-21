@@ -26,7 +26,8 @@ const ProductActionsMenu = ({
   onStockAdjustment,
   onPriceChange,
   onArchive,
-  onDelete
+  onDelete,
+  disabled = false
 }) => {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -118,6 +119,7 @@ const ProductActionsMenu = ({
           variant="ghost"
           aria-label={translateText("Boshqa amallar")}
           title={translateText("Boshqa amallar")}
+          disabled={disabled}
           onClick={() => {
             setOpen((current) => {
               const next = !current;
@@ -142,7 +144,7 @@ const ProductActionsMenu = ({
           style={{ top: position.top, left: position.left }}>
           
             {product.status !== "ARCHIVED" &&
-          <button type="button" onClick={() => execute(onToggleStatus)}>
+          <button type="button" disabled={disabled} onClick={() => execute(onToggleStatus)}>
                 <Power size={16} />
                 {product.status === "ACTIVE" ?
             "Faol emas qilish" :
@@ -150,29 +152,29 @@ const ProductActionsMenu = ({
               </button>
           }
 
-            <button type="button" onClick={() => execute(onDuplicate)}>
+            <button type="button" disabled={disabled} onClick={() => execute(onDuplicate)}>
               <Copy size={16} />{translateText("Nusxa olish")}
 
           </button>
 
-            <button type="button" onClick={() => execute(onBarcode)}>
+            <button type="button" disabled={disabled} onClick={() => execute(onBarcode)}>
               <Barcode size={16} />{translateText("Shtrix-kod / QR")}
 
           </button>
 
-            <button type="button" onClick={() => execute(onStockAdjustment)}>
+            <button type="button" disabled={disabled} onClick={() => execute(onStockAdjustment)}>
               <Boxes size={16} />{translateText("Qoldiqni tuzatish")}
 
           </button>
 
-            <button type="button" onClick={() => execute(onPriceChange)}>
+            <button type="button" disabled={disabled} onClick={() => execute(onPriceChange)}>
               <DollarSign size={16} />{translateText("Narxni o'zgartirish")}
 
           </button>
 
             <div className="product-actions-menu__divider" />
 
-            <button type="button" onClick={() => execute(onArchive)}>
+            <button type="button" disabled={disabled} onClick={() => execute(onArchive)}>
               {product.status === "ARCHIVED" ?
             <RotateCcw size={16} /> :
 
@@ -186,6 +188,7 @@ const ProductActionsMenu = ({
             <button
             type="button"
             className="product-actions-menu__danger"
+            disabled={disabled}
             onClick={() => execute(onDelete)}>
             
               <Trash2 size={16} />{translateText("O'chirish")}

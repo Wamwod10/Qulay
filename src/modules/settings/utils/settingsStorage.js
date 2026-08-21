@@ -155,6 +155,30 @@ const readJson = (key) => {
   return JSON.parse(stored);
 };
 
+const normalizeServerSettings = (response = {}) => {
+  const company = response.company || {};
+  const platform = isPlainObject(company.platform) ? company.platform : {};
+  const settings = normalizeSettings(response.settings || platform);
+  const currency = company.currency || settings.formats.currency || settings.defaults.currency;
+  const inventoryPolicy = company.inventoryPolicy || settings.warehouse.inventoryPolicy;
+
+  return normalizeSettings({
+    ...settings,
+    formats: {
+      ...settings.formats,
+      currency,
+    },
+    defaults: {
+      ...settings.defaults,
+      currency,
+    },
+    warehouse: {
+      ...settings.warehouse,
+      inventoryPolicy,
+    },
+  });
+};
+
 export const getPlatformSettings = () => {
   try {
     const session = getStoredSession();
@@ -191,8 +215,8 @@ export const loadPlatformSettings = async () => {
 
     const response = await apiRequest("/settings");
 
-    if (response?.settings) {
-      const settings = normalizeSettings(response.settings);
+    if (response?.settings || response?.company?.platform || response?.company) {
+      const settings = normalizeServerSettings(response);
       tenantSet("settings", settings);
 
       return settings;
@@ -236,30 +260,34 @@ export const savePlatformSettings = (settings) => {
     const session = getStoredSession();
 
     if (!session?.accessToken || session.accountId === PLATFORM_ACCOUNT_ID || session.user?.role === SUPER_ADMIN_ROLE) {
-      return;
+      return Promise.resolve(null);
     }
 
     const normalizedSettings = normalizeSettings(settings);
-    tenantSet("settings", normalizedSettings);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedSettings));
 
     return apiRequest("/settings", {
       method: "PATCH",
       body: {
         settings: normalizedSettings,
       },
+    }).then((response) => {
+      const serverSettings = normalizeServerSettings(response);
+      tenantSet("settings", serverSettings);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverSettings));
+
+      return serverSettings;
     }).catch((error) => {
       if (import.meta.env.DEV) {
         console.error("Settings save error:", error);
       }
 
-      return null;
+      throw error;
     });
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error("Settings save error:", error);
     }
-    return null;
+    return Promise.reject(error);
   }
 };
 

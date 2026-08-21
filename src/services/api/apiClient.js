@@ -11,7 +11,7 @@ const createApiUnavailableError = (path, status = 0) => {
   const error = new Error(
     status === 401
       ? "Sessiya tugagan. Qayta kiring."
-      : "Amalni bajarib bo'lmadi. Qayta urinib ko'ring.",
+      : "Server bilan aloqa o'rnatilmadi. Qayta urinib ko'ring.",
   );
 
   error.code = status === 401 ? "UNAUTHENTICATED" : "API_UNAVAILABLE";

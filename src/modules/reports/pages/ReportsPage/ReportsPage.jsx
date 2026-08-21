@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   AlertTriangle,
@@ -55,6 +55,7 @@ import { buildHrReport, monthIso } from "../../../employees/utils/hrStorage";
 import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 
 import { getLocale, translateText } from "../../../../localization/i18n";
+import { apiRequest } from "../../../../services/api/apiClient";
 
 import "./ReportsPage.scss";
 
@@ -162,6 +163,27 @@ const ReportsPage = () => {
   const [status, setStatus] = useState("");
 
   const [hrMonth, setHrMonth] = useState(monthIso());
+  const [serverReport, setServerReport] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    apiRequest("/reports")
+      .then((result) => {
+        if (alive) {
+          setServerReport(result);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setServerReport(null);
+        }
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   /* =========================================
    * PRODUCT OPTIONS
@@ -212,7 +234,7 @@ const ReportsPage = () => {
    * ========================================= */
 
   const salesReport = useMemo(() => {
-    const completedSales = sales.filter((sale) => sale.status !== "CANCELLED");
+    const completedSales = sales.filter((sale) => sale.status === "COMPLETED");
 
     const productMap = new Map();
 
@@ -272,7 +294,7 @@ const ReportsPage = () => {
       }
     });
 
-    return {
+    const localReport = {
       amount: completedSales.reduce(
         (total, sale) => total + Number(sale.netTotal ?? sale.total ?? 0),
 
@@ -305,7 +327,21 @@ const ReportsPage = () => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5),
     };
-  }, [sales]);
+
+    if (!serverReport?.sales) {
+      return localReport;
+    }
+
+    return {
+      ...localReport,
+      amount: Number(serverReport.sales.total || 0),
+      paid: Number(serverReport.sales.paid || 0),
+      debt: Number(serverReport.sales.debt || 0),
+      count: Number(serverReport.sales.count || 0),
+      cogs: Number(serverReport.sales.cogs || 0),
+      profit: Number(serverReport.sales.profit || 0),
+    };
+  }, [sales, serverReport]);
 
   const expiryRows = useMemo(
     () =>
@@ -320,12 +356,27 @@ const ReportsPage = () => {
    * ========================================= */
 
   const financeReport = useMemo(
-    () =>
-      buildFinanceReport({
+    () => {
+      const localReport = buildFinanceReport({
         ...getReportRange(period, from, to),
-      }),
+      });
 
-    [period, from, to],
+      if (!serverReport?.finance) {
+        return localReport;
+      }
+
+      return {
+        ...localReport,
+        summary: {
+          ...localReport.summary,
+          income: Number(serverReport.finance.income || 0),
+          expense: Number(serverReport.finance.outcome || 0),
+          netCashflow: Number(serverReport.finance.net || 0),
+        },
+      };
+    },
+
+    [period, from, to, serverReport],
   );
 
   /* =========================================
@@ -458,6 +509,16 @@ const ReportsPage = () => {
             <SummaryValue
               label="Qarz"
               value={moneyText(salesReport.debt, formatSaleMoney)}
+            />
+
+            <SummaryValue
+              label="COGS"
+              value={moneyText(salesReport.cogs || 0, formatSaleMoney)}
+            />
+
+            <SummaryValue
+              label="Foyda"
+              value={moneyText(salesReport.profit || 0, formatSaleMoney)}
             />
           </div>
 
@@ -1342,7 +1403,7 @@ const MiniReportList = ({
     {rows.length ? (
       rows.map((row) => (
         <span key={row.id}>
-          <b>{translateText(row.name || "-")}</b>
+          <b>{row.name || "-"}</b>
 
           <strong>
             {formatter(row[valueKey])}

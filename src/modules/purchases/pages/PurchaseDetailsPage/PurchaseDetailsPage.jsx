@@ -15,7 +15,7 @@ import { translateText } from "../../../../localization/i18n";import {
   Wallet } from
 "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -35,17 +35,20 @@ import PurchasePaymentModal from "../../components/PurchasePaymentModal/Purchase
 
 import {
   cancelPurchase,
+  fetchPurchaseById,
   getPurchaseById,
-  markPurchaseReceived,
   updatePurchasePayment } from
 "../../utils/purchasesStorage";
 
 import { receivePurchaseIntoWarehouse } from "../../utils/receivePurchase";
 
 import {
-  applyPurchaseReceipt,
+  convertCanonicalToPurchaseUnit,
   formatPurchaseMoney,
+  getPurchaseDisplayQuantity,
+  getPurchaseDisplayUnit,
   getPurchaseStatusLabel,
+  roundPurchaseNumber,
   getPurchaseStatusVariant } from
 "../../utils/purchaseHelpers";
 
@@ -58,13 +61,27 @@ const PurchaseDetailsPage = () => {
 
   const [purchase, setPurchase] = useState(() => getPurchaseById(purchaseId));
 
-  const [receiveConfirmOpen, setReceiveConfirmOpen] = useState(false);
-
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   const [paymentOpen, setPaymentOpen] = useState(false);
 
   const [receiveOpen, setReceiveOpen] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [receiveSubmitting, setReceiveSubmitting] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchPurchaseById(purchaseId)
+      .then((item) => {
+        if (alive) setPurchase(item);
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, [purchaseId]);
 
   if (!purchase) {
     return (
@@ -80,15 +97,16 @@ const PurchaseDetailsPage = () => {
   }
 
   const canEdit =
-  purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
+  purchase.status === "DRAFT" || purchase.status === "ORDERED";
 
   const canReceive =
   purchase.status === "ORDERED" || purchase.status === "PARTIALLY_RECEIVED";
 
   const canCancel =
-  purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
+  purchase.status === "DRAFT" || purchase.status === "ORDERED";
 
-  const canUpdatePayment = purchase.status !== "CANCELLED";
+  const canUpdatePayment =
+  purchase.status === "PARTIALLY_RECEIVED" || purchase.status === "RECEIVED";
 
   const handleCancel = async () => {
     try {
@@ -103,6 +121,7 @@ const PurchaseDetailsPage = () => {
   };
 
   const handlePaymentUpdate = async (values) => {
+    setPaymentSubmitting(true);
     try {
       const updatedPurchase = await updatePurchasePayment(values);
 
@@ -111,6 +130,8 @@ const PurchaseDetailsPage = () => {
       setPaymentOpen(false);
     } catch (error) {
       alert(error.message || "To‘lovni yangilashda xatolik yuz berdi.");
+    } finally {
+      setPaymentSubmitting(false);
     }
   };
 
@@ -132,9 +153,9 @@ const PurchaseDetailsPage = () => {
     key: "quantity",
     title: translateText("Buyurtma"),
 
-    render: (value, item) =>
+    render: (_, item) =>
     <strong>
-          {value || 0} {item.unit || ""}
+          {getPurchaseDisplayQuantity(item)} {getPurchaseDisplayUnit(item)}
         </strong>
 
   },
@@ -143,45 +164,63 @@ const PurchaseDetailsPage = () => {
     key: "receivedQuantity",
     title: translateText("Qabul qilindi"),
 
-    render: (value, item) =>
+    render: (_, item) =>
     <span>
-          {value || 0} {item.unit || ""}
+          {roundPurchaseNumber(convertCanonicalToPurchaseUnit(item.receivedQuantity, item))} {getPurchaseDisplayUnit(item)}
         </span>
 
   },
 
   {
-    key: "purchasePrice",
+    key: "remainingQuantity",
+    title: translateText("Qoldi"),
+
+    render: (_, item) =>
+    <span>
+          {roundPurchaseNumber(Math.max(getPurchaseDisplayQuantity(item) - convertCanonicalToPurchaseUnit(item.receivedQuantity, item), 0))} {getPurchaseDisplayUnit(item)}
+        </span>
+
+  },
+
+  {
+    key: "subtotal",
     title: translateText("Xarid narxi"),
 
       render: (value) => <span>{formatPurchaseMoney(value)}</span>
   },
 
   {
-    key: "total",
+    key: "cost",
+    title: translateText("Canonical tannarx"),
+
+      render: (value, item) => <span>{formatPurchaseMoney(value)} / {item.unit}</span>
+  },
+
+  {
+    key: "subtotal",
     title: translateText("Jami"),
 
       render: (value) => <strong>{formatPurchaseMoney(value)}</strong>
   }];
 
 
-  const handleReceive = async (receivedItems) => {
+  const handleReceive = async ({ receivedItems, receivedDate, idempotencyKey }) => {
+    setReceiveSubmitting(true);
     try {
-      await receivePurchaseIntoWarehouse({
+      const result = await receivePurchaseIntoWarehouse({
         purchase,
-        receivedItems
+        receivedItems,
+        receivedDate,
+        idempotencyKey,
       });
 
-      const updated = applyPurchaseReceipt({
-        purchaseId: purchase.id,
-        receivedItems
-      });
-
-      setPurchase(updated);
+      if (result?.purchase) setPurchase(result.purchase);
 
       setReceiveOpen(false);
     } catch (error) {
       alert(error.message || "Xaridni qabul qilishda xatolik.");
+    } finally {
+      setReceiveSubmitting(false);
     }
   };
 
@@ -360,6 +399,35 @@ const PurchaseDetailsPage = () => {
           
         </Card>
 
+        {Array.isArray(purchase.batches) && purchase.batches.length > 0 &&
+        <Card>
+            <SectionTitle
+            title={translateText("Batch / lot")}
+            description={`${purchase.batches.length} ${translateText("ta batch")}`} />
+
+            <Table
+            columns={[
+              { key: "batchNumber", title: translateText("Batch") },
+              { key: "productName", title: translateText("Mahsulot") },
+              {
+                key: "movementQuantity",
+                title: translateText("Miqdor"),
+                render: (value, batch) => <span>{roundPurchaseNumber(value)} {purchase.items?.find((item) => item.productId === batch.productId)?.unit || ""}</span>
+              },
+              {
+                key: "unitCost",
+                title: translateText("Tannarx"),
+                render: (value) => <span>{formatPurchaseMoney(value)}</span>
+              },
+              { key: "receivedDate", title: translateText("Qabul sanasi") },
+              { key: "expiryDate", title: translateText("Yaroqlilik") }
+            ]}
+            data={purchase.batches}
+            rowKey="movementId"
+            emptyText={translateText("Batch mavjud emas.")} />
+          </Card>
+        }
+
         {purchase.note &&
         <Card>
             <SectionTitle
@@ -431,7 +499,8 @@ const PurchaseDetailsPage = () => {
         open={receiveOpen}
         purchase={purchase}
         onClose={() => setReceiveOpen(false)}
-        onSubmit={handleReceive} />
+        onSubmit={handleReceive}
+        submitting={receiveSubmitting} />
       
 
       <ConfirmDialog
@@ -450,7 +519,8 @@ const PurchaseDetailsPage = () => {
         open={paymentOpen}
         purchase={purchase}
         onClose={() => setPaymentOpen(false)}
-        onSubmit={handlePaymentUpdate} />
+        onSubmit={handlePaymentUpdate}
+        submitting={paymentSubmitting} />
       
     </PageContainer>);
 

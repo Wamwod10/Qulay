@@ -1,8 +1,12 @@
 import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
+import {
+  apiRequest,
+  getCachedApiResponse,
+  invalidateApiCache,
+  unwrapList,
+} from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "products";
-const HISTORY_KEY = "product_history";
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
@@ -43,7 +47,7 @@ const normalizeProduct = (product) => ({
       ? "Qo'shimchalar"
       : product.category || "",
   brand: product.brand || "",
-  unit: product.unit || "dona",
+  unit: product.unit || "",
   warehouseId:
     product.warehouseId ||
     product.stockItems?.find((item) => Number(item.quantity || 0) > 0)?.warehouseId ||
@@ -63,59 +67,15 @@ const normalizeProduct = (product) => ({
   image: product.image || "",
   notes: product.notes || "",
   status: product.status || "ACTIVE",
+  stockItems: Array.isArray(product.stockItems) ? product.stockItems : [],
+  batches: Array.isArray(product.batches) ? product.batches : [],
+  history: Array.isArray(product.history) ? product.history : [],
   createdAt: product.createdAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
 
-const summarizeProduct = (product) => {
-  if (!product) {
-    return null;
-  }
-
-  return {
-    name: product.name,
-    sku: product.sku,
-    status: product.status,
-    stock: product.stock,
-    cost: product.cost,
-    salePrice: product.salePrice,
-  };
-};
-
-const createHistoryEvent = (data) => ({
-  id: `history-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-  date: new Date().toISOString(),
-  ...data,
-});
-
 export const generateRandomSku = () =>
   Math.floor(1000 + Math.random() * 9000).toString();
-
-export const generateUniqueSku = (excludedProductId = null) => {
-  const products = getStoredProducts();
-  const usedSkus = new Set(
-    products
-      .filter((product) => product.id !== excludedProductId)
-      .map((product) => String(product.sku || "").trim())
-      .filter(Boolean),
-  );
-
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    const sku = generateRandomSku();
-
-    if (!usedSkus.has(sku)) {
-      return sku;
-    }
-  }
-
-  let fallback = 1000;
-
-  while (usedSkus.has(String(fallback)) && fallback <= 9999) {
-    fallback += 1;
-  }
-
-  return String(Math.min(fallback, 9999));
-};
 
 export const getStoredProducts = () => {
   const remoteProducts = unwrapList(getCachedApiResponse("/products"), ["products"]);
@@ -154,16 +114,7 @@ export const getStoredProductsPage = async ({
   if (category) params.set("category", category);
   if (status) params.set("status", status);
 
-  let remoteResult = null;
-  try {
-    remoteResult = await apiRequest(`/products?${params.toString()}`);
-  } catch {
-    return {
-      products: getStoredProducts(),
-      remote: false,
-      meta: null,
-    };
-  }
+  const remoteResult = await apiRequest(`/products?${params.toString()}`);
   const remoteProducts = unwrapList(remoteResult, ["products"]);
 
   if (Array.isArray(remoteProducts)) {
@@ -213,32 +164,21 @@ export const saveProducts = (products) => {
 export const getStoredProductById = (productId) =>
   getStoredProducts().find((product) => product.id === productId) || null;
 
-export const getProductHistory = (productId) => {
-  const history = readJson(HISTORY_KEY, {});
+export const fetchStoredProductById = async (productId) => {
+  const remoteProduct = await apiRequest(`/products/${productId}`);
 
-  if (!history || typeof history !== "object" || Array.isArray(history)) {
-    writeJson(HISTORY_KEY, {});
-
-    return [];
+  if (!remoteProduct?.id) {
+    throw new Error("Mahsulot topilmadi.");
   }
 
-  return Array.isArray(history[productId]) ? history[productId] : [];
-};
+  const normalized = normalizeProduct(remoteProduct);
+  const products = getStoredProducts();
+  saveProducts([
+    normalized,
+    ...products.filter((product) => product.id !== normalized.id),
+  ]);
 
-export const addProductHistory = (productId, data) => {
-  const history = readJson(HISTORY_KEY, {});
-  const safeHistory =
-    history && typeof history === "object" && !Array.isArray(history) ? history : {};
-
-  const currentHistory = Array.isArray(safeHistory[productId])
-    ? safeHistory[productId]
-    : [];
-
-  safeHistory[productId] = [createHistoryEvent(data), ...currentHistory];
-
-  writeJson(HISTORY_KEY, safeHistory);
-
-  return safeHistory[productId][0];
+  return normalized;
 };
 
 export const createStoredProduct = async (product, options = {}) => {
@@ -252,40 +192,14 @@ export const createStoredProduct = async (product, options = {}) => {
     const products = getStoredProducts();
     const next = [remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)];
     saveProducts(next);
-    primeApiCache("/products", { products: next, data: next });
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const products = getStoredProducts();
-  const normalizedProduct = normalizeProduct({
-    ...product,
-    sku:
-      String(product.sku || "").trim() ||
-      generateUniqueSku(product.id),
-    createdAt: product.createdAt || new Date().toISOString(),
-  });
-
-  saveProducts([normalizedProduct, ...products]);
-
-  addProductHistory(normalizedProduct.id, {
-    type: "CREATE",
-    title: "Mahsulot yaratildi",
-    description: "Mahsulot katalogga qo'shildi.",
-    newValue: normalizedProduct.name,
-    after: summarizeProduct(normalizedProduct),
-  });
-
-  return normalizedProduct;
+  throw new Error("Mahsulot backendda saqlanmadi.");
 };
 
 export const updateStoredProduct = async (updatedProduct) => {
   const products = getStoredProducts();
-  const existingProduct = products.find((product) => product.id === updatedProduct.id);
-  const stockWasChanged =
-    updatedProduct?.stock !== undefined &&
-    existingProduct &&
-    Number(updatedProduct.stock || 0) !== Number(existingProduct.stock || 0);
-
   const remoteProduct = updatedProduct?.id
     ? await apiRequest(`/products/${updatedProduct.id}`, {
         method: "PATCH",
@@ -294,57 +208,16 @@ export const updateStoredProduct = async (updatedProduct) => {
     : null;
 
   if (remoteProduct?.id) {
-    const adjustedProduct = stockWasChanged
-      ? await apiRequest(`/products/${remoteProduct.id}/stock`, {
-          method: "PATCH",
-          body: {
-            warehouseId: updatedProduct.warehouseId || remoteProduct.warehouseId || null,
-            newStock: Number(updatedProduct.stock) || 0,
-            reason: "PRODUCT_EDIT",
-            cost: updatedProduct.cost ?? remoteProduct.cost,
-          },
-        })
-      : null;
-    const finalProduct = adjustedProduct?.id ? adjustedProduct : remoteProduct;
-    const nextProducts = products.map((product) =>
-      product.id === finalProduct.id ? finalProduct : product,
-    );
+    const exists = products.some((product) => product.id === remoteProduct.id);
+    const nextProducts = exists
+      ? products.map((product) => product.id === remoteProduct.id ? remoteProduct : product)
+      : [remoteProduct, ...products];
     saveProducts(nextProducts);
-    primeApiCache("/products", { products: nextProducts, data: nextProducts });
-    return normalizeProduct(finalProduct);
+    invalidateApiCache();
+    return normalizeProduct(remoteProduct);
   }
 
-  if (!existingProduct) {
-    return null;
-  }
-
-  const mergedProduct = normalizeProduct({
-    ...existingProduct,
-    ...updatedProduct,
-    image:
-      updatedProduct.image !== undefined
-        ? updatedProduct.image
-        : existingProduct.image || "",
-    createdAt: existingProduct.createdAt,
-  });
-
-  saveProducts(
-    products.map((product) =>
-      product.id === mergedProduct.id ? mergedProduct : product,
-    ),
-  );
-
-  addProductHistory(mergedProduct.id, {
-    type: "UPDATE",
-    title: "Mahsulot tahrirlandi",
-    description: "Mahsulot ma'lumotlari yangilandi.",
-    oldValue: existingProduct.name,
-    newValue: mergedProduct.name,
-    before: summarizeProduct(existingProduct),
-    after: summarizeProduct(mergedProduct),
-  });
-
-  return mergedProduct;
+  throw new Error("Mahsulot backendda yangilanmadi.");
 };
 
 export const deleteStoredProduct = async (productId) => {
@@ -356,6 +229,7 @@ export const deleteStoredProduct = async (productId) => {
   const product = products.find((item) => item.id === productId);
 
   saveProducts(products.filter((item) => item.id !== productId));
+  invalidateApiCache();
 
   return product || null;
 };
@@ -363,48 +237,34 @@ export const deleteStoredProduct = async (productId) => {
 export const toggleStoredProductStatus = async (productId) => {
   const products = getStoredProducts();
   let updatedProduct = null;
-  let previousStatus = null;
 
-  const updatedProducts = products.map((product) => {
+  products.forEach((product) => {
     if (product.id !== productId || product.status === "ARCHIVED") {
-      return product;
+      return;
     }
 
-    previousStatus = product.status;
     updatedProduct = normalizeProduct({
       ...product,
       status: product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
       createdAt: product.createdAt,
     });
-
-    return updatedProduct;
   });
 
-  saveProducts(updatedProducts);
-
   if (updatedProduct) {
-    await apiRequest(`/products/${productId}/status`, {
+    const remoteProduct = await apiRequest(`/products/${productId}/status`, {
       method: "PATCH",
       body: { status: updatedProduct.status },
     });
+
+    const nextProducts = products.map((product) =>
+      product.id === remoteProduct.id ? remoteProduct : product,
+    );
+    saveProducts(nextProducts);
+    invalidateApiCache();
+    return normalizeProduct(remoteProduct);
   }
 
-  if (updatedProduct) {
-    addProductHistory(productId, {
-      type: "STATUS",
-      title: "Status o'zgartirildi",
-      description:
-        updatedProduct.status === "ACTIVE"
-          ? "Mahsulot faollashtirildi."
-          : "Mahsulot faol emas holatiga o'tkazildi.",
-      oldValue: previousStatus,
-      newValue: updatedProduct.status,
-      before: { status: previousStatus },
-      after: { status: updatedProduct.status },
-    });
-  }
-
-  return updatedProduct;
+  return null;
 };
 
 export const duplicateStoredProduct = async (productId) => {
@@ -416,101 +276,25 @@ export const duplicateStoredProduct = async (productId) => {
   if (remoteProduct?.id) {
     const products = getStoredProducts();
     saveProducts([remoteProduct, ...products.filter((item) => item.id !== remoteProduct.id)]);
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const products = getStoredProducts();
-  const product = products.find((item) => item.id === productId);
-
-  if (!product) {
-    return null;
-  }
-
-  const duplicatedProduct = normalizeProduct({
-    ...product,
-    id: `prd-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    name: `${product.name} - nusxa`,
-    sku: generateUniqueSku(),
-    barcode: "",
-    status: "ACTIVE",
-    createdAt: new Date().toISOString(),
-  });
-
-  saveProducts([duplicatedProduct, ...products]);
-
-  addProductHistory(duplicatedProduct.id, {
-    type: "DUPLICATE",
-    title: "Mahsulot nusxalandi",
-    description: `"${product.name}" mahsuloti asosida yangi mahsulot yaratildi.`,
-    oldValue: product.name,
-    newValue: duplicatedProduct.name,
-    before: summarizeProduct(product),
-    after: summarizeProduct(duplicatedProduct),
-  });
-
-  addProductHistory(product.id, {
-    type: "DUPLICATE",
-    title: "Mahsulotdan nusxa olindi",
-    description: `"${duplicatedProduct.name}" nusxasi yaratildi.`,
-    oldValue: product.name,
-    newValue: duplicatedProduct.name,
-  });
-
-  return duplicatedProduct;
+  throw new Error("Mahsulot nusxasi backendda saqlanmadi.");
 };
 
-export const adjustStoredProductStock = async ({ productId, newStock, reason }) => {
+export const adjustStoredProductStock = async ({ productId, warehouseId, newStock, reason, cost }) => {
   const remoteProduct = await apiRequest(`/products/${productId}/stock`, {
     method: "PATCH",
-    body: { newStock, reason },
+    body: { warehouseId, newStock, reason, cost },
   });
 
   if (remoteProduct?.id) {
     const products = getStoredProducts();
     saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const parsedStock = Number(newStock);
-
-  if (!Number.isFinite(parsedStock) || parsedStock < 0) {
-    return null;
-  }
-
-  const products = getStoredProducts();
-  let updatedProduct = null;
-  let previousStock = null;
-
-  const updatedProducts = products.map((product) => {
-    if (product.id !== productId) {
-      return product;
-    }
-
-    previousStock = Number(product.stock) || 0;
-    updatedProduct = normalizeProduct({
-      ...product,
-      stock: parsedStock,
-      createdAt: product.createdAt,
-    });
-
-    return updatedProduct;
-  });
-
-  saveProducts(updatedProducts);
-
-  if (updatedProduct) {
-    addProductHistory(productId, {
-      type: "STOCK_ADJUSTMENT",
-      title: "Qoldiq tuzatildi",
-      description: reason?.trim() || "Qoldiq qo'lda tuzatildi.",
-      oldValue: previousStock,
-      newValue: updatedProduct.stock,
-      before: { stock: previousStock },
-      after: { stock: updatedProduct.stock },
-    });
-  }
-
-  return updatedProduct;
+  throw new Error("Qoldiq backendda yangilanmadi.");
 };
 
 export const updateStoredProductPrices = async ({ productId, cost, salePrice, reason }) => {
@@ -522,62 +306,10 @@ export const updateStoredProductPrices = async ({ productId, cost, salePrice, re
   if (remoteProduct?.id) {
     const products = getStoredProducts();
     saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const parsedCost = Number(cost);
-  const parsedSalePrice =
-    salePrice === "" || salePrice === null || salePrice === undefined
-      ? null
-      : Number(salePrice);
-
-  if (
-    !Number.isFinite(parsedCost) ||
-    parsedCost < 0 ||
-    (parsedSalePrice !== null && (!Number.isFinite(parsedSalePrice) || parsedSalePrice < 0))
-  ) {
-    return null;
-  }
-
-  const products = getStoredProducts();
-  let updatedProduct = null;
-  let oldCost = null;
-  let oldSalePrice = null;
-
-  const updatedProducts = products.map((product) => {
-    if (product.id !== productId) {
-      return product;
-    }
-
-    oldCost = product.cost;
-    oldSalePrice = product.salePrice;
-    updatedProduct = normalizeProduct({
-      ...product,
-      cost: parsedCost,
-      salePrice: parsedSalePrice,
-      createdAt: product.createdAt,
-    });
-
-    return updatedProduct;
-  });
-
-  saveProducts(updatedProducts);
-
-  if (updatedProduct) {
-    addProductHistory(productId, {
-      type: "PRICE",
-      title: "Narx o'zgartirildi",
-      description: reason?.trim() || "Mahsulot narxlari yangilandi.",
-      oldCost,
-      newCost: updatedProduct.cost,
-      oldSalePrice,
-      newSalePrice: updatedProduct.salePrice,
-      before: { cost: oldCost, salePrice: oldSalePrice },
-      after: { cost: updatedProduct.cost, salePrice: updatedProduct.salePrice },
-    });
-  }
-
-  return updatedProduct;
+  throw new Error("Narx backendda yangilanmadi.");
 };
 
 export const archiveStoredProduct = async (productId) => {
@@ -589,43 +321,10 @@ export const archiveStoredProduct = async (productId) => {
   if (remoteProduct?.id) {
     const products = getStoredProducts();
     saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const products = getStoredProducts();
-  let archivedProduct = null;
-  let previousStatus = null;
-
-  const updatedProducts = products.map((product) => {
-    if (product.id !== productId) {
-      return product;
-    }
-
-    previousStatus = product.status;
-    archivedProduct = normalizeProduct({
-      ...product,
-      status: "ARCHIVED",
-      createdAt: product.createdAt,
-    });
-
-    return archivedProduct;
-  });
-
-  saveProducts(updatedProducts);
-
-  if (archivedProduct) {
-    addProductHistory(productId, {
-      type: "ARCHIVE",
-      title: "Mahsulot arxivlandi",
-      description: "Mahsulot arxivga o'tkazildi.",
-      oldValue: previousStatus,
-      newValue: "ARCHIVED",
-      before: { status: previousStatus },
-      after: { status: "ARCHIVED" },
-    });
-  }
-
-  return archivedProduct;
+  throw new Error("Mahsulot backendda arxivlanmadi.");
 };
 
 export const restoreStoredProduct = async (productId) => {
@@ -637,39 +336,8 @@ export const restoreStoredProduct = async (productId) => {
   if (remoteProduct?.id) {
     const products = getStoredProducts();
     saveProducts(products.map((product) => (product.id === remoteProduct.id ? remoteProduct : product)));
+    invalidateApiCache();
     return normalizeProduct(remoteProduct);
   }
-
-  const products = getStoredProducts();
-  let restoredProduct = null;
-
-  const updatedProducts = products.map((product) => {
-    if (product.id !== productId) {
-      return product;
-    }
-
-    restoredProduct = normalizeProduct({
-      ...product,
-      status: "ACTIVE",
-      createdAt: product.createdAt,
-    });
-
-    return restoredProduct;
-  });
-
-  saveProducts(updatedProducts);
-
-  if (restoredProduct) {
-    addProductHistory(productId, {
-      type: "RESTORE",
-      title: "Mahsulot arxivdan qaytarildi",
-      description: "Mahsulot faol holatga qaytarildi.",
-      oldValue: "ARCHIVED",
-      newValue: "ACTIVE",
-      before: { status: "ARCHIVED" },
-      after: { status: "ACTIVE" },
-    });
-  }
-
-  return restoredProduct;
+  throw new Error("Mahsulot backendda tiklanmadi.");
 };

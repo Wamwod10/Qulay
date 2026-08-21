@@ -57,11 +57,11 @@ const WarehouseManager = ({
                   </Badge>
                 </div>
 
-                <span>{warehouse.branch || translateText("Filial yo‘q")}</span>
+                <span>{warehouse.code || warehouse.address || translateText("Kod kiritilmagan")}</span>
 
-                {warehouse.responsible && (
+                {warehouse.address && (
                   <small>
-                    {translateText("Mas’ul:")} {warehouse.responsible}
+                    {warehouse.address}
                   </small>
                 )}
               </div>

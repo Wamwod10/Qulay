@@ -27,7 +27,6 @@ const DEFAULT_SHIFTS = [
 
 const EMPTY_WORKSPACE_KEYS = [
   "products",
-  "product_history",
   "customers",
   "customer_followups",
   "sales",
@@ -54,7 +53,7 @@ const EMPTY_WORKSPACE_KEYS = [
 
 export const initializeAccountWorkspace = (accountId, account = {}) => {
   EMPTY_WORKSPACE_KEYS.forEach((key) => {
-    tenantSetForAccount(accountId, key, key === "product_history" ? {} : []);
+    tenantSetForAccount(accountId, key, []);
   });
 
   tenantSetForAccount(accountId, "warehouses", [DEFAULT_WAREHOUSE]);

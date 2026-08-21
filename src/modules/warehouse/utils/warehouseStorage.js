@@ -1,4 +1,4 @@
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
@@ -20,6 +20,10 @@ export const getStoredWarehouseStock = () => {
     }
 
     try {
+        if (!isLocalBusinessFallbackEnabled()) {
+            return [];
+        }
+
         const stored =
             tenantGet(
                 STORAGE_KEY,
@@ -47,7 +51,7 @@ export const getStoredBatches = () => {
         tenantSet(BATCHES_KEY, remoteBatches);
         return remoteBatches;
     }
-    return tenantGet(BATCHES_KEY, []) || [];
+    return isLocalBusinessFallbackEnabled() ? tenantGet(BATCHES_KEY, []) || [] : [];
 };
 
 export const saveWarehouseStock = (
@@ -73,7 +77,7 @@ export const getWarehouseMovements =
         }
 
         try {
-            return tenantGet(MOVEMENTS_KEY, []);
+            return isLocalBusinessFallbackEnabled() ? tenantGet(MOVEMENTS_KEY, []) : [];
         } catch {
             return [];
         }
@@ -82,6 +86,10 @@ export const getWarehouseMovements =
 export const addWarehouseMovement = (
     movement,
 ) => {
+    if (!isLocalBusinessFallbackEnabled()) {
+        return null;
+    }
+
     const movements =
         getWarehouseMovements();
 
@@ -114,11 +122,19 @@ export const stockIn = async ({
     cost,
     source,
     note,
+    inputUnit,
+    batchNumber,
+    expiryDate,
+    productionDate,
+    receivedDate,
+    totalCost,
+    idempotencyKey,
 }) => {
+    const requestKey = idempotencyKey || `stock-in:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
     const remoteResult = await apiRequest("/inventory/stock/in", {
         method: "POST",
-        idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}`,
-        body: { warehouseId, productId, quantity, cost, source, note, idempotencyKey: `stock-in:${warehouseId}:${productId}:${quantity}:${source || "manual"}` },
+        idempotencyKey: requestKey,
+        body: { warehouseId, productId, quantity, cost, source, note, inputUnit, unit: inputUnit, batchNumber, expiryDate, productionDate, receivedDate, totalCost, idempotencyKey: requestKey },
     });
 
     if (remoteResult) {
@@ -128,6 +144,10 @@ export const stockIn = async ({
         }
         window.dispatchEvent(new Event("warehouse:changed"));
         return remoteStock?.find((item) => item.warehouseId === warehouseId && item.productId === productId) || remoteResult;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor operatsiyasi server orqali bajarilishi kerak.");
     }
 
     const stock =
@@ -220,11 +240,14 @@ export const stockOut = async ({
     quantity,
     reason,
     note,
+    inputUnit,
+    idempotencyKey,
 }) => {
+    const requestKey = idempotencyKey || `stock-out:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
     const remoteResult = await apiRequest("/inventory/stock/out", {
         method: "POST",
-        idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}`,
-        body: { warehouseId, productId, quantity, reason, note, idempotencyKey: `stock-out:${warehouseId}:${productId}:${quantity}:${reason || "manual"}` },
+        idempotencyKey: requestKey,
+        body: { warehouseId, productId, quantity, reason, note, inputUnit, unit: inputUnit, idempotencyKey: requestKey },
     });
 
     if (remoteResult) {
@@ -234,6 +257,10 @@ export const stockOut = async ({
         }
         window.dispatchEvent(new Event("warehouse:changed"));
         return remoteStock?.find((item) => item.warehouseId === warehouseId && item.productId === productId) || remoteResult;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor operatsiyasi server orqali bajarilishi kerak.");
     }
 
     const stock =
@@ -329,11 +356,14 @@ export const transferStock = async ({
     productId,
     quantity,
     note,
+    inputUnit,
+    idempotencyKey,
 }) => {
+    const requestKey = idempotencyKey || `transfer:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
     const remoteResult = await apiRequest("/inventory/stock/transfer", {
         method: "POST",
-        idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}`,
-        body: { fromWarehouseId, toWarehouseId, productId, quantity, note, idempotencyKey: `transfer:${fromWarehouseId}:${toWarehouseId}:${productId}:${quantity}` },
+        idempotencyKey: requestKey,
+        body: { fromWarehouseId, toWarehouseId, productId, quantity, note, inputUnit, unit: inputUnit, idempotencyKey: requestKey },
     });
 
     if (remoteResult) {
@@ -344,6 +374,10 @@ export const transferStock = async ({
             return remoteStock;
         }
         return remoteResult;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor operatsiyasi server orqali bajarilishi kerak.");
     }
 
     if (fromWarehouseId === toWarehouseId) {
@@ -509,15 +543,21 @@ export const inventoryAdjustStock = async ({
     countedQuantity,
     reason,
     note,
+    idempotencyKey,
 }) => {
     const remoteProduct = await apiRequest("/inventory/counts", {
         method: "POST",
-        body: { warehouseId, productId, actualQuantity: countedQuantity, reason, note },
+        idempotencyKey,
+        body: { warehouseId, productId, actualQuantity: countedQuantity, reason, note, idempotencyKey },
     });
 
     if (remoteProduct) {
         window.dispatchEvent(new Event("warehouse:changed"));
         return remoteProduct;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor operatsiyasi server orqali bajarilishi kerak.");
     }
 
     const stock =

@@ -1,4 +1,4 @@
-import { getLocale, translateText } from "../../../localization/i18n";
+import { getLocale } from "../../../localization/i18n";
 import { normalizeCurrency } from "../../../shared/utils/currency";
 import { roundDecimal } from "../../../shared/utils/number";
 
@@ -61,7 +61,7 @@ export const formatMoneyWithSettings = (value, formats = {}) => {
     return `${formatted} ${currency}`;
   }
 
-  return `${formatted} ${currency === "UZS" ? translateText("so'm", { language: formats.language }) : currency}`;
+  return `${formatted} ${currency}`;
 };
 
 export const calculateVat = (amount, percent) => {

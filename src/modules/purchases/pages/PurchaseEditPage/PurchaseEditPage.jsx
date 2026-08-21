@@ -21,6 +21,7 @@ const PurchaseEditPage = () => {
 
   const purchase = getPurchaseById(purchaseId);
   const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (!purchase) {
     return (
@@ -35,7 +36,7 @@ const PurchaseEditPage = () => {
 
   }
 
-  if (purchase.status === "RECEIVED" || purchase.status === "CANCELLED") {
+  if (purchase.status === "PARTIALLY_RECEIVED" || purchase.status === "RECEIVED" || purchase.status === "CANCELLED") {
     return (
       <PageContainer
         title={translateText("Xaridni tahrirlab bo‘lmaydi")}
@@ -53,6 +54,7 @@ const PurchaseEditPage = () => {
 
   const handleSubmit = async (values) => {
     setSubmitError("");
+    setSubmitting(true);
     try {
       const updated = await updatePurchase({
         ...purchase,
@@ -63,6 +65,8 @@ const PurchaseEditPage = () => {
       navigate(`/purchases/${updated.id}`);
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -86,6 +90,7 @@ const PurchaseEditPage = () => {
           initialValues={purchase}
           onSubmit={handleSubmit}
           submitError={submitError}
+          submitting={submitting}
           onCancel={() => navigate(`/purchases/${purchase.id}`)} />
         
       </div>

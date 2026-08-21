@@ -37,6 +37,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   CreatableSelect,
   Input,
   LiveIcon,
@@ -145,6 +146,8 @@ const POSTerminalPage = () => {
   const [activeDraft, setActiveDraft] = useState(null);
 
   const [error, setError] = useState("");
+  const [clearCartOpen, setClearCartOpen] = useState(false);
+  const [completionLoading, setCompletionLoading] = useState(false);
 
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -531,6 +534,7 @@ const POSTerminalPage = () => {
     }
 
     completingRef.current = true;
+    setCompletionLoading(true);
     setError("");
 
     try {
@@ -606,6 +610,7 @@ const POSTerminalPage = () => {
       );
     } finally {
       completingRef.current = false;
+      setCompletionLoading(false);
     }
   };
 
@@ -663,23 +668,31 @@ const POSTerminalPage = () => {
   };
 
   const clearCart = () => {
-    if (
-      !cart.length ||
-      !posSettings.clearCartConfirmation ||
-      window.confirm(translateText("Savatchani tozalaysizmi?"))
-    ) {
-      setCart([]);
-      setDiscountValue("");
-
-      setPayments([
-        emptyPayment(
-          posSettings.defaultPaymentMethod || defaults.paymentMethod,
-        ),
-      ]);
-
-      setActiveDraft(null);
-      setError("");
+    if (!cart.length) {
+      return;
     }
+
+    if (posSettings.clearCartConfirmation) {
+      setClearCartOpen(true);
+      return;
+    }
+
+    confirmClearCart();
+  };
+
+  const confirmClearCart = () => {
+    setCart([]);
+    setDiscountValue("");
+
+    setPayments([
+      emptyPayment(
+        posSettings.defaultPaymentMethod || defaults.paymentMethod,
+      ),
+    ]);
+
+    setActiveDraft(null);
+    setError("");
+    setClearCartOpen(false);
   };
 
   return (
@@ -963,6 +976,7 @@ const POSTerminalPage = () => {
         onClose={() => setPaymentOpen(false)}
         onPayments={setPayments}
         onComplete={completeCurrentSale}
+        loading={completionLoading}
       />
 
       <Modal
@@ -1015,6 +1029,15 @@ const POSTerminalPage = () => {
           onPrint={() => window.print()}
         />
       </Modal>
+      <ConfirmDialog
+        open={clearCartOpen}
+        danger
+        title="Savatcha tozalansinmi?"
+        description="Savatchadagi mahsulotlar va kiritilgan to'lov ma'lumotlari tozalanadi."
+        confirmText="Tozalash"
+        onClose={() => setClearCartOpen(false)}
+        onConfirm={confirmClearCart}
+      />
     </div>
   );
 };
@@ -1088,6 +1111,7 @@ const CartPanel = ({
                   step="any"
                   inputMode="decimal"
                   value={item.quantity}
+                  onWheel={(event) => event.currentTarget.blur()}
                   onChange={(event) =>
                     onQuantity(item.productId, Number(event.target.value))
                   }
@@ -1230,6 +1254,7 @@ const PaymentModal = ({
   onClose,
   onPayments,
   onComplete,
+  loading = false,
 }) => {
   const debt = Math.max(Number(total || 0) - Number(paid || 0), 0);
 
@@ -1265,11 +1290,11 @@ const PaymentModal = ({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             {translateText("Bekor")}
           </Button>
 
-          <Button onClick={onComplete}>
+          <Button onClick={onComplete} loading={loading}>
             {translateText("Savdoni yakunlash")}
           </Button>
         </>

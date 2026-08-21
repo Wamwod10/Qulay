@@ -9,17 +9,17 @@ const MESSAGES = {
     notFound: "Ma'lumot topilmadi.",
     conflict: "Bu qiymat allaqachon mavjud.",
     validation: "Kiritilgan ma'lumotlarni tekshiring.",
-    server: "Amalni bajarib bo'lmadi. Qayta urinib ko'ring.",
+    server: "Server bilan aloqa o'rnatilmadi. Qayta urinib ko'ring.",
   },
   tj: {
-    unknown: "Амалиёт иҷро нашуд. Лутфан аз нав кӯшиш кунед.",
+    unknown: "Амал иҷро нашуд. Лутфан аз нав кӯшиш кунед.",
     unauthorized: "Сессия ба охир расид. Аз нав ворид шавед.",
     forbidden: "Барои ин амал иҷозат нест.",
     module: "Ин бахш ҳоло дастрас нест.",
     notFound: "Маълумот ёфт нашуд.",
     conflict: "Ин қимат аллакай вуҷуд дорад.",
     validation: "Маълумоти воридшударо санҷед.",
-    server: "Амалиёт иҷро нашуд. Лутфан аз нав кӯшиш кунед.",
+    server: "Бо сервер пайваст шудан имкон нашуд. Аз нав кӯшиш кунед.",
   },
 };
 
@@ -40,18 +40,28 @@ export const getApiErrorMessage = (error) => {
     if (/Server xatosi|Server error|Database/i.test(error)) return messages.unknown;
     return error;
   }
-  if (error?.code === "MODULE_DISABLED") return messages.module;
-  if (["INTERNAL_SERVER_ERROR", "DATABASE_OPERATION_FAILED", "API_UNAVAILABLE"].includes(error?.code)) return messages.server;
 
   const status = error?.status || error?.statusCode;
   const code = error?.code || error?.data?.code;
-  if (status === 401) {
-    return messages.unauthorized;
-  }
+
+  if (code === "MODULE_DISABLED") return messages.module;
+  if (["INTERNAL_SERVER_ERROR", "DATABASE_OPERATION_FAILED", "API_UNAVAILABLE"].includes(code)) return messages.server;
+  if (code === "PRODUCT_NOT_FOUND") return "Mahsulot topilmadi.";
+  if (code === "SUPPLIER_NOT_FOUND") return "Yetkazib beruvchi topilmadi.";
+  if (code === "WAREHOUSE_NOT_FOUND") return "Ombor topilmadi.";
+  if (code === "PURCHASE_LOCKED") return "Qabul qilingan xarid tahrirlanmaydi.";
+  if (code === "OVERPAYMENT") return "To'lov qarz summasidan oshmasin.";
+  if (code === "DUPLICATE_RECEIVE") return "Qabul miqdori qoldiqdan oshmasin.";
+  if (code === "PURCHASE_NOT_RECEIVED") return "Avval xaridni qabul qiling.";
+  if (code === "PURCHASE_RECEIVED") return "Qabul qilingan xarid bekor qilinmaydi.";
+  if (code === "UNIT_DIMENSION_MISMATCH") return "Har xil o'lchov turidagi birliklarni aralashtirib bo'lmaydi.";
+
+  if (status === 401) return messages.unauthorized;
   if (status === 403 && ["ACCOUNT_BLOCKED", "COMPANY_BLOCKED", "TENANT_REQUIRED"].includes(code)) {
     return getResponseMessage(error) || messages.forbidden;
   }
   if (status === 403) return messages.forbidden;
+
   const responseMessage = getResponseMessage(error);
   if (responseMessage && !isGenericMessage(responseMessage)) return responseMessage;
   if (status === 409) return messages.conflict;

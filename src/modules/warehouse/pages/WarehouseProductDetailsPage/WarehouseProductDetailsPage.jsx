@@ -341,7 +341,7 @@ const WarehouseProductDetailsPage = () => {
             <div className="warehouse-product-details__info-grid">
               <InfoItem label={translateText("Ombor")} value={warehouse?.name} />
 
-              <InfoItem label={translateText("Filial")} value={warehouse?.branch} />
+              <InfoItem label={translateText("Kod")} value={warehouse?.code} />
 
               <InfoItem
                 label={translateText("Qoldiq holati")}

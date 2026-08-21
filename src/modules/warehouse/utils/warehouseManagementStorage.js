@@ -1,4 +1,4 @@
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { getLocale } from "../../../localization/i18n";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
@@ -26,6 +26,10 @@ export const getStoredWarehouses = () => {
     }
 
     try {
+        if (!isLocalBusinessFallbackEnabled()) {
+            return [];
+        }
+
         const stored = tenantGet(STORAGE_KEY, null);
 
         if (!stored) {
@@ -44,10 +48,10 @@ export const getStoredWarehouses = () => {
 
         return stored;
     } catch {
-        return DEFAULT_WAREHOUSES.map((warehouse) => ({
+        return isLocalBusinessFallbackEnabled() ? DEFAULT_WAREHOUSES.map((warehouse) => ({
             ...warehouse,
             status: warehouse.status || "ACTIVE",
-        }));
+        })) : [];
     }
 };
 
@@ -70,12 +74,16 @@ export const createWarehouse = async (warehouse) => {
         return remoteWarehouse;
     }
 
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor serverda yaratilishi kerak.");
+    }
+
     const warehouses = getStoredWarehouses();
 
     const newWarehouse = {
         id: `wh-${Date.now()}`,
         name: warehouse.name.trim(),
-        branch: warehouse.branch.trim(),
+        code: warehouse.code?.trim() || "",
         address: warehouse.address?.trim() || "",
         responsible: warehouse.responsible?.trim() || "",
         note: warehouse.note?.trim() || "",
@@ -91,7 +99,22 @@ export const createWarehouse = async (warehouse) => {
     return newWarehouse;
 };
 
-export const updateWarehouse = (updatedWarehouse) => {
+export const updateWarehouse = async (updatedWarehouse) => {
+    const remoteWarehouse = await apiRequest(`/warehouses/${updatedWarehouse.id}`, {
+        method: "PATCH",
+        body: updatedWarehouse,
+    });
+
+    if (remoteWarehouse?.id) {
+        const warehouses = getStoredWarehouses();
+        saveWarehouses(warehouses.map((warehouse) => warehouse.id === remoteWarehouse.id ? remoteWarehouse : warehouse));
+        return remoteWarehouse;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor serverda yangilanishi kerak.");
+    }
+
     const warehouses = getStoredWarehouses();
 
     const updated = warehouses.map((warehouse) =>
@@ -108,8 +131,24 @@ export const updateWarehouse = (updatedWarehouse) => {
     return updatedWarehouse;
 };
 
-export const toggleWarehouseStatus = (warehouseId) => {
+export const toggleWarehouseStatus = async (warehouseId) => {
     const warehouses = getStoredWarehouses();
+    const current = warehouses.find((warehouse) => warehouse.id === warehouseId);
+    const nextStatus = current?.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE";
+
+    const remoteWarehouse = await apiRequest(`/warehouses/${warehouseId}`, {
+        method: "PATCH",
+        body: { status: nextStatus },
+    });
+
+    if (remoteWarehouse?.id) {
+        saveWarehouses(warehouses.map((warehouse) => warehouse.id === remoteWarehouse.id ? remoteWarehouse : warehouse));
+        return remoteWarehouse;
+    }
+
+    if (!isLocalBusinessFallbackEnabled()) {
+        throw new Error("Ombor holati serverda yangilanishi kerak.");
+    }
 
     let changedWarehouse = null;
 
@@ -132,4 +171,17 @@ export const toggleWarehouseStatus = (warehouseId) => {
     saveWarehouses(updated);
 
     return changedWarehouse;
+};
+
+export const fetchStoredWarehouses = async () => {
+    const result = await apiRequest("/warehouses");
+    const warehouses = unwrapList(result, ["warehouses"]);
+
+    if (!Array.isArray(warehouses)) {
+        throw new Error("Omborlar backenddan olinmadi.");
+    }
+
+    tenantSet(STORAGE_KEY, warehouses);
+
+    return warehouses;
 };

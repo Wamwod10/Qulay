@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Boxes, CircleAlert, Package, PackageCheck, Plus } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
@@ -24,8 +25,8 @@ import PriceChangeModal from "../../components/PriceChangeModal/PriceChangeModal
 import ProductTable from "../../components/ProductTable/ProductTable";
 import StockAdjustmentModal from "../../components/StockAdjustmentModal/StockAdjustmentModal";
 
-import { PRODUCT_CATEGORIES } from "../../constants/productCategories";
 import { PRODUCT_TYPES } from "../../constants/productTypes";
+import { fetchStoredCategories, getStoredCategories } from "../../utils/categoriesStorage";
 
 import {
   adjustStoredProductStock,
@@ -54,6 +55,8 @@ const MAX_PAGE_SIZE = 500;
 
 const ProductsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
   const { tTerm } = useTerminology();
   const productTableSettings = useTableSettings("products");
   const pageSize = Math.min(
@@ -72,6 +75,10 @@ const ProductsPage = () => {
   const [pageSizeInput, setPageSizeInput] = useState(String(pageSize));
   const [pageSizeError, setPageSizeError] = useState("");
   const [remoteMeta, setRemoteMeta] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [busyProductId, setBusyProductId] = useState(null);
+  const [categories, setCategories] = useState(() => getStoredCategories());
 
   const [barcodeProduct, setBarcodeProduct] = useState(null);
   const [stockProduct, setStockProduct] = useState(null);
@@ -81,27 +88,47 @@ const ProductsPage = () => {
 
   const refreshProducts = useCallback(async () => {
     const usesLocalStockFilter = Boolean(stockFilter);
-    const result = await getStoredProductsPage({
-      page: usesLocalStockFilter ? 1 : page,
-      limit: usesLocalStockFilter ? MAX_PAGE_SIZE : pageSize,
-      search,
-      type: typeFilter,
-      category: categoryFilter,
-      status: statusFilter || "ACTIVE,INACTIVE",
-    });
+    try {
+      const result = await getStoredProductsPage({
+        page: usesLocalStockFilter ? 1 : page,
+        limit: usesLocalStockFilter ? MAX_PAGE_SIZE : pageSize,
+        search,
+        type: typeFilter,
+        category: categoryFilter,
+        status: statusFilter || "ACTIVE,INACTIVE",
+      });
 
-    setProducts(result.products);
-    setRemoteMeta(result.remote && !usesLocalStockFilter ? result.meta : null);
-    setStatsProducts((current) => {
-      if (!result.remote) return result.products;
-      const merged = [...result.products, ...current.filter((item) => !result.products.some((product) => product.id === item.id))];
-      return merged;
-    });
+      setProducts(result.products);
+      setRemoteMeta(result.remote && !usesLocalStockFilter ? result.meta : null);
+      setLoadError("");
+      setCategories(getStoredCategories());
+      setStatsProducts((current) => {
+        if (!result.remote) return result.products;
+        const merged = [...result.products, ...current.filter((item) => !result.products.some((product) => product.id === item.id))];
+        return merged;
+      });
+    } catch (error) {
+      setLoadError(error?.message || translateText("Mahsulotlarni yuklab bo'lmadi."));
+    }
   }, [categoryFilter, page, pageSize, search, statusFilter, stockFilter, typeFilter]);
 
   useEffect(() => {
     void refreshProducts();
   }, [refreshProducts]);
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchStoredCategories()
+      .then((items) => {
+        if (alive) setCategories(items.filter((category) => category.status !== "INACTIVE"));
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -118,7 +145,7 @@ const ProductsPage = () => {
       productBarcode.includes(normalizedSearch);
 
       const matchesType = !typeFilter || product.type === typeFilter;
-      const matchesCategory = !categoryFilter || product.category === categoryFilter;
+      const matchesCategory = !categoryFilter || product.categoryId === categoryFilter || product.category === categoryFilter;
       const matchesStock = !stockFilter || getStockStatus(product) === stockFilter;
 
       const matchesStatus = statusFilter ?
@@ -204,63 +231,90 @@ const ProductsPage = () => {
     setStockFilter("");
   }, []);
 
+  const runProductAction = useCallback(async (productId, action) => {
+    if (busyProductId) return;
+
+    setBusyProductId(productId);
+    setActionError("");
+
+    try {
+      await action();
+    } catch (error) {
+      setActionError(error?.message || translateText("Amalni bajarib bo'lmadi. Qayta urinib ko'ring."));
+    } finally {
+      setBusyProductId(null);
+    }
+  }, [busyProductId]);
+
   const handleToggleStatus = useCallback(async (product) => {
-    await toggleStoredProductStatus(product.id);
-    await refreshProducts();
-  }, [refreshProducts]);
+    await runProductAction(product.id, async () => {
+      await toggleStoredProductStatus(product.id);
+      await refreshProducts();
+    });
+  }, [refreshProducts, runProductAction]);
 
   const handleDuplicate = useCallback(async (product) => {
-    const duplicatedProduct = await duplicateStoredProduct(product.id);
+    await runProductAction(product.id, async () => {
+      const duplicatedProduct = await duplicateStoredProduct(product.id);
 
-    await refreshProducts();
+      await refreshProducts();
 
-    if (duplicatedProduct) {
-      navigate(`/products/${duplicatedProduct.id}/edit`);
-    }
-  }, [navigate, refreshProducts]);
+      if (duplicatedProduct) {
+        navigate(`/products/${duplicatedProduct.id}/edit`);
+      }
+    });
+  }, [navigate, refreshProducts, runProductAction]);
 
   const handleStockAdjustment = useCallback(async (values) => {
-    const updatedProduct = await adjustStoredProductStock(values);
+    await runProductAction(values.productId, async () => {
+      const updatedProduct = await adjustStoredProductStock(values);
 
-    if (updatedProduct) {
-      setStockProduct(null);
-      await refreshProducts();
-    }
-  }, [refreshProducts]);
+      if (updatedProduct) {
+        setStockProduct(null);
+        await refreshProducts();
+      }
+    });
+  }, [refreshProducts, runProductAction]);
 
   const handlePriceChange = useCallback(async (values) => {
-    const updatedProduct = await updateStoredProductPrices(values);
+    await runProductAction(values.productId, async () => {
+      const updatedProduct = await updateStoredProductPrices(values);
 
-    if (updatedProduct) {
-      setPriceProduct(null);
-      await refreshProducts();
-    }
-  }, [refreshProducts]);
+      if (updatedProduct) {
+        setPriceProduct(null);
+        await refreshProducts();
+      }
+    });
+  }, [refreshProducts, runProductAction]);
 
   const handleArchiveOrRestore = useCallback(async () => {
     if (!archiveProduct) {
       return;
     }
 
-    if (archiveProduct.status === "ARCHIVED") {
-      await restoreStoredProduct(archiveProduct.id);
-    } else {
-      await archiveStoredProduct(archiveProduct.id);
-    }
+    await runProductAction(archiveProduct.id, async () => {
+      if (archiveProduct.status === "ARCHIVED") {
+        await restoreStoredProduct(archiveProduct.id);
+      } else {
+        await archiveStoredProduct(archiveProduct.id);
+      }
 
-    setArchiveProduct(null);
-    await refreshProducts();
-  }, [archiveProduct, refreshProducts]);
+      setArchiveProduct(null);
+      await refreshProducts();
+    });
+  }, [archiveProduct, refreshProducts, runProductAction]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteProduct) {
       return;
     }
 
-    await deleteStoredProduct(deleteProduct.id);
-    setDeleteProduct(null);
-    await refreshProducts();
-  }, [deleteProduct, refreshProducts]);
+    await runProductAction(deleteProduct.id, async () => {
+      await deleteStoredProduct(deleteProduct.id);
+      setDeleteProduct(null);
+      await refreshProducts();
+    });
+  }, [deleteProduct, refreshProducts, runProductAction]);
 
   const handleView = useCallback((product) => navigate(`/products/${product.id}`), [navigate]);
   const handleEdit = useCallback((product) => navigate(`/products/${product.id}/edit`), [navigate]);
@@ -287,6 +341,22 @@ const ProductsPage = () => {
           title={translateText("Saqlandi")}
           message={successMessage}
           onClose={dismissSuccess}
+        />
+      )}
+      {loadError && (
+        <Toast
+          type="error"
+          title={translateText("Xatolik")}
+          message={loadError}
+          onClose={() => setLoadError("")}
+        />
+      )}
+      {actionError && (
+        <Toast
+          type="error"
+          title={translateText("Xatolik")}
+          message={actionError}
+          onClose={() => setActionError("")}
         />
       )}
 
@@ -373,7 +443,7 @@ const ProductsPage = () => {
               <Select
                 value={categoryFilter}
                 placeholder={translateText("Barcha kategoriyalar")}
-                options={PRODUCT_CATEGORIES}
+                options={categories.map((category) => ({ value: category.id, label: category.name }))}
                 onChange={(event) => setCategoryFilter(event.target.value)} />
               
             </div>
@@ -455,7 +525,8 @@ const ProductsPage = () => {
             onStockAdjustment={handleStockProduct}
             onPriceChange={handlePriceProduct}
             onArchive={handleArchiveProduct}
-            onDelete={handleDeleteProduct} />
+            onDelete={handleDeleteProduct}
+            busyProductId={busyProductId} />
           
 
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />

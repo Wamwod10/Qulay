@@ -4,8 +4,7 @@ import { translateText } from "../../../../localization/i18n";import {
   Eye,
   MoreHorizontal,
   Pencil,
-  PackageCheck,
-  Copy } from
+  PackageCheck } from
 "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
@@ -22,8 +21,7 @@ const PurchaseActionsMenu = ({
   onEdit,
   onPayment,
   onReceive,
-  onCancel,
-  onDuplicate
+  onCancel
 }) => {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -41,10 +39,11 @@ const PurchaseActionsMenu = ({
   const canReceive =
   purchase.status === "ORDERED" || purchase.status === "PARTIALLY_RECEIVED";
 
-  const canPayment = purchase.status !== "CANCELLED";
+  const canPayment =
+  purchase.status === "PARTIALLY_RECEIVED" || purchase.status === "RECEIVED";
 
   const canCancel =
-  purchase.status !== "RECEIVED" && purchase.status !== "CANCELLED";
+  purchase.status === "DRAFT" || purchase.status === "ORDERED";
 
   const updatePosition = () => {
     if (!buttonRef.current) {
@@ -161,11 +160,6 @@ const PurchaseActionsMenu = ({
 
           </button>
           }
-
-            <button type="button" onClick={() => execute(onDuplicate)}>
-              <Copy size={16} />{translateText("Nusxa olish")}
-
-          </button>
 
             {canPayment &&
           <button type="button" onClick={() => execute(onPayment)}>

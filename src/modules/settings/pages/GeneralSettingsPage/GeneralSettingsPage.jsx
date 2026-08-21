@@ -510,8 +510,8 @@ const GeneralSettingsPage = () => {
             <SettingRow title="Vaqt formati" description="24 soatlik yoki 12 soatlik ko'rinish.">
               <Select value={settings.formats.timeFormat} options={[{ value: "24h", label: "24h" }, { value: "12h", label: "12h" }]} onChange={(event) => dispatch(updateFormats({ timeFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Pul formati" description="1 250 000 so'm yoki 1,250,000 UZS ko'rinishi.">
-              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm" }, { value: "comma-code", label: "1,250,000 UZS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
+            <SettingRow title="Pul formati" description="1 250 000 UZS yoki 1,250,000 UZS ko'rinishi.">
+              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 UZS" }, { value: "comma-code", label: "1,250,000 UZS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Valyuta" description="Standart valyuta kodi.">
               <Select value={settings.formats.currency} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ currency: event.target.value }))} />
@@ -728,7 +728,7 @@ const Preview = () => (
       <span>Narx</span>
       <strong>Shokoladli pechenye</strong>
       <span>125 dona</span>
-      <span>18 000 so'm</span>
+      <span>18 000 UZS</span>
     </div>
   </div>
 );
@@ -817,7 +817,7 @@ const DomainSections = ({ settings, entityOptions, update, renderSection }) => (
           <Select value={settings.warehouse.negativeStockPolicy} disabled options={[{ value: "blocked", label: "Bloklangan" }]} />
         </SettingRow>
         <SettingRow title="Batch sarfi siyosati" description="FEFO avval yaroqlilik muddati yaqin batchni, FIFO esa eng eski batchni sarflaydi.">
-          <Select value={settings.warehouse.inventoryPolicy || "FEFO"} options={[{ value: "FEFO", label: "FEFO — yaroqlilik muddati" }, { value: "FIFO", label: "FIFO — kirgan vaqti" }]} onChange={(event) => update("warehouse", { inventoryPolicy: event.target.value })} />
+          <Select value={settings.warehouse.inventoryPolicy || "FEFO"} options={[{ value: "FEFO", label: "FEFO - yaroqlilik muddati" }, { value: "FIFO", label: "FIFO - kirgan vaqti" }]} onChange={(event) => update("warehouse", { inventoryPolicy: event.target.value })} />
         </SettingRow>
         <SwitchGrid
           values={settings.warehouse}

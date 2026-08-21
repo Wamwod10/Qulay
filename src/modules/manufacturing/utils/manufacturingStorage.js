@@ -1,24 +1,9 @@
-import {
-    checkMaterialAvailability,
-    hasEnoughMaterials,
-} from "../production-orders/utils/materialAvailability";
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
-import { getLocale } from "../../../localization/i18n";
+import { tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
-import { convertQuantity, normalizeUnit } from "../../../shared/utils/units";
 
 import {
-    calculateProductionMaterialCost,
-} from "../production-orders/utils/productionOrderHelpers";
-
-import {
-    getStoredWarehouseStock,
     saveWarehouseStock,
 } from "../../warehouse/utils/warehouseStorage";
-
-import {
-    DEFAULT_PRODUCTION_STAGES,
-} from "../production-orders/utils/productionStages";
 
 import {
     calculateActualProductionCost,
@@ -113,26 +98,7 @@ export const getStoredBoms = () => {
         tenantSet(BOM_STORAGE_KEY, remoteBoms);
         return remoteBoms;
     }
-    try {
-        const stored =
-            tenantGet(
-                BOM_STORAGE_KEY,
-                null,
-            );
-
-        if (!stored) {
-            tenantSet(
-                BOM_STORAGE_KEY,
-                [],
-            );
-
-            return [];
-        }
-
-        return stored;
-    } catch {
-        return [];
-    }
+    return [];
 };
 
 export const saveBoms = (boms) => {
@@ -152,31 +118,7 @@ export const createBom = async (bom) => {
         saveBoms([remoteBom, ...boms.filter((item) => item.id !== remoteBom.id)]);
         return remoteBom;
     }
-    const boms = getStoredBoms();
-
-    const newBom = {
-        ...bom,
-
-        id: `bom-${Date.now()}`,
-
-        version:
-            bom.version || "1.0",
-
-        status:
-            bom.status || "ACTIVE",
-
-        createdAt:
-            new Date().toLocaleString(
-                getLocale(),
-            ),
-    };
-
-    saveBoms([
-        newBom,
-        ...boms,
-    ]);
-
-    return newBom;
+    throw new Error("Retsept backendda saqlanmadi.");
 };
 
 export const updateBom = async (
@@ -191,21 +133,7 @@ export const updateBom = async (
         saveBoms([remoteBom, ...boms.filter((bom) => bom.id !== updatedBom.id && bom.id !== remoteBom.id)]);
         return remoteBom;
     }
-    const boms = getStoredBoms();
-
-    const updated = boms.map(
-        (bom) =>
-            bom.id === updatedBom.id
-                ? {
-                    ...bom,
-                    ...updatedBom,
-                }
-                : bom,
-    );
-
-    saveBoms(updated);
-
-    return updatedBom;
+    throw new Error("Retsept backendda yangilanmadi.");
 };
 
 export const getStoredProductionOrders =
@@ -215,28 +143,7 @@ export const getStoredProductionOrders =
             tenantSet(PRODUCTION_STORAGE_KEY, remoteOrders);
             return remoteOrders.map(normalizeProductionOrder);
         }
-        try {
-            const stored =
-                tenantGet(
-                    PRODUCTION_STORAGE_KEY,
-                    null,
-                );
-
-            if (!stored) {
-                tenantSet(
-                    PRODUCTION_STORAGE_KEY,
-                    [],
-                );
-
-            return [];
-        }
-
-            return stored.map(
-                normalizeProductionOrder,
-            );
-        } catch {
-            return [];
-        }
+        return [];
     };
 
 export const saveProductionOrders = (
@@ -264,83 +171,19 @@ export const createProductionOrder = async (
         saveProductionOrders([remoteOrder, ...orders.filter((item) => item.id !== remoteOrder.id)]);
         return normalizeProductionOrder(remoteOrder);
     }
-    const orders =
-        getStoredProductionOrders();
+    throw new Error("Ishlab chiqarish buyurtmasi backendda saqlanmadi.");
+};
 
-    const requiredMaterials =
-        Array.isArray(
-            order.requiredMaterials,
-        )
-            ? order.requiredMaterials
-            : [];
+export const fetchProductionMaterialAvailability = async (payload) => {
+    const result = await apiRequest("/manufacturing/material-availability", {
+        method: "POST",
+        body: payload,
+    });
 
-    const plannedMaterialCost =
-        Number(
-            order.plannedMaterialCost ??
-            order.materialCost ??
-            calculateProductionMaterialCost(
-                requiredMaterials,
-            ),
-        ) || 0;
-
-    const newOrder = {
-        ...order,
-
-        id:
-            `prod-${Date.now()}`,
-
-        number:
-            `PR-${Math.floor(
-                1000 +
-                Math.random() *
-                9000,
-            )}`,
-
-        status: "PLANNED",
-
-        producedQuantity: 0,
-
-        requiredMaterials,
-
-        plannedMaterialCost,
-
-        overheadItems: [],
-
-        overheadCost: 0,
-
-        actualMaterialCost: 0,
-
-        actualProductionCost: 0,
-
-        actualUnitCost: 0,
-
-        wasteQuantity: 0,
-
-        defectQuantity: 0,
-
-        startedAt: null,
-
-        completedAt: null,
-
-        createdAt:
-            new Date().toLocaleString(
-                getLocale(),
-            ),
-
-        stages:
-            DEFAULT_PRODUCTION_STAGES.map(
-                (stage) => ({
-                    ...stage,
-                }),
-            ),
+    return {
+        ...result,
+        materials: Array.isArray(result?.materials) ? result.materials : [],
     };
-
-    saveProductionOrders([
-        newOrder,
-        ...orders,
-    ]);
-
-    return newOrder;
 };
 
 export const getProductionOrderById = (
@@ -380,22 +223,7 @@ export const updateProductionOrder = async (
         window.dispatchEvent(new Event("warehouse:changed"));
         return normalizeProductionOrder(remoteOrder);
     }
-    const orders =
-        getStoredProductionOrders();
-
-    const updated = orders.map(
-        (order) =>
-            order.id === updatedOrder.id
-                ? {
-                    ...order,
-                    ...updatedOrder,
-                }
-                : order,
-    );
-
-    saveProductionOrders(updated);
-
-    return updatedOrder;
+    throw new Error("Ishlab chiqarish buyurtmasi backendda yangilanmadi.");
 };
 
 export const startProductionOrder = async (
@@ -410,194 +238,13 @@ export const startProductionOrder = async (
         const orders = getStoredProductionOrders();
         saveProductionOrders(orders.map((order) => (order.id === remoteOrder.id ? remoteOrder : order)));
         window.dispatchEvent(new Event("warehouse:changed"));
-        void refreshWarehouseStock(remoteOrder.warehouseId);
+        void refreshWarehouseStock(remoteOrder.materialWarehouseId || remoteOrder.warehouseId);
+        if (remoteOrder.outputWarehouseId && remoteOrder.outputWarehouseId !== remoteOrder.warehouseId) {
+            void refreshWarehouseStock(remoteOrder.outputWarehouseId);
+        }
         return normalizeProductionOrder(remoteOrder);
     }
-    const orders =
-        getStoredProductionOrders();
-
-    const order =
-        orders.find(
-            (item) =>
-                item.id === orderId,
-        );
-
-    if (!order) {
-        throw new Error(
-            "Ishlab chiqarish buyurtmasi topilmadi.",
-        );
-    }
-
-    if (order.status !== "PLANNED") {
-        throw new Error(
-            "Faqat PLANNED holatdagi buyurtmani boshlash mumkin.",
-        );
-    }
-
-    const availability =
-        checkMaterialAvailability({
-            warehouseId:
-                order.warehouseId,
-            requiredMaterials:
-                order.requiredMaterials ||
-                [],
-        });
-
-    if (
-        !hasEnoughMaterials(
-            availability,
-        )
-    ) {
-        const error =
-            new Error(
-                "Xomashyo yetarli emas.",
-            );
-
-        error.shortages =
-            availability.filter(
-                (material) =>
-                    !material.enough,
-            );
-
-        throw error;
-    }
-
-    const stock =
-        getStoredWarehouseStock();
-
-    const remainingByProduct =
-        new Map(
-            availability.map(
-                (material) => [
-                    material.productId,
-                    Number(
-                        material.requiredQuantity ||
-                        0,
-                    ),
-                ],
-            ),
-        );
-
-    const updatedStock =
-        stock.map((item) => {
-            const remaining =
-                remainingByProduct.get(
-                    item.productId,
-                ) || 0;
-
-            if (
-                item.warehouseId !==
-                order.warehouseId ||
-                remaining <= 0
-            ) {
-                return item;
-            }
-
-            const productUnit = normalizeUnit(
-                availability.find((material) => material.productId === item.productId)?.unit || item.unit,
-            );
-            const stockUnit = normalizeUnit(item.unit || productUnit);
-            let available;
-            try {
-                available = convertQuantity(
-                    Math.max(Number(item.quantity || 0) - Number(item.reserved || 0), 0),
-                    stockUnit,
-                    productUnit,
-                );
-            } catch {
-                return item;
-            }
-
-            const reservedNow =
-                Math.min(
-                    remaining,
-                    available,
-                );
-
-            remainingByProduct.set(
-                item.productId,
-                remaining -
-                reservedNow,
-            );
-
-            let reservedInStockUnit;
-            try {
-                reservedInStockUnit = convertQuantity(reservedNow, productUnit, stockUnit);
-            } catch {
-                return item;
-            }
-
-            return {
-                ...item,
-
-                reserved:
-                    Number(item.reserved || 0) + Number(reservedInStockUnit || 0),
-            };
-        });
-
-    saveWarehouseStock(
-        updatedStock,
-    );
-
-    const startedOrder = {
-        ...order,
-
-        status: "IN_PROGRESS",
-
-        startedAt:
-            new Date().toISOString(),
-
-        requiredMaterials:
-            availability.map(
-                (material) => ({
-                    id:
-                        material.id ||
-                        material.productId,
-                    productId:
-                        material.productId,
-                    productName:
-                        material.productName,
-                    sku:
-                        material.sku,
-                    unit:
-                        material.unit,
-                    bomQuantity:
-                        material.bomQuantity,
-                    requiredQuantity:
-                        material.requiredQuantity,
-                    cost:
-                        material.cost,
-                    totalCost:
-                        material.totalCost,
-                }),
-            ),
-
-        plannedMaterialCost:
-            calculateProductionMaterialCost(
-                availability,
-            ),
-
-        overheadItems:
-            normalizeOverheadItems(
-                order.overheadItems,
-            ),
-
-        overheadCost:
-            calculateOverheadCost(
-                order.overheadItems,
-            ),
-    };
-
-    saveProductionOrders(
-        orders.map(
-            (item) =>
-                item.id === orderId
-                    ? startedOrder
-                    : item,
-        ),
-    );
-
-    return startedOrder;
+    throw new Error("Ishlab chiqarishni boshlash backendda bajarilmadi.");
 };
 
 export const updateProductionOrderStages = async (
@@ -613,7 +260,7 @@ export const updateProductionOrderStages = async (
                 method: "POST",
                 body: { notes: changedStage.notes },
             });
-            if (remoteStage?.id) {
+    if (remoteStage?.id) {
                 const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}`);
                 if (remoteOrder?.id) {
                     const orders = getStoredProductionOrders();
@@ -623,36 +270,7 @@ export const updateProductionOrderStages = async (
             }
         }
     }
-    const orders =
-        getStoredProductionOrders();
-
-    let updatedOrder = null;
-
-    const updatedOrders =
-        orders.map((order) => {
-            if (order.id !== orderId) {
-                return order;
-            }
-
-            updatedOrder = {
-                ...order,
-                stages,
-            };
-
-            return updatedOrder;
-        });
-
-    if (!updatedOrder) {
-        throw new Error(
-            "Ishlab chiqarish buyurtmasi topilmadi.",
-        );
-    }
-
-    saveProductionOrders(
-        updatedOrders,
-    );
-
-    return updatedOrder;
+    throw new Error("Bosqich backendda yangilanmadi.");
 };
 
 export const updateProductionOrderQuality = async (
@@ -668,39 +286,7 @@ export const updateProductionOrderQuality = async (
         saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
         return normalizeProductionOrder(remoteOrder);
     }
-    const orders =
-        getStoredProductionOrders();
-
-    let updatedOrder = null;
-
-    const updatedOrders =
-        orders.map((order) => {
-            if (
-                order.id !== orderId
-            ) {
-                return order;
-            }
-
-            updatedOrder = {
-                ...order,
-
-                qualityControl,
-            };
-
-            return updatedOrder;
-        });
-
-    if (!updatedOrder) {
-        throw new Error(
-            "Ishlab chiqarish buyurtmasi topilmadi.",
-        );
-    }
-
-    saveProductionOrders(
-        updatedOrders,
-    );
-
-    return updatedOrder;
+    throw new Error("Sifat nazorati backendda saqlanmadi.");
 };
 
 export const updateProductionOrderOverhead = async (
@@ -716,59 +302,5 @@ export const updateProductionOrderOverhead = async (
         saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
         return normalizeProductionOrder(remoteOrder);
     }
-    const orders =
-        getStoredProductionOrders();
-
-    const normalizedItems =
-        normalizeOverheadItems(
-            overheadItems,
-        );
-
-    const overheadCost =
-        calculateOverheadCost(
-            normalizedItems,
-        );
-
-    let updatedOrder = null;
-
-    const updatedOrders =
-        orders.map((order) => {
-            if (
-                order.id !== orderId
-            ) {
-                return order;
-            }
-
-            if (
-                order.status ===
-                "COMPLETED"
-            ) {
-                throw new Error(
-                    "Tugallangan ishlab chiqarish xarajatlarini o'zgartirib bo'lmaydi.",
-                );
-            }
-
-            updatedOrder = {
-                ...order,
-
-                overheadItems:
-                    normalizedItems,
-
-                overheadCost,
-            };
-
-            return updatedOrder;
-        });
-
-    if (!updatedOrder) {
-        throw new Error(
-            "Ishlab chiqarish buyurtmasi topilmadi.",
-        );
-    }
-
-    saveProductionOrders(
-        updatedOrders,
-    );
-
-    return updatedOrder;
+    throw new Error("Qo'shimcha xarajatlar backendda saqlanmadi.");
 };

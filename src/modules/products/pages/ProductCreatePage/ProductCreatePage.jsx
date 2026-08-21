@@ -18,16 +18,23 @@ const ProductCreatePage = () => {
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState("");
   const [submitField, setSubmitField] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (product) => {
+    if (submitting) return;
     setSubmitError("");
     setSubmitField("");
+    setSubmitting(true);
     try {
       await createStoredProduct(product);
-      navigate("/products");
+      navigate("/products", {
+        state: { successMessage: "Mahsulot yaratildi." },
+      });
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
       setSubmitField(error?.field || "");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -52,6 +59,7 @@ const ProductCreatePage = () => {
             onSubmit={handleSubmit}
             submitError={submitError}
             submitField={submitField}
+            submitting={submitting}
             onCancel={() => navigate("/products")} />
           
         </Card>

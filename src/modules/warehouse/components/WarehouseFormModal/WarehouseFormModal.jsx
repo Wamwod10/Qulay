@@ -6,7 +6,7 @@ import { translateText } from "../../../../localization/i18n";
 const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
   const [form, setForm] = useState({
     name: "",
-    branch: "",
+    code: "",
     address: "",
     responsible: "",
     note: "",
@@ -23,7 +23,7 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
     if (warehouse) {
       setForm({
         name: warehouse.name || "",
-        branch: warehouse.branch || "",
+        code: warehouse.code || "",
         address: warehouse.address || "",
         responsible: warehouse.responsible || "",
         note: warehouse.note || "",
@@ -32,7 +32,7 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
     } else {
       setForm({
         name: "",
-        branch: "",
+        code: "",
         address: "",
         responsible: "",
         note: "",
@@ -64,10 +64,6 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
       nextErrors.name = translateText("Ombor nomini kiriting.");
     }
 
-    if (!form.branch.trim()) {
-      nextErrors.branch = translateText("Filial nomini kiriting.");
-    }
-
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length) {
@@ -77,7 +73,7 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
     onSubmit?.({
       id: warehouse?.id,
       name: form.name.trim(),
-      branch: form.branch.trim(),
+      code: form.code.trim(),
       address: form.address.trim(),
       responsible: form.responsible.trim(),
       note: form.note.trim(),
@@ -108,11 +104,11 @@ const WarehouseFormModal = ({ open, warehouse, onClose, onSubmit }) => {
         />
 
         <Input
-          label={translateText("Filial")}
-          placeholder={translateText("Masalan: Asosiy filial")}
-          value={form.branch}
-          error={errors.branch}
-          onChange={(event) => handleChange("branch", event.target.value)}
+          label={translateText("Ombor kodi")}
+          placeholder={translateText("Masalan: MAIN")}
+          value={form.code}
+          error={errors.code}
+          onChange={(event) => handleChange("code", event.target.value)}
         />
 
         <Input

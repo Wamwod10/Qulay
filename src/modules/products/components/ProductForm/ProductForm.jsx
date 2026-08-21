@@ -1,5 +1,5 @@
 import { translateText } from "../../../../localization/i18n";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ImagePlus, Trash2 } from "lucide-react";
 
@@ -13,15 +13,20 @@ import {
 } from "../../../../shared/ui";
 
 import { PRODUCT_TYPES } from "../../constants/productTypes";
-import { PRODUCT_CATEGORIES } from "../../constants/productCategories";
-import { generateUniqueSku } from "../../utils/productsStorage";
-import { getStoredSuppliers } from "../../../suppliers/utils/suppliersStorage";
-import { createSupplier } from "../../../suppliers/utils/suppliersStorage";
+import {
+  createSupplier,
+  fetchStoredSuppliers,
+  getStoredSuppliers,
+} from "../../../suppliers/utils/suppliersStorage";
 import {
   createCategory,
+  fetchStoredCategories,
   getStoredCategories,
 } from "../../utils/categoriesStorage";
-import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
+import {
+  fetchStoredWarehouses,
+  getStoredWarehouses,
+} from "../../../warehouse/utils/warehouseManagementStorage";
 import { getDefaultWarehouseId } from "../../../warehouse/utils/warehouseDefaults";
 import { tenantGet, tenantSet } from "../../../auth/utils/tenantStorage";
 import { UNIT_DEFINITIONS } from "../../../../shared/utils/units";
@@ -137,8 +142,10 @@ const ProductForm = ({
   onCancel,
   submitError = "",
   submitField = "",
+  submitting = false,
 }) => {
   const fileInputRef = useRef(null);
+  const isEdit = Boolean(initialValues?.id);
 
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(() => toFormValues(initialValues));
@@ -148,13 +155,47 @@ const ProductForm = ({
   const [categoryList, setCategoryList] = useState(() =>
     getStoredCategories().filter((category) => category.status !== "INACTIVE"),
   );
-  const warehouses = useMemo(
-    () =>
-      getStoredWarehouses().filter(
-        (warehouse) => warehouse.status === "ACTIVE",
-      ),
-    [],
+  const [warehouseList, setWarehouseList] = useState(() =>
+    getStoredWarehouses().filter(
+      (warehouse) => warehouse.status === "ACTIVE",
+    ),
   );
+  const warehouses = warehouseList;
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchStoredSuppliers()
+      .then((items) => {
+        if (alive) setSupplierList(items.filter((supplier) => supplier.status === "ACTIVE"));
+      })
+      .catch(() => {});
+    fetchStoredCategories()
+      .then((items) => {
+        if (alive) setCategoryList(items.filter((category) => category.status !== "INACTIVE"));
+      })
+      .catch(() => {});
+    fetchStoredWarehouses()
+      .then((items) => {
+        if (alive) setWarehouseList(items.filter((warehouse) => warehouse.status === "ACTIVE"));
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isEdit || form.warehouseId || !warehouseList.length) {
+      return;
+    }
+
+    const defaultWarehouseId = getDefaultWarehouseId(warehouseList);
+    if (defaultWarehouseId) {
+      setForm((current) => current.warehouseId ? current : { ...current, warehouseId: defaultWarehouseId });
+    }
+  }, [form.warehouseId, isEdit, warehouseList]);
 
   const suppliers = supplierList;
 
@@ -170,7 +211,6 @@ const ProductForm = ({
   }));
 
   const categoryOptions = [
-    ...PRODUCT_CATEGORIES,
     ...categoryList.map((category) => ({
       value: category.id,
       label: category.name,
@@ -260,6 +300,10 @@ const ProductForm = ({
       nextErrors.name = "Mahsulot nomini kiriting.";
     }
 
+    if (!form.sku.trim()) {
+      nextErrors.sku = "SKU kiriting.";
+    }
+
     if (!form.type) {
       nextErrors.type = "Mahsulot turini tanlang.";
     }
@@ -291,7 +335,7 @@ const ProductForm = ({
     validateNumber("cost", "Tannarx", 0, null, nextErrors);
     if (form.type !== "RAW_MATERIAL")
       validateNumber("salePrice", "Sotuv narxi", 0, null, nextErrors);
-    if (Number(form.stock || 0) > 0 && !form.warehouseId)
+    if (!isEdit && Number(form.stock || 0) > 0 && !form.warehouseId)
       nextErrors.warehouseId = "Boshlang'ich qoldiq uchun omborni tanlang.";
     validateNumber("tax", "QQS", 0, 100, nextErrors);
     validateNumber("discount", "Chegirma", 0, 100, nextErrors);
@@ -309,19 +353,17 @@ const ProductForm = ({
       return;
     }
 
-    const sku = form.sku.trim() || generateUniqueSku(initialValues?.id);
-
     const product = {
       id: initialValues?.id || `prd-${Date.now()}`,
       name: form.name.trim(),
-      sku,
+      sku: form.sku.trim(),
       barcode: form.barcode.trim(),
       type: form.type,
       category: selectedCategory?.name || form.category || null,
       categoryId: selectedCategory?.id || null,
       brand: form.brand.trim(),
       unit: form.unit,
-      stock: Number(form.stock) || 0,
+      ...(!isEdit ? { stock: Number(form.stock) || 0 } : {}),
       minimumStock: Number(form.minimumStock) || 0,
       reorderPoint: Number(form.reorderPoint) || 0,
       expiryDate: form.expiryDate || null,
@@ -334,7 +376,7 @@ const ProductForm = ({
           : Number(form.salePrice),
       supplierId: form.supplierId || null,
       supplierName: selectedSupplier?.name || null,
-      warehouseId: form.warehouseId || null,
+      ...(!isEdit ? { warehouseId: form.warehouseId || null } : {}),
       tax: Number(form.tax) || 0,
       discount: Number(form.discount) || 0,
       image: form.image || "",
@@ -529,26 +571,30 @@ const ProductForm = ({
         </div>
 
         <div className="product-form__grid">
-          <Select
-            label={translateText("Ombor")}
-            value={form.warehouseId}
-            placeholder={translateText("Ombor tanlang")}
-            options={warehouseOptions}
-            error={errors.warehouseId}
-            onChange={(event) =>
-              handleChange("warehouseId", event.target.value)
-            }
-          />
+          {!isEdit && (
+            <Select
+              label={translateText("Ombor")}
+              value={form.warehouseId}
+              placeholder={translateText("Ombor tanlang")}
+              options={warehouseOptions}
+              error={errors.warehouseId}
+              onChange={(event) =>
+                handleChange("warehouseId", event.target.value)
+              }
+            />
+          )}
 
-          <Input
-            label={translateText("Boshlang'ich qoldiq")}
-            type="number"
-            min="0"
-            step="any"
-            value={form.stock}
-            error={errors.stock}
-            onChange={(event) => handleChange("stock", event.target.value)}
-          />
+          {!isEdit && (
+            <Input
+              label={translateText("Boshlang'ich qoldiq")}
+              type="number"
+              min="0"
+              step="any"
+              value={form.stock}
+              error={errors.stock}
+              onChange={(event) => handleChange("stock", event.target.value)}
+            />
+          )}
 
           <Input
             label={translateText("Minimal qoldiq")}
@@ -687,11 +733,11 @@ const ProductForm = ({
       </div>
 
       <div className="product-form__actions">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           {translateText("Bekor qilish")}
         </Button>
 
-        <Button type="submit">
+        <Button type="submit" loading={submitting}>
           {initialValues ? "O'zgarishlarni saqlash" : "Mahsulot yaratish"}
         </Button>
       </div>

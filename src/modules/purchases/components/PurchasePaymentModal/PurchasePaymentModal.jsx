@@ -1,12 +1,23 @@
-import { translateText } from "../../../../localization/i18n";import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button, Input, Modal } from "../../../../shared/ui";
-
+import { translateText } from "../../../../localization/i18n";
+import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
+import { apiRequest, unwrapList } from "../../../../services/api/apiClient";
 import { formatPurchaseMoney } from "../../utils/purchaseHelpers";
 
-const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
-  const [paidAmount, setPaidAmount] = useState("");
+const PAYMENT_METHODS = [
+  { value: "CASH", label: "Naqd" },
+  { value: "CARD", label: "Karta" },
+  { value: "BANK", label: "Bank" },
+];
 
+const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit, submitting = false }) => {
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("CASH");
+  const [cashboxId, setCashboxId] = useState("");
+  const [cashboxes, setCashboxes] = useState([]);
+  const [note, setNote] = useState("");
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -14,38 +25,55 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
       return;
     }
 
-    setPaidAmount(String(purchase.paidAmount ?? 0));
-
+    setAmount(String(purchase.debtAmount ?? 0));
+    setMethod("CASH");
+    setCashboxId("");
+    setCashboxes([]);
+    setNote("");
+    setIdempotencyKey(`purchase-payment:${purchase.id}:${Date.now()}`);
     setError("");
+
+    apiRequest("/finance/cashboxes")
+      .then((result) => {
+        const items = unwrapList(result, ["cashboxes"]);
+        const activeItems = Array.isArray(items) ? items.filter((item) => item.status !== "INACTIVE" && item.active !== false) : [];
+        setCashboxes(activeItems);
+        setCashboxId(activeItems[0]?.id || "");
+      })
+      .catch(() => {});
   }, [open, purchase]);
 
   if (!purchase) {
     return null;
   }
 
-  const total = Number(purchase.total || 0);
-
-  const paid = Number(paidAmount || 0);
-
-  const debt = Math.max(total - paid, 0);
+  const debt = Number(purchase.debtAmount || 0);
+  const paymentAmount = Number(amount || 0);
+  const canPay = purchase.status === "PARTIALLY_RECEIVED" || purchase.status === "RECEIVED";
 
   const handleSubmit = () => {
-    if (paid < 0) {
-      setError(translateText("To‘lov manfiy bo‘lishi mumkin emas."));
-
+    if (!canPay) {
+      setError(translateText("Avval xaridni qabul qiling."));
       return;
     }
 
-    if (paid > total) {
-      setError(translateText("To‘lov jami summadan katta bo‘lishi mumkin emas."));
+    if (paymentAmount <= 0) {
+      setError(translateText("To'lov 0 dan katta bo'lsin."));
+      return;
+    }
 
+    if (paymentAmount > debt) {
+      setError(translateText("To'lov qarz summasidan oshmasin."));
       return;
     }
 
     onSubmit?.({
       purchaseId: purchase.id,
-
-      paidAmount: paid
+      amount: paymentAmount,
+      method,
+      note,
+      idempotencyKey,
+      cashboxId: cashboxId || undefined,
     });
   };
 
@@ -53,93 +81,78 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit }) => {
     <Modal
       open={open}
       onClose={onClose}
-      title={translateText("To‘lovni yangilash")}
-      description={`${purchase.number} · ${purchase.supplierName}`}
-      size="sm">
-      
-      <div
-        style={{
-          display: "grid",
-          gap: 18
-        }}>
-        
-        <Input
-          label={translateText("Jami xarid")}
-          value={formatPurchaseMoney(total)}
-          disabled />
-        
+      title={translateText("To'lov qilish")}
+      description={`${purchase.number} · ${purchase.supplierName || ""}`}
+      size="sm"
+    >
+      <div style={{ display: "grid", gap: 18 }}>
+        <Input label={translateText("Jami xarid")} value={formatPurchaseMoney(purchase.total)} disabled />
+        <Input label={translateText("Qolgan qarz")} value={formatPurchaseMoney(debt)} disabled />
 
         <Input
-          label={translateText("To‘langan summa")}
+          label={translateText("To'lov summasi")}
           type="number"
           min="0"
-          max={total}
-          value={paidAmount}
-          onChange={(event) => setPaidAmount(event.target.value)} />
-        
+          max={debt}
+          step="any"
+          inputMode="decimal"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          disabled={!canPay || submitting}
+        />
 
-        <div
-          style={{
-            padding: 15,
-            borderRadius: "var(--radius-md)",
-            boxShadow: "var(--shadow-inset)"
-          }}>
-          
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 14
-            }}>
-            
-            <span
-              style={{
-                color: "var(--color-text-muted)",
-                fontSize: 11
-              }}>{translateText("Qolgan qarz")}
+        <Select
+          label={translateText("To'lov usuli")}
+          value={method}
+          options={PAYMENT_METHODS}
+          onChange={(event) => setMethod(event.target.value)}
+          disabled={!canPay || submitting}
+        />
 
+        {cashboxes.length > 0 && (
+          <Select
+            label={translateText("Kassa")}
+            value={cashboxId}
+            options={cashboxes.map((cashbox) => ({
+              value: cashbox.id,
+              label: `${cashbox.name} / ${cashbox.currency || ""}`,
+            }))}
+            onChange={(event) => setCashboxId(event.target.value)}
+            disabled={!canPay || submitting}
+          />
+        )}
 
-            </span>
+        <Textarea
+          label={translateText("Izoh")}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          disabled={!canPay || submitting}
+        />
 
-            <strong
-              style={{
-                color:
-                debt > 0 ? "var(--color-warning)" : "var(--color-success)",
-                fontSize: 14
-              }}>
-              
-              {formatPurchaseMoney(debt)}
-            </strong>
+        {!canPay && (
+          <div style={{ color: "var(--color-warning)", fontSize: 12 }}>
+            {translateText("To'lov faqat qisman yoki to'liq qabul qilingan xarid uchun kiritiladi.")}
           </div>
-        </div>
+        )}
 
-        {error &&
-        <div
-          style={{
-            color: "var(--color-danger)",
-            fontSize: 12
-          }}>
-          
+        {error && (
+          <div style={{ color: "var(--color-danger)", fontSize: 12 }}>
             {error}
           </div>
-        }
+        )}
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 10
-          }}>
-          
-          <Button variant="secondary" onClick={onClose}>{translateText("Bekor qilish")}
-
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>{translateText("Saqlash")}</Button>
+          <Button onClick={handleSubmit} disabled={!canPay || submitting}>
+            {translateText("Saqlash")}
+          </Button>
         </div>
       </div>
-    </Modal>);
-
+    </Modal>
+  );
 };
 
 export default PurchasePaymentModal;

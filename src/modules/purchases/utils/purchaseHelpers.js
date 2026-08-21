@@ -5,6 +5,7 @@ import {
 import { getLocale, translateText } from "../../../localization/i18n";
 import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
 import { getPlatformSettings } from "../../settings/utils/settingsStorage";
+import { convertQuantity } from "../../../shared/utils/units";
 
 export const formatPurchaseMoney = (
     value,
@@ -208,6 +209,53 @@ export const applyPurchaseReceipt = ({
     return updatedPurchase;
 };
 
+export const roundPurchaseNumber = (value, precision = 6) => {
+    const number = Number(value || 0);
+    if (!Number.isFinite(number)) return 0;
+    const factor = 10 ** precision;
+    return Math.round((number + Number.EPSILON) * factor) / factor;
+};
+
+export const getPurchaseDisplayQuantity = (item) => {
+    if (item?.purchaseQuantity !== null && item?.purchaseQuantity !== undefined) {
+        return roundPurchaseNumber(item.purchaseQuantity);
+    }
+
+    return roundPurchaseNumber(item?.quantity);
+};
+
+export const getPurchaseDisplayUnit = (item) => item?.purchaseUnit || item?.unit || "";
+
+export const convertCanonicalToPurchaseUnit = (value, item) => {
+    const canonicalUnit = item?.unit;
+    const purchaseUnit = item?.purchaseUnit || item?.unit;
+
+    if (!canonicalUnit || !purchaseUnit) {
+        return roundPurchaseNumber(value);
+    }
+
+    try {
+        return roundPurchaseNumber(convertQuantity(value, canonicalUnit, purchaseUnit));
+    } catch {
+        return roundPurchaseNumber(value);
+    }
+};
+
+export const getCanonicalUnitCost = ({
+    quantity,
+    purchaseUnit,
+    productUnit,
+    lineTotal,
+}) => {
+    try {
+        const canonicalQuantity = convertQuantity(Number(quantity || 0), purchaseUnit || productUnit, productUnit);
+        if (canonicalQuantity <= 0) return 0;
+        return roundPurchaseNumber(Number(lineTotal || 0) / canonicalQuantity);
+    } catch {
+        return 0;
+    }
+};
+
 export const getLastPurchasePrice = ({
     purchases,
     productId,
@@ -226,10 +274,10 @@ export const getLastPurchasePrice = ({
         purchase.items?.forEach((item) => {
             if (
                 item.productId === productId &&
-                Number(item.purchasePrice) >= 0
+                Number(item.cost ?? item.canonicalUnitPrice ?? 0) >= 0
             ) {
                 matchedItems.push({
-                    price: Number(item.purchasePrice),
+                    price: Number(item.cost ?? item.canonicalUnitPrice ?? 0),
                     date:
                         purchase.orderDate ||
                         purchase.createdAt ||

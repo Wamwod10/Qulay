@@ -59,13 +59,13 @@ const ProductionOverheadPanel = ({ order, readOnly = false, onChange }) => {
     <Card padding="lg" className="production-overhead">
       <div className="production-overhead__header">
         <div>
-          <h3>Ishlab chiqarish xarajatlari / Overhead</h3>
+          <h3>Qo'shimcha ishlab chiqarish xarajatlari</h3>
           <p>Materialdan tashqari ishlab chiqarish xarajatlari.</p>
         </div>
 
         <div className="production-overhead__summary">
           <LiveIcon icon={WalletCards} motion="pulse-soft" size={17} />
-          <span>Jami overhead</span>
+          <span>Jami qo'shimcha xarajat</span>
           <strong>{formatManufacturingMoney(total)}</strong>
         </div>
       </div>
@@ -129,7 +129,7 @@ const ProductionOverheadPanel = ({ order, readOnly = false, onChange }) => {
           ))
         ) : (
           <div className="production-overhead__empty">
-            Overhead xarajatlari kiritilmagan.
+            Qo'shimcha xarajatlar kiritilmagan.
           </div>
         )}
       </div>

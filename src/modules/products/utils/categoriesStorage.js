@@ -29,13 +29,11 @@ export const createCategory = async (name, options = {}) => {
     inlineModule: options.inlineModule,
   });
 
-  const category = remote?.id
-    ? remote
-    : {
-      id: `cat-${Date.now()}`,
-      name,
-      status: "ACTIVE",
-    };
+  if (!remote?.id) {
+    throw new Error("Kategoriya backendda saqlanmadi.");
+  }
+
+  const category = remote;
 
   const categories = getStoredCategories().filter(
     (item) => item.id !== category.id,
@@ -51,4 +49,17 @@ export const createCategory = async (name, options = {}) => {
   });
 
   return category;
+};
+
+export const fetchStoredCategories = async () => {
+  const result = await apiRequest("/categories");
+  const categories = unwrapList(result, ["categories"]);
+
+  if (!Array.isArray(categories)) {
+    throw new Error("Kategoriyalar backenddan olinmadi.");
+  }
+
+  tenantSet(STORAGE_KEY, categories);
+
+  return categories;
 };

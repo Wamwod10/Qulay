@@ -18,10 +18,12 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Input,
   Select,
   Table,
+  Toast,
 } from "../../../../shared/ui";
 
 import {
@@ -61,6 +63,8 @@ const UsersPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
 
   const [actionUserId, setActionUserId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [actionError, setActionError] = useState("");
 
   const loadUsers = useCallback(async (silent = false) => {
     if (!silent) {
@@ -173,33 +177,33 @@ const UsersPage = () => {
         ),
       );
     } catch (err) {
-      window.alert(err.message || "Statusni o‘zgartirib bo‘lmadi.");
+      setActionError(err.message || "Statusni o'zgartirib bo'lmadi.");
     } finally {
       setActionUserId(null);
     }
   };
 
   const handleDelete = async (user) => {
-    const title = user.name || user.fullName || user.email || translateText("foydalanuvchi");
+    setDeleteTarget(user);
+  };
 
-    const confirmed = window.confirm(
-      `${title} akkauntini o‘chirishni tasdiqlaysizmi?`,
-    );
-
-    if (!confirmed) {
+  const confirmDelete = async () => {
+    if (!deleteTarget) {
       return;
     }
 
-    setActionUserId(user.id);
+    setActionUserId(deleteTarget.id);
+    setActionError("");
 
     try {
-      await deleteSuperAdminUser(user.id);
+      await deleteSuperAdminUser(deleteTarget.id);
 
       setUsers((currentUsers) =>
-        currentUsers.filter((item) => item.id !== user.id),
+        currentUsers.filter((item) => item.id !== deleteTarget.id),
       );
+      setDeleteTarget(null);
     } catch (err) {
-      window.alert(err.message || "Userni o‘chirib bo‘lmadi.");
+      setActionError(err.message || "Userni o'chirib bo'lmadi.");
     } finally {
       setActionUserId(null);
     }
@@ -309,6 +313,7 @@ const UsersPage = () => {
 
   return (
     <div className="sa-users">
+      {actionError && <Toast type="error" message={actionError} onClose={() => setActionError("")} />}
       <header className="sa-users__header">
         <div>
           <h1>{translateText("Foydalanuvchilar")}</h1>
@@ -372,6 +377,16 @@ const UsersPage = () => {
           />
         )}
       </Card>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        danger
+        title="User o'chirilsinmi?"
+        description={`${deleteTarget?.name || deleteTarget?.fullName || deleteTarget?.email || translateText("Foydalanuvchi")} akkauntini o'chirishni tasdiqlaysizmi?`}
+        confirmText="O'chirish"
+        loading={Boolean(deleteTarget && actionUserId === deleteTarget.id)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

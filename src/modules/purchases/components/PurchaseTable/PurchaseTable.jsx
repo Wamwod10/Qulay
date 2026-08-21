@@ -28,8 +28,7 @@ const PurchaseTable = ({
   onEdit,
   onPayment,
   onReceive,
-  onCancel,
-  onDuplicate
+  onCancel
 }) => {
   const columns = [
   {
@@ -145,8 +144,7 @@ const PurchaseTable = ({
         onEdit={onEdit}
         onPayment={onPayment}
         onReceive={onReceive}
-        onCancel={onCancel}
-        onDuplicate={onDuplicate} />
+        onCancel={onCancel} />
       
         </div>
 

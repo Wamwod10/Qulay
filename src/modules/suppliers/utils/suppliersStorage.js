@@ -81,30 +81,20 @@ export const createSupplier = async (supplier, options = {}) => {
         return remoteSupplier;
     }
 
-    const suppliers =
-        getStoredSuppliers();
+    throw new Error("Yetkazib beruvchi backendda saqlanmadi.");
+};
 
-    const newSupplier = {
-        ...supplier,
+export const fetchStoredSuppliers = async () => {
+    const result = await apiRequest("/suppliers");
+    const suppliers = unwrapList(result, ["suppliers"]);
 
-        id: `sup-${Date.now()}`,
+    if (!Array.isArray(suppliers)) {
+        throw new Error("Yetkazib beruvchilar backenddan olinmadi.");
+    }
 
-        status:
-            supplier.status ||
-            "ACTIVE",
+    tenantSet(STORAGE_KEY, suppliers);
 
-        createdAt:
-            new Date().toLocaleString(
-                "uz-UZ",
-            ),
-    };
-
-    saveSuppliers([
-        newSupplier,
-        ...suppliers,
-    ]);
-
-    return newSupplier;
+    return suppliers;
 };
 
 export const updateSupplier = async (

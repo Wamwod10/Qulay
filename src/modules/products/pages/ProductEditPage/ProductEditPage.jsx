@@ -9,20 +9,54 @@ import { Button, Card } from "../../../../shared/ui";
 import ProductForm from "../../components/ProductForm/ProductForm";
 
 import {
+  fetchStoredProductById,
   getStoredProductById,
   updateStoredProduct } from
 "../../utils/productsStorage";
 import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import "./ProductEditPage.scss";
 
 const ProductEditPage = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
-  const product = getStoredProductById(productId);
+  const [product, setProduct] = useState(() => getStoredProductById(productId));
+  const [loading, setLoading] = useState(!product);
   const [submitError, setSubmitError] = useState("");
   const [submitField, setSubmitField] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+
+    setLoading(true);
+    fetchStoredProductById(productId)
+      .then((remoteProduct) => {
+        if (alive) setProduct(remoteProduct);
+      })
+      .catch(() => {
+        if (alive) setProduct(getStoredProductById(productId));
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [productId]);
+
+  if (!product && loading) {
+    return (
+      <PageContainer
+        title={translateText("Mahsulot yuklanmoqda")}
+        description={translateText("Ma'lumotlar backenddan olinmoqda.")}>
+        <Button variant="secondary" onClick={() => navigate("/products")}>{translateText("Mahsulotlarga qaytish")}
+
+        </Button>
+      </PageContainer>);
+  }
 
   if (!product) {
     return (
@@ -38,8 +72,10 @@ const ProductEditPage = () => {
   }
 
   const handleSubmit = async (updatedProduct) => {
+    if (submitting) return;
     setSubmitError("");
     setSubmitField("");
+    setSubmitting(true);
 
     try {
       const savedProduct = await updateStoredProduct(updatedProduct);
@@ -50,6 +86,8 @@ const ProductEditPage = () => {
     } catch (error) {
       setSubmitError(getApiErrorMessage(error));
       setSubmitField(error?.field || "");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -75,6 +113,7 @@ const ProductEditPage = () => {
             onSubmit={handleSubmit}
             submitError={submitError}
             submitField={submitField}
+            submitting={submitting}
             onCancel={() => navigate(`/products/${product.id}`)} />
           
         </Card>

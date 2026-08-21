@@ -1,261 +1,68 @@
-import {
-    addWarehouseMovement,
-    getStoredWarehouseStock,
-    saveWarehouseStock,
-} from "../../warehouse/utils/warehouseStorage";
-
-import {
-    getStoredProducts,
-} from "../../products/utils/productsStorage";
-import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
+import { apiRequest, unwrapList } from "../../../services/api/apiClient";
+import { savePurchases } from "./purchasesStorage";
+import { saveWarehouseStock } from "../../warehouse/utils/warehouseStorage";
 
 export const receivePurchaseIntoWarehouse = async ({
-    purchase,
-    receivedItems,
+  purchase,
+  receivedItems,
+  receivedDate,
+  idempotencyKey,
 }) => {
-    if (!purchase) {
-        throw new Error(
-            "Xarid topilmadi.",
-        );
-    }
+  if (!purchase) {
+    throw new Error("Xarid topilmadi.");
+  }
 
-    if (
-        purchase.status ===
-        "RECEIVED" ||
-        purchase.status ===
-        "CANCELLED"
-    ) {
-        throw new Error(
-            "Bu xaridni qabul qilib bo‘lmaydi.",
-        );
-    }
+  if (purchase.status === "RECEIVED" || purchase.status === "CANCELLED") {
+    throw new Error("Bu xaridni qabul qilib bo'lmaydi.");
+  }
 
-    if (
-        !Array.isArray(
-            receivedItems,
-        ) ||
-        !receivedItems.length
-    ) {
-        throw new Error(
-            "Qabul qilinadigan mahsulotlarni kiriting.",
-        );
-    }
+  if (!Array.isArray(receivedItems) || !receivedItems.length) {
+    throw new Error("Qabul qilinadigan mahsulotlarni kiriting.");
+  }
 
-    const idempotencyKey = `purchase-receive:${purchase.id}:${receivedItems.map((item) => `${item.itemId || item.productId}:${item.quantity}`).join(",")}`;
-    const remotePurchase = await apiRequest(`/purchases/${purchase.id}/receive`, {
-        method: "POST",
-        idempotencyKey,
-        body: {
-            idempotencyKey,
-            receivedItems: receivedItems.map((item) => ({
-                purchaseItemId: item.itemId,
-                productId: item.productId,
-                quantity: item.quantity,
-                expiryDate: item.expiryDate || null,
-            })),
-        },
-    });
+  const receiveKey =
+    idempotencyKey ||
+    `purchase-receive:${purchase.id}:${Date.now()}:${receivedItems
+      .map((item) => `${item.itemId || item.productId}:${item.quantity}:${item.unit || ""}`)
+      .join(",")}`;
 
-    if (remotePurchase?.id) {
-        const remoteStock = unwrapList(await apiRequest("/inventory/stock"), ["stock"]);
-        if (Array.isArray(remoteStock)) {
-            saveWarehouseStock(remoteStock);
-            window.dispatchEvent(new Event("warehouse:changed"));
-            return remoteStock;
-        }
-    }
+  const remotePurchase = await apiRequest(`/purchases/${purchase.id}/receive`, {
+    method: "POST",
+    idempotencyKey: receiveKey,
+    body: {
+      idempotencyKey: receiveKey,
+      receivedDate,
+      receivedItems: receivedItems.map((item) => ({
+        purchaseItemId: item.itemId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unit: item.unit,
+        batchNumber: item.batchNumber || null,
+        expiryDate: item.expiryDate || null,
+        productionDate: item.productionDate || null,
+      })),
+    },
+  });
 
-    const currentStock =
-        getStoredWarehouseStock();
+  if (!remotePurchase?.id) {
+    throw new Error("Xarid qabul qilish backendda saqlanmadi.");
+  }
 
-    const products =
-        getStoredProducts();
+  const purchasesResult = await apiRequest("/purchases");
+  const purchases = unwrapList(purchasesResult, ["purchases"]);
+  if (Array.isArray(purchases)) {
+    savePurchases(purchases);
+  }
 
-    const updatedStock = [
-        ...currentStock,
-    ];
+  const stockResult = await apiRequest("/inventory/stock");
+  const remoteStock = unwrapList(stockResult, ["stock"]);
+  if (Array.isArray(remoteStock)) {
+    saveWarehouseStock(remoteStock);
+    window.dispatchEvent(new Event("warehouse:changed"));
+  }
 
-    receivedItems.forEach(
-        (receivedItem) => {
-            const amount =
-                Number(
-                    receivedItem.quantity ||
-                    0,
-                );
-
-            if (amount <= 0) {
-                return;
-            }
-
-            const purchaseItem =
-                purchase.items.find(
-                    (item) =>
-                        item.id ===
-                        receivedItem.itemId ||
-                        item.productId ===
-                        receivedItem.productId,
-                );
-
-            if (!purchaseItem) {
-                throw new Error(
-                    "Xarid mahsuloti topilmadi.",
-                );
-            }
-
-            const alreadyReceived =
-                Number(
-                    purchaseItem.receivedQuantity ||
-                    0,
-                );
-
-            const ordered =
-                Number(
-                    purchaseItem.quantity ||
-                    0,
-                );
-
-            const remaining =
-                ordered -
-                alreadyReceived;
-
-            if (amount > remaining) {
-                throw new Error(
-                    `${purchaseItem.productName}: qolgan miqdordan ko‘p qabul qilib bo‘lmaydi.`,
-                );
-            }
-
-            const existingIndex =
-                updatedStock.findIndex(
-                    (stockItem) =>
-                        stockItem.warehouseId ===
-                        purchase.warehouseId &&
-                        stockItem.productId ===
-                        purchaseItem.productId,
-                );
-
-            if (existingIndex >= 0) {
-                const existing =
-                    updatedStock[
-                    existingIndex
-                    ];
-
-                updatedStock[
-                    existingIndex
-                ] = {
-                    ...existing,
-
-                    quantity:
-                        Number(
-                            existing.quantity ||
-                            0,
-                        ) + amount,
-
-                    cost:
-                        Number(
-                            purchaseItem.purchasePrice ||
-                            existing.cost ||
-                            0,
-                        ),
-                };
-            } else {
-                const product =
-                    products.find(
-                        (item) =>
-                            item.id ===
-                            purchaseItem.productId,
-                    );
-
-                updatedStock.push({
-                    id:
-                        `stock-${Date.now()}-${Math.random()
-                            .toString(36)
-                            .slice(2, 7)}`,
-
-                    warehouseId:
-                        purchase.warehouseId,
-
-                    productId:
-                        purchaseItem.productId,
-
-                    productName:
-                        purchaseItem.productName,
-
-                    sku:
-                        purchaseItem.sku,
-
-                    type:
-                        product?.type ||
-                        "TRADING_PRODUCT",
-
-                    category:
-                        product?.category ||
-                        "Boshqa",
-
-                    unit:
-                        purchaseItem.unit,
-
-                    image:
-                        product?.image ||
-                        "",
-
-                    quantity:
-                        amount,
-
-                    reserved: 0,
-
-                    minimumStock:
-                        Number(
-                            product?.minimumStock ||
-                            0,
-                        ),
-
-                    cost:
-                        Number(
-                            purchaseItem.purchasePrice ||
-                            0,
-                        ),
-                });
-            }
-
-            addWarehouseMovement({
-                type: "IN",
-
-                warehouseId:
-                    purchase.warehouseId,
-
-                productId:
-                    purchaseItem.productId,
-
-                productName:
-                    purchaseItem.productName,
-
-                quantity:
-                    amount,
-
-                unit:
-                    purchaseItem.unit,
-
-                cost:
-                    purchaseItem.purchasePrice,
-
-                source:
-                    `Xarid ${purchase.number}`,
-
-                purchaseId:
-                    purchase.id,
-
-                supplierName:
-                    purchase.supplierName,
-
-                note:
-                    "Xarid buyurtmasidan qabul qilindi.",
-            });
-        },
-    );
-
-    saveWarehouseStock(
-        updatedStock,
-    );
-
-    return updatedStock;
+  return {
+    purchase: remotePurchase,
+    stock: Array.isArray(remoteStock) ? remoteStock : null,
+  };
 };

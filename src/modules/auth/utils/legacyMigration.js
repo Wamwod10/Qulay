@@ -2,7 +2,6 @@ import { tenantSetForAccount } from "./tenantStorage";
 
 const LEGACY_WORKSPACE_KEYS = {
   universal_erp_products: "products",
-  universal_erp_product_history: "product_history",
   universal_erp_customers: "customers",
   universal_erp_customer_followups: "customer_followups",
   universal_erp_sales: "sales",

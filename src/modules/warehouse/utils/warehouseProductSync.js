@@ -1,4 +1,5 @@
 import { getStoredProducts } from "../../products/utils/productsStorage";
+import { isLocalBusinessFallbackEnabled } from "../../auth/utils/tenantStorage";
 
 import {
     getStoredWarehouseStock,
@@ -17,6 +18,10 @@ const WAREHOUSE_PRODUCT_TYPES = [
 ];
 
 export const syncWarehouseWithProducts = () => {
+    if (!isLocalBusinessFallbackEnabled()) {
+        return getStoredWarehouseStock();
+    }
+
     const products = getStoredProducts();
 
     const warehouses = getStoredWarehouses();

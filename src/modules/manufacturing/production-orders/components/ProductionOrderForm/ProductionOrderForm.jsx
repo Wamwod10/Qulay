@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
-
-import { translateText } from "../../../../../localization/i18n";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
+import { translateText } from "../../../../../localization/i18n";
 import {
   Badge,
   Button,
@@ -14,189 +12,142 @@ import {
   Select,
   Textarea,
 } from "../../../../../shared/ui";
-
-import { getStoredBoms } from "../../../utils/manufacturingStorage";
-
-import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import { focusFirstInvalidField } from "../../../../../shared/utils/formFocus";
+import { aggregateQuantities } from "../../../../../shared/utils/units";
 import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefaults";
-
+import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import {
+  fetchProductionMaterialAvailability,
+  getStoredBoms,
+} from "../../../utils/manufacturingStorage";
+import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
 import {
   calculateProductionMaterialCost,
-  calculateRequiredMaterials,
   formatProductionQuantity,
   getBomProductSnapshot,
 } from "../../utils/productionOrderHelpers";
-
-import {
-  checkMaterialAvailability,
-  hasEnoughMaterials,
-} from "../../utils/materialAvailability";
-
-import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
-import { aggregateQuantities } from "../../../../../shared/utils/units";
-import { focusFirstInvalidField } from "../../../../../shared/utils/formFocus";
 
 import "./ProductionOrderForm.scss";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
-const ProductionOrderForm = ({ onSubmit, onCancel, submitError = "" }) => {
-  const boms = useMemo(
-    () => getStoredBoms().filter((bom) => bom.status === "ACTIVE"),
-    [],
-  );
-
-  const warehouses = useMemo(
-    () =>
-      getStoredWarehouses().filter(
-        (warehouse) => warehouse.status === "ACTIVE",
-      ),
-    [],
-  );
-
-  const [bomId, setBomId] = useState("");
-
-  const [plannedQuantity, setPlannedQuantity] = useState("");
-
-  const [warehouseId, setWarehouseId] = useState(
-    getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]),
-  );
-
-  const [plannedDate, setPlannedDate] = useState(getToday());
-
-  const [note, setNote] = useState("");
-
+const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitError = "" }) => {
+  const boms = useMemo(() => getStoredBoms().filter((bom) => bom.status === "ACTIVE"), []);
+  const warehouses = useMemo(() => getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"), []);
+  const defaultWarehouseId = getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]);
+  const [bomId, setBomId] = useState(initialValues?.bomId || "");
+  const [plannedQuantity, setPlannedQuantity] = useState(initialValues?.plannedQuantity || "");
+  const [materialWarehouseId, setMaterialWarehouseId] = useState(initialValues?.materialWarehouseId || initialValues?.warehouseId || defaultWarehouseId);
+  const [outputWarehouseId, setOutputWarehouseId] = useState(initialValues?.outputWarehouseId || initialValues?.warehouseId || defaultWarehouseId);
+  const [plannedDate, setPlannedDate] = useState(initialValues?.plannedDate?.slice?.(0, 10) || getToday());
+  const [dueDate, setDueDate] = useState(initialValues?.dueDate?.slice?.(0, 10) || "");
+  const [priority, setPriority] = useState(initialValues?.priority || "NORMAL");
+  const [responsible, setResponsible] = useState(initialValues?.responsible || "");
+  const [note, setNote] = useState(initialValues?.note || "");
   const [errors, setErrors] = useState({});
+  const [availability, setAvailability] = useState([]);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const userEditedQuantity = useRef(Boolean(initialValues?.plannedQuantity));
 
   const selectedBom = boms.find((bom) => bom.id === bomId);
-
   const selectedBomSnapshot = getBomProductSnapshot(selectedBom);
 
-  const requiredMaterials = useMemo(
-    () =>
-      calculateRequiredMaterials({
-        bom: selectedBom,
+  useEffect(() => {
+    if (!selectedBom || userEditedQuantity.current) return;
+    if (Number(selectedBom.outputQuantity) > 0) setPlannedQuantity(String(selectedBom.outputQuantity));
+  }, [selectedBom]);
 
-        plannedQuantity,
-      }),
-    [selectedBom, plannedQuantity],
-  );
+  useEffect(() => {
+    if (!selectedBom || Number(plannedQuantity) <= 0 || !materialWarehouseId) {
+      setAvailability([]);
+      return undefined;
+    }
 
-  const availability = useMemo(
-    () =>
-      checkMaterialAvailability({
-        warehouseId,
-        requiredMaterials,
-      }),
-    [warehouseId, requiredMaterials],
-  );
+    let cancelled = false;
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
 
-  const enoughMaterials = hasEnoughMaterials(availability);
+    fetchProductionMaterialAvailability({
+      bomId: selectedBom.id,
+      plannedQuantity: Number(plannedQuantity),
+      materialWarehouseId,
+    })
+      .then((result) => {
+        if (!cancelled) setAvailability(result.materials || []);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setAvailability([]);
+          setAvailabilityError(error.message || "Xomashyo mavjudligini tekshirib bo'lmadi.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAvailabilityLoading(false);
+      });
 
-  const plannedMaterialCost = calculateProductionMaterialCost(requiredMaterials);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBom, plannedQuantity, materialWarehouseId]);
+
+  const enoughMaterials = availability.length > 0 && availability.every((material) => material.enough);
+  const plannedMaterialCost = calculateProductionMaterialCost(availability);
   const materialSummary = aggregateQuantities(availability);
-
   const bomOptions = boms.map((bom) => ({
     value: bom.id,
-
-    label: `${bom.productName} · v${bom.version}`,
+    label: `${bom.productName} - v${bom.version}`,
   }));
-
   const warehouseOptions = warehouses.map((warehouse) => ({
     value: warehouse.id,
-
     label: warehouse.name,
   }));
 
   const validate = () => {
     const nextErrors = {};
-
-    if (!bomId) {
-      nextErrors.bom = "Retsept tanlang.";
-    }
-
-    if (Number(plannedQuantity) <= 0) {
-      nextErrors.quantity = "Reja miqdori 0 dan katta bo‘lishi kerak.";
-    }
-
-    if (!warehouseId) {
-      nextErrors.warehouse = "Omborni tanlang.";
-    }
-
-    if (!plannedDate) {
-      nextErrors.date = "Rejalashtirilgan sanani tanlang.";
-    }
-
+    if (!bomId) nextErrors.bom = "Retsept tanlang.";
+    if (Number(plannedQuantity) <= 0) nextErrors.quantity = "Reja miqdori 0 dan katta bo'lishi kerak.";
+    if (!materialWarehouseId) nextErrors.materialWarehouse = "Xomashyo omborini tanlang.";
+    if (!outputWarehouseId) nextErrors.outputWarehouse = "Tayyor mahsulot omborini tanlang.";
+    if (!plannedDate) nextErrors.date = "Rejalashtirilgan sanani tanlang.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) focusFirstInvalidField();
-
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     onSubmit?.({
       productId: selectedBomSnapshot.productId,
-
       productName: selectedBomSnapshot.productName,
-
       bomId: selectedBom.id,
-
       bomVersion: selectedBom.version,
-
       plannedQuantity: Number(plannedQuantity),
-
       unit: selectedBomSnapshot.unit,
-
-      warehouseId,
-
+      warehouseId: materialWarehouseId,
+      materialWarehouseId,
+      outputWarehouseId,
       plannedDate,
-
+      dueDate: dueDate || null,
+      priority,
+      responsible: responsible.trim(),
       plannedMaterialCost,
-
-      requiredMaterials: availability.map((material) => ({
-        id: material.id || material.productId,
-
-        productId: material.productId,
-
-        productName: material.productName,
-
-        sku: material.sku,
-
-        unit: material.unit,
-
-        bomQuantity: material.bomQuantity,
-
-        requiredQuantity: material.requiredQuantity,
-
-        cost: material.cost,
-
-        totalCost: material.totalCost,
-      })),
-
+      requiredMaterials: availability,
       note: note.trim(),
     });
   };
 
   return (
     <form className="production-order-form" onSubmit={handleSubmit}>
-      {submitError && (
-        <div className="production-order-form__error" role="alert">
-          {submitError}
-        </div>
-      )}
+      {submitError && <div className="production-order-form__error" role="alert">{submitError}</div>}
 
       <Card padding="lg" className="production-order-form__section">
         <div className="production-order-form__section-header">
           <div>
             <h3>Ishlab chiqarish rejasi</h3>
-
-            <p>Retsept, miqdor va ishlab chiqarish sanasini belgilang.</p>
+            <p>Retsept, miqdor, omborlar va muddatlarni belgilang.</p>
           </div>
         </div>
 
@@ -207,58 +158,59 @@ const ProductionOrderForm = ({ onSubmit, onCancel, submitError = "" }) => {
             placeholder="Retsept tanlang"
             options={bomOptions}
             error={errors.bom}
-            onChange={(event) => setBomId(event.target.value)}
+            onChange={(event) => {
+              setBomId(event.target.value);
+              userEditedQuantity.current = false;
+            }}
           />
-
           <Input
             label="Ishlab chiqarish miqdori"
             type="number"
             min="0"
             step="any"
             value={plannedQuantity}
-            placeholder="1000"
+            placeholder="100"
             error={errors.quantity}
-            onChange={(event) => setPlannedQuantity(event.target.value)}
+            onChange={(event) => {
+              userEditedQuantity.current = true;
+              setPlannedQuantity(event.target.value);
+            }}
           />
-
           <Select
             label="Xomashyo olinadigan ombor"
-            value={warehouseId}
+            value={materialWarehouseId}
             options={warehouseOptions}
-            error={errors.warehouse}
-            onChange={(event) => setWarehouseId(event.target.value)}
+            error={errors.materialWarehouse}
+            onChange={(event) => setMaterialWarehouseId(event.target.value)}
           />
-
-          <DatePicker
-            label="Rejalashtirilgan sana"
-            value={plannedDate}
-            error={errors.date}
-            onChange={(event) => setPlannedDate(event.target.value)}
+          <Select
+            label="Tayyor mahsulot tushadigan ombor"
+            value={outputWarehouseId}
+            options={warehouseOptions}
+            error={errors.outputWarehouse}
+            onChange={(event) => setOutputWarehouseId(event.target.value)}
           />
+          <DatePicker label="Rejalashtirilgan sana" value={plannedDate} error={errors.date} onChange={(event) => setPlannedDate(event.target.value)} />
+          <DatePicker label="Muddat" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+          <Select
+            label="Prioritet"
+            value={priority}
+            options={[
+              { value: "LOW", label: "Past" },
+              { value: "NORMAL", label: "Oddiy" },
+              { value: "HIGH", label: "Yuqori" },
+              { value: "URGENT", label: "Shoshilinch" },
+            ]}
+            onChange={(event) => setPriority(event.target.value)}
+          />
+          <Input label="Mas'ul" value={responsible} onChange={(event) => setResponsible(event.target.value)} />
         </div>
 
         {selectedBomSnapshot && (
           <div className="production-order-form__bom-summary">
-            <div>
-              <span>Tayyor mahsulot</span>
-
-              <strong>{selectedBomSnapshot.productName}</strong>
-            </div>
-
-            <div>
-              <span>Retsept versiyasi</span>
-
-              <strong>v{selectedBomSnapshot.bomVersion}</strong>
-            </div>
-
-            <div>
-              <span>Output</span>
-
-              <strong>
-                {formatProductionQuantity(selectedBomSnapshot.outputQuantity)}{" "}
-                {selectedBomSnapshot.unit}
-              </strong>
-            </div>
+            <div><span>Tayyor mahsulot</span><strong>{selectedBomSnapshot.productName}</strong></div>
+            <div><span>Retsept versiyasi</span><strong>v{selectedBomSnapshot.bomVersion}</strong></div>
+            <div><span>Output</span><strong>{formatProductionQuantity(selectedBomSnapshot.outputQuantity)} {selectedBomSnapshot.unit}</strong></div>
           </div>
         )}
       </Card>
@@ -267,112 +219,47 @@ const ProductionOrderForm = ({ onSubmit, onCancel, submitError = "" }) => {
         <div className="production-order-form__section-header">
           <div>
             <h3>Xomashyo ehtiyoji</h3>
-
-            <p>Reja miqdoriga qarab avtomatik hisoblanadi.</p>
+            <p>Backend canonical scaling va real reserved/available qoldiq bo'yicha hisoblanadi.</p>
           </div>
 
           {selectedBom && Number(plannedQuantity) > 0 && (
-            <Badge
-              className="production-order-form__availability-badge"
-              variant={enoughMaterials ? "success" : "danger"}
-            >
-              {enoughMaterials ? (
-                <>
-                  <LiveIcon
-                    icon={CheckCircle2}
-                    motion="success-pop"
-                    size={16}
-                  />
-                  Xomashyo yetarli
-                </>
-              ) : (
-                <>
-                  <LiveIcon
-                    icon={AlertTriangle}
-                    motion="warning-glow"
-                    size={16}
-                  />
-                  Xomashyo yetarli emas
-                </>
-              )}
+            <Badge className="production-order-form__availability-badge" variant={enoughMaterials ? "success" : "danger"}>
+              {enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
+              {availabilityLoading ? "Tekshirilmoqda" : enoughMaterials ? "Xomashyo yetarli" : "Xomashyo yetarli emas"}
             </Badge>
           )}
         </div>
 
+        {availabilityError && <div className="production-order-form__error">{availabilityError}</div>}
         {!selectedBom || Number(plannedQuantity) <= 0 ? (
-          <div className="production-order-form__empty">
-            Retsept va ishlab chiqarish miqdorini tanlang.
-          </div>
+          <div className="production-order-form__empty">Retsept va ishlab chiqarish miqdorini tanlang.</div>
         ) : (
           <div className="production-order-form__materials">
             <div className="production-order-form__materials-header">
               <span>Xomashyo</span>
-
               <span>Kerak</span>
-
+              <span>Qoldiq</span>
+              <span>Rezerv</span>
               <span>Mavjud</span>
-
-              <span>Holat</span>
-
               <span>Yetishmaydi</span>
-
               <span>Qiymat</span>
             </div>
-
             {availability.map((material) => (
-              <div
-                key={material.productId}
-                className="production-order-form__material"
-              >
-                <div>
-                  <strong>{material.productName}</strong>
-
-                  <span>{material.sku || "—"}</span>
-                </div>
-
-                <strong>
-                  {formatProductionQuantity(material.requiredQuantity)}{" "}
-                  {material.unit}
-                </strong>
-
-                <span>
-                  {formatProductionQuantity(material.availableQuantity)}{" "}
-                  {material.unit}
-                </span>
-
-                <span
-                  className={
-                    material.enough
-                      ? "production-order-form__material-status production-order-form__material-status--success"
-                      : "production-order-form__material-status production-order-form__material-status--danger"
-                  }
-                >
-                  {material.enough ? "Yetarli" : "Yetmaydi"}
-                </span>
-
-                <span>
-                  {formatProductionQuantity(material.missingQuantity)}{" "}
-                  {material.unit}
-                </span>
-
-                <strong>
-                  {formatManufacturingMoney(material.totalCost)}
-                </strong>
+              <div key={material.productId} className="production-order-form__material">
+                <div><strong>{material.productName}</strong><span>{material.sku || "-"}</span></div>
+                <strong>{formatProductionQuantity(material.requiredQuantity)} {material.unit}</strong>
+                <span>{formatProductionQuantity(material.quantity)} {material.unit}</span>
+                <span>{formatProductionQuantity(material.reserved)} {material.unit}</span>
+                <span>{formatProductionQuantity(material.available)} {material.unit}</span>
+                <span>{formatProductionQuantity(material.shortage)} {material.unit}</span>
+                <strong>{formatManufacturingMoney(material.totalCost)}</strong>
               </div>
             ))}
             <div className="production-order-form__material-summary">
               <strong>Jami miqdorlar</strong>
               {materialSummary.map((item) => (
                 <span key={item.dimension}>
-                  {translateText(
-                    item.dimension === "WEIGHT"
-                      ? "Jami massa"
-                      : item.dimension === "VOLUME"
-                        ? "Jami hajm"
-                        : item.dimension === "LENGTH"
-                          ? "Jami uzunlik"
-                          : "Jami dona",
-                  )}: {item.value} {item.unit}
+                  {translateText(item.dimension === "WEIGHT" ? "Jami massa" : item.dimension === "VOLUME" ? "Jami hajm" : item.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona")}: {item.value} {item.unit}
                 </span>
               ))}
             </div>
@@ -383,36 +270,22 @@ const ProductionOrderForm = ({ onSubmit, onCancel, submitError = "" }) => {
       <div className="production-order-form__bottom">
         <Card padding="lg" className="production-order-form__cost">
           <span>Rejalashtirilgan xomashyo tannarxi</span>
-
           <strong>{formatManufacturingMoney(plannedMaterialCost)}</strong>
         </Card>
-
         <Card padding="lg">
-          <Textarea
-            label="Izoh"
-            value={note}
-            placeholder="Ishlab chiqarish bo‘yicha izoh..."
-            onChange={(event) => setNote(event.target.value)}
-          />
+          <Textarea label="Izoh" value={note} placeholder="Ishlab chiqarish bo'yicha izoh..." onChange={(event) => setNote(event.target.value)} />
         </Card>
       </div>
 
       {!enoughMaterials && selectedBom && Number(plannedQuantity) > 0 && (
         <div className="production-order-form__warning">
           <LiveIcon icon={AlertTriangle} motion="warning-glow" size={17} />
-
-          <span>
-            Xomashyo yetarli emas. Buyurtmani rejalashtirish mumkin, lekin
-            ishlab chiqarishni boshlashda yetarli qoldiq talab qilinadi.
-          </span>
+          <span>Xomashyo yetarli bo'lmasa buyurtma PLANNED bo'lib saqlanadi, lekin start backendda bloklanadi.</span>
         </div>
       )}
 
       <div className="production-order-form__actions">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Bekor qilish
-        </Button>
-
+        <Button type="button" variant="secondary" onClick={onCancel}>Bekor qilish</Button>
         <Button type="submit">Ishlab chiqarishni rejalashtirish</Button>
       </div>
     </form>

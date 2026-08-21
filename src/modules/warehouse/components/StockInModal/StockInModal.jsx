@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
 import { translateOptions, translateText } from "../../../../localization/i18n";
+import { UNIT_OPTIONS } from "../../../../shared/utils/units";
 
 const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
   const [productId, setProductId] = useState("");
@@ -9,12 +10,19 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
   const [quantity, setQuantity] = useState("");
 
   const [cost, setCost] = useState("");
+  const [inputUnit, setInputUnit] = useState("");
+  const [batchNumber, setBatchNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [productionDate, setProductionDate] = useState("");
+  const [receivedDate, setReceivedDate] = useState("");
 
   const [source, setSource] = useState("Yetkazib beruvchi");
 
   const [note, setNote] = useState("");
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   const warehouseItems = useMemo(() => {
     return stock.filter((item) => item.warehouseId === warehouseId);
@@ -38,19 +46,28 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
     setProductId("");
     setQuantity("");
     setCost("");
+    setInputUnit("");
+    setBatchNumber("");
+    setExpiryDate("");
+    setProductionDate("");
+    setReceivedDate(new Date().toISOString().slice(0, 10));
     setSource("Yetkazib beruvchi");
     setNote("");
     setError("");
+    setSubmitting(false);
+    setIdempotencyKey(`stock-in:${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   }, [open]);
 
   useEffect(() => {
     if (selectedItem) {
       setCost(String(selectedItem.cost ?? ""));
+      setInputUnit(selectedItem.unit || "");
     }
   }, [selectedItem]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
+    if (submitting) return;
 
     if (!productId) {
       setError(translateText("Mahsulotni tanlang."));
@@ -64,14 +81,27 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
       return;
     }
 
-    onSubmit?.({
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
       warehouseId,
       productId,
       quantity,
       cost,
+      inputUnit: inputUnit || selectedItem?.unit,
+      batchNumber,
+      expiryDate: expiryDate || null,
+      productionDate: productionDate || null,
+      receivedDate: receivedDate || null,
       source,
       note,
+      idempotencyKey,
     });
+    } catch (submitError) {
+      setError(translateText(submitError.message || "Kirim qilishda xatolik yuz berdi."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -113,6 +143,13 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
           onChange={(event) => setQuantity(event.target.value)}
         />
 
+        <Select
+          label={translateText("Kiritish birligi")}
+          value={inputUnit}
+          options={UNIT_OPTIONS}
+          onChange={(event) => setInputUnit(event.target.value)}
+        />
+
         <Input
           label={translateText("Tannarx")}
           type="number"
@@ -120,6 +157,34 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
           value={cost}
           placeholder="0"
           onChange={(event) => setCost(event.target.value)}
+        />
+
+        <Input
+          label={translateText("Batch/Lot raqami")}
+          value={batchNumber}
+          placeholder={translateText("Ixtiyoriy")}
+          onChange={(event) => setBatchNumber(event.target.value)}
+        />
+
+        <Input
+          label={translateText("Qabul sanasi")}
+          type="date"
+          value={receivedDate}
+          onChange={(event) => setReceivedDate(event.target.value)}
+        />
+
+        <Input
+          label={translateText("Ishlab chiqarilgan sana")}
+          type="date"
+          value={productionDate}
+          onChange={(event) => setProductionDate(event.target.value)}
+        />
+
+        <Input
+          label={translateText("Yaroqlilik muddati")}
+          type="date"
+          value={expiryDate}
+          onChange={(event) => setExpiryDate(event.target.value)}
         />
 
         <Select
@@ -179,7 +244,9 @@ const StockInModal = ({ open, warehouseId, stock = [], onClose, onSubmit }) => {
             {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>{translateText("Kirim qilish")}</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {translateText(submitting ? "Saqlanmoqda..." : "Kirim qilish")}
+          </Button>
         </div>
       </div>
     </Modal>

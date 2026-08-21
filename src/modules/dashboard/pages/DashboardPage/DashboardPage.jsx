@@ -31,6 +31,7 @@ import {
 import { getLocale, translateText } from "../../../../localization/i18n";
 import { formatMoneyWithSettings } from "../../../settings/utils/formatSettingsHelpers";
 import { getPlatformSettings } from "../../../settings/utils/settingsStorage";
+import { apiRequest } from "../../../../services/api/apiClient";
 
 import "./DashboardPage.scss";
 
@@ -111,6 +112,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [period, setPeriod] = useState("today");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [serverDashboard, setServerDashboard] = useState(null);
 
   useEffect(() => {
     const refresh = () => setRefreshKey((current) => current + 1);
@@ -130,9 +132,29 @@ const DashboardPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+
+    apiRequest("/dashboard")
+      .then((result) => {
+        if (alive) {
+          setServerDashboard(result);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setServerDashboard(null);
+        }
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [refreshKey]);
+
   const dashboard = useMemo(
-    () => getDashboardData(period),
-    [period, refreshKey],
+    () => getDashboardData(period, serverDashboard),
+    [period, refreshKey, serverDashboard],
   );
 
   if (!dashboard) {

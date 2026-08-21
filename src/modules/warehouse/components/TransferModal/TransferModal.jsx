@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button, Input, Modal, Select, Textarea } from "../../../../shared/ui";
 import { translateText } from "../../../../localization/i18n";
+import { convertQuantity, UNIT_OPTIONS } from "../../../../shared/utils/units";
 
 import { getStoredWarehouses } from "../../utils/warehouseManagementStorage";
 
@@ -19,10 +20,13 @@ const TransferModal = ({
   const [productId, setProductId] = useState("");
 
   const [quantity, setQuantity] = useState("");
+  const [inputUnit, setInputUnit] = useState("");
 
   const [note, setNote] = useState("");
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   const warehouses = useMemo(() => getStoredWarehouses(), [open]);
 
@@ -44,8 +48,11 @@ const TransferModal = ({
     setToWarehouseId("");
     setProductId("");
     setQuantity("");
+    setInputUnit("");
     setNote("");
     setError("");
+    setSubmitting(false);
+    setIdempotencyKey(`transfer:${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   }, [open, currentWarehouseId]);
 
   const sourceItems = useMemo(() => {
@@ -65,12 +72,19 @@ const TransferModal = ({
     (item) => item.productId === productId,
   );
 
+  useEffect(() => {
+    if (selectedProduct) {
+      setInputUnit(selectedProduct.unit || "");
+    }
+  }, [selectedProduct]);
+
   const destinationOptions = warehouseOptions.filter(
     (warehouse) => warehouse.value !== fromWarehouseId,
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
+    if (submitting) return;
 
     if (!fromWarehouseId) {
       setError(translateText("Manba omborni tanlang."));
@@ -108,23 +122,40 @@ const TransferModal = ({
       return;
     }
 
-    if (selectedProduct && amount > Number(selectedProduct.quantity)) {
+    let canonicalAmount = amount;
+    try {
+      canonicalAmount = selectedProduct ? convertQuantity(amount, inputUnit || selectedProduct.unit, selectedProduct.unit) : amount;
+    } catch {
+      setError(translateText("Tanlangan birlik mahsulot birligi bilan mos emas."));
+      return;
+    }
+
+    if (selectedProduct && canonicalAmount > Number(selectedProduct.available ?? selectedProduct.quantity)) {
       setError(
         translateText(
-          `Manba omborda faqat ${selectedProduct.quantity} ${selectedProduct.unit} mavjud.`,
+          `Mavjud qoldiq yetarli emas. Mavjud: ${selectedProduct.available ?? selectedProduct.quantity} ${selectedProduct.unit}.`,
         ),
       );
 
       return;
     }
 
-    onSubmit?.({
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
       fromWarehouseId,
       toWarehouseId,
       productId,
       quantity: amount,
+      inputUnit: inputUnit || selectedProduct?.unit,
       note,
+      idempotencyKey,
     });
+    } catch (submitError) {
+      setError(translateText(submitError.message || "Ko'chirishda xatolik yuz berdi."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -172,8 +203,8 @@ const TransferModal = ({
 
         {selectedProduct && (
           <Input
-            label={translateText("Manba ombordagi qoldiq")}
-            value={`${selectedProduct.quantity} ${selectedProduct.unit}`}
+            label={translateText("Manba ombordagi mavjud")}
+            value={`${selectedProduct.available ?? selectedProduct.quantity} ${selectedProduct.unit}`}
             disabled
           />
         )}
@@ -185,6 +216,13 @@ const TransferModal = ({
           value={quantity}
           placeholder="0"
           onChange={(event) => setQuantity(event.target.value)}
+        />
+
+        <Select
+          label={translateText("Ko'chirish birligi")}
+          value={inputUnit}
+          options={UNIT_OPTIONS}
+          onChange={(event) => setInputUnit(event.target.value)}
         />
 
         <Textarea
@@ -218,7 +256,9 @@ const TransferModal = ({
             {translateText("Bekor qilish")}
           </Button>
 
-          <Button onClick={handleSubmit}>{translateText("Ko‘chirish")}</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {translateText(submitting ? "Saqlanmoqda..." : "Ko'chirish")}
+          </Button>
         </div>
       </div>
     </Modal>

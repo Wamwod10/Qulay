@@ -50,7 +50,8 @@ const ProductTable = ({
   onStockAdjustment,
   onPriceChange,
   onArchive,
-  onDelete
+  onDelete,
+  busyProductId = null
 }) => {
   const { tTerm } = useTerminology();
   const notifications = useNotificationSettings();
@@ -210,6 +211,7 @@ const ProductTable = ({
         variant="ghost"
         aria-label={translateText("Mahsulotni ko'rish")}
         title={translateText("Ko'rish")}
+        disabled={busyProductId === product.id}
         onClick={() => onView?.(product)}>
         
             <Eye size={16} strokeWidth={1.8} />
@@ -220,6 +222,7 @@ const ProductTable = ({
         variant="ghost"
         aria-label={translateText("Mahsulotni tahrirlash")}
         title={translateText("Tahrirlash")}
+        disabled={busyProductId === product.id}
         onClick={() => onEdit?.(product)}>
         
             <Pencil size={16} strokeWidth={1.8} />
@@ -233,7 +236,8 @@ const ProductTable = ({
         onStockAdjustment={onStockAdjustment}
         onPriceChange={onPriceChange}
         onArchive={onArchive}
-        onDelete={onDelete} />
+        onDelete={onDelete}
+        disabled={busyProductId === product.id} />
       
         </div>
 

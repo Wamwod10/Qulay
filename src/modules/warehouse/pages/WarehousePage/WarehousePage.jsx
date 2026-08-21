@@ -6,13 +6,14 @@ import TransferModal from "../../components/TransferModal/TransferModal";
 import InventoryModal from "../../components/InventoryModal/InventoryModal";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { syncWarehouseWithProducts } from "../../utils/warehouseProductSync";
+import { apiRequest, unwrapList } from "../../../../services/api/apiClient";
 
 import WarehouseFormModal from "../../components/WarehouseFormModal/WarehouseFormModal";
 import WarehouseManager from "../../components/WarehouseManager/WarehouseManager";
 
 import {
   createWarehouse,
+  fetchStoredWarehouses,
   getStoredWarehouses,
   toggleWarehouseStatus,
   updateWarehouse,
@@ -53,8 +54,6 @@ import {
 } from "../../../../shared/ui";
 import { translateOptions, translateText } from "../../../../localization/i18n";
 
-import { WAREHOUSES } from "../../constants/warehouseMock";
-
 import {
   formatWarehouseMoney,
   getWarehouseStockStatus,
@@ -70,14 +69,22 @@ const WarehousePage = () => {
 
   const [movements, setMovements] = useState(() => getWarehouseMovements());
 
-  const refreshWarehouseData = () => {
-    setStock(syncWarehouseWithProducts());
+  const refreshWarehouseData = async () => {
+    const [stockResult, batchResult, movementResult, warehouseResult] = await Promise.all([
+      apiRequest("/inventory/stock"),
+      apiRequest("/inventory/batches"),
+      apiRequest("/inventory/movements"),
+      fetchStoredWarehouses(),
+    ]);
 
-    setBatches(getStoredBatches());
+    const remoteStock = unwrapList(stockResult, ["stock"]);
+    const remoteBatches = unwrapList(batchResult, ["batches"]);
+    const remoteMovements = unwrapList(movementResult, ["movements"]);
 
-    setMovements(getWarehouseMovements());
-
-    setWarehouses(getStoredWarehouses());
+    setStock(Array.isArray(remoteStock) ? remoteStock : getStoredWarehouseStock());
+    setBatches(Array.isArray(remoteBatches) ? remoteBatches : getStoredBatches());
+    setMovements(Array.isArray(remoteMovements) ? remoteMovements : getWarehouseMovements());
+    setWarehouses(Array.isArray(warehouseResult) ? warehouseResult : getStoredWarehouses());
   };
 
   const navigate = useNavigate();
@@ -136,7 +143,7 @@ const WarehousePage = () => {
 
       setStockInOpen(false);
 
-      refreshWarehouseData();
+      await refreshWarehouseData();
     } catch (error) {
       alert(translateText(error.message || "Kirim qilishda xatolik yuz berdi."));
     }
@@ -148,7 +155,7 @@ const WarehousePage = () => {
 
       setInventoryOpen(false);
 
-      refreshWarehouseData();
+      await refreshWarehouseData();
     } catch (error) {
       alert(
         translateText(error.message || "Inventarizatsiyada xatolik yuz berdi."),
@@ -166,7 +173,7 @@ const WarehousePage = () => {
 
       setStockOutOpen(false);
 
-      refreshWarehouseData();
+      await refreshWarehouseData();
     } catch (error) {
       alert(translateText(error.message || "Chiqim qilishda xatolik yuz berdi."));
     }
@@ -178,7 +185,7 @@ const WarehousePage = () => {
 
       setTransferOpen(false);
 
-      refreshWarehouseData();
+      await refreshWarehouseData();
     } catch (error) {
       alert(translateText(error.message || "Ko‘chirishda xatolik yuz berdi."));
     }
@@ -262,24 +269,24 @@ const WarehousePage = () => {
     (warehouse) => warehouse.id === warehouseId,
   );
 
-  const refreshWarehouses = () => {
-    setWarehouses(getStoredWarehouses());
-  };
-
   const handleSaveWarehouse = async (values) => {
-    if (editingWarehouse) {
-      updateWarehouse({
-        ...editingWarehouse,
-        ...values,
-      });
-    } else {
-      await createWarehouse(values);
+    try {
+      if (editingWarehouse) {
+        await updateWarehouse({
+          ...editingWarehouse,
+          ...values,
+        });
+      } else {
+        await createWarehouse(values);
+      }
+
+      setWarehouseFormOpen(false);
+      setEditingWarehouse(null);
+
+      await refreshWarehouseData();
+    } catch (error) {
+      alert(translateText(error.message || "Omborni saqlab bo'lmadi."));
     }
-
-    setWarehouseFormOpen(false);
-    setEditingWarehouse(null);
-
-    refreshWarehouses();
   };
 
   const handleEditWarehouse = (warehouse) => {
@@ -288,16 +295,17 @@ const WarehousePage = () => {
     setWarehouseFormOpen(true);
   };
 
-  const handleToggleWarehouse = (warehouse) => {
-    toggleWarehouseStatus(warehouse.id);
-
-    refreshWarehouses();
+  const handleToggleWarehouse = async (warehouse) => {
+    try {
+      await toggleWarehouseStatus(warehouse.id);
+      await refreshWarehouseData();
+    } catch (error) {
+      alert(translateText(error.message || "Ombor holatini o'zgartirib bo'lmadi."));
+    }
   };
 
   useEffect(() => {
-    const syncedStock = syncWarehouseWithProducts();
-
-    setStock(syncedStock);
+    refreshWarehouseData().catch(() => undefined);
   }, []);
 
   return (

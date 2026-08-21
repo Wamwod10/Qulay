@@ -5,6 +5,7 @@ const memoryStore = new Map();
 
 const CORE_BUSINESS_KEYS = new Set([
   "products",
+  "categories",
   "customers",
   "customer_followups",
   "sales",
