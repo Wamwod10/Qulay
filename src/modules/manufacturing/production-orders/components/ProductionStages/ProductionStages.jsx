@@ -112,8 +112,12 @@ const ProductionStages = ({
 };
 
 const StageLiveIcon = ({ stage }) => {
+  const stageKey = `${stage.id || ""} ${stage.name || ""}`.toLowerCase();
+
   if (stage.status === "COMPLETED") {
-    const CompleteIcon = stage.id === "packaging" ? PackageCheck : CheckCircle2;
+    const CompleteIcon = stageKey.includes("packaging") || stageKey.includes("qadoqlash")
+      ? PackageCheck
+      : CheckCircle2;
 
     return (
       <LiveIcon
@@ -129,19 +133,19 @@ const StageLiveIcon = ({ stage }) => {
     return <LiveIcon icon={Clock3} motion="pulse-soft" active size={15} />;
   }
 
-  if (stage.id === "mixing") {
+  if (stageKey.includes("mixing") || stageKey.includes("aralashtirish") || stageKey.includes("tayyorlash")) {
     return <LiveIcon icon={Cog} motion="spin-slow" active size={16} />;
   }
 
-  if (stage.id === "baking") {
+  if (stageKey.includes("baking") || stageKey.includes("ishlab chiqarish")) {
     return <LiveIcon icon={Flame} motion="pulse-soft" active size={16} />;
   }
 
-  if (stage.id === "cooling") {
+  if (stageKey.includes("cooling") || stageKey.includes("sovutish") || stageKey.includes("sifat")) {
     return <LiveIcon icon={Snowflake} motion="spin-slow" active size={16} />;
   }
 
-  if (stage.id === "packaging") {
+  if (stageKey.includes("packaging") || stageKey.includes("qadoqlash")) {
     return <LiveIcon icon={PackageCheck} motion="pulse-soft" active size={16} />;
   }
 

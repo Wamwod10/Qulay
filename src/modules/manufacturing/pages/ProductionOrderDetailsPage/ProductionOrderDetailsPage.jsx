@@ -23,6 +23,7 @@ import {
   ConfirmDialog,
   LiveIcon,
   Table,
+  Toast,
 } from "../../../../shared/ui";
 
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
@@ -90,6 +91,8 @@ const ProductionOrderDetailsPage = () => {
   const [shortages, setShortages] = useState([]);
   const [startPending, setStartPending] = useState(false);
   const [startError, setStartError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
   const refreshGeneration = useRef(0);
 
   useEffect(() => {
@@ -97,7 +100,9 @@ const ProductionOrderDetailsPage = () => {
     refreshGeneration.current = generation;
     refreshProductionOrder(orderId).then((freshOrder) => {
       if (freshOrder && generation === refreshGeneration.current) setOrder(freshOrder);
-    }).catch(() => undefined);
+    }).catch((error) => {
+      if (generation === refreshGeneration.current) setActionError(getApiErrorMessage(error));
+    });
   }, [orderId]);
 
   const warehouses = useMemo(() => getStoredWarehouses(), []);
@@ -196,8 +201,10 @@ const ProductionOrderDetailsPage = () => {
       const updated = await updateProductionOrderQuality(order.id, qualityControl);
 
       setOrder(updated);
+      setActionMessage("Sifat nazorati saqlandi.");
+      setActionError("");
     } catch (error) {
-      alert(error.message || "Sifat nazoratini saqlashda xatolik.");
+      setActionError(getApiErrorMessage(error) || error.message || "Sifat nazoratini saqlashda xatolik.");
     }
   };
 
@@ -206,8 +213,10 @@ const ProductionOrderDetailsPage = () => {
       const updated = await updateProductionOrderOverhead(order.id, overheadItems);
 
       setOrder(updated);
+      setActionMessage("Qo'shimcha xarajatlar saqlandi.");
+      setActionError("");
     } catch (error) {
-      alert(error.message || "Qo'shimcha xarajatlarni saqlashda xatolik.");
+      setActionError(getApiErrorMessage(error) || error.message || "Qo'shimcha xarajatlarni saqlashda xatolik.");
     }
   };
 
@@ -262,26 +271,40 @@ const ProductionOrderDetailsPage = () => {
   ];
 
   const handleStartStage = async (stageId) => {
+    const previousOrder = order;
+
     try {
       const nextStages = startProductionStage(stages, stageId);
 
-      const updated = await updateProductionOrderStages(order.id, nextStages);
+      setOrder((current) => current ? { ...current, stages: nextStages } : current);
+
+      const updated = await updateProductionOrderStages(order.id, nextStages, stageId);
 
       setOrder(updated);
+      setActionMessage("Bosqich boshlandi.");
+      setActionError("");
     } catch (error) {
-      alert(error.message || "Bosqichni boshlashda xatolik.");
+      setOrder(previousOrder);
+      setActionError(getApiErrorMessage(error) || error.message || "Bosqichni boshlashda xatolik.");
     }
   };
 
   const handleCompleteStage = async (stageId) => {
+    const previousOrder = order;
+
     try {
       const nextStages = completeProductionStage(stages, stageId);
 
-      const updated = await updateProductionOrderStages(order.id, nextStages);
+      setOrder((current) => current ? { ...current, stages: nextStages } : current);
+
+      const updated = await updateProductionOrderStages(order.id, nextStages, stageId);
 
       setOrder(updated);
+      setActionMessage("Bosqich tugatildi.");
+      setActionError("");
     } catch (error) {
-      alert(error.message || "Bosqichni tugatishda xatolik.");
+      setOrder(previousOrder);
+      setActionError(getApiErrorMessage(error) || error.message || "Bosqichni tugatishda xatolik.");
     }
   };
 
@@ -309,13 +332,13 @@ const ProductionOrderDetailsPage = () => {
     );
 
     if (manufacturingSettings.productionStagesRequired && !allStagesCompleted) {
-      alert("Avval barcha ishlab chiqarish bosqichlarini tugating.");
+      setActionError("Avval barcha ishlab chiqarish bosqichlarini tugating.");
 
       return;
     }
 
     if (manufacturingSettings.qualityControlRequired && !order.qualityControl) {
-      alert("Avval sifat nazorati tekshiruvini bajaring.");
+      setActionError("Avval sifat nazorati tekshiruvini bajaring.");
 
       return;
     }
@@ -324,7 +347,7 @@ const ProductionOrderDetailsPage = () => {
       manufacturingSettings.blockCompletionIfQcFail &&
       order.qualityControl?.result === "FAIL"
     ) {
-      alert(
+      setActionError(
         "Quality Control natijasi rad etilgan. Ishlab chiqarishni yakunlab bo‘lmaydi.",
       );
 
@@ -350,6 +373,22 @@ const ProductionOrderDetailsPage = () => {
       description={`${order.productName} ishlab chiqarish buyurtmasi`}
     >
       <div className="production-order-details">
+        {actionMessage && (
+          <Toast
+            type="success"
+            message={actionMessage}
+            onClose={() => setActionMessage("")}
+          />
+        )}
+
+        {actionError && (
+          <Toast
+            type="error"
+            message={actionError}
+            onClose={() => setActionError("")}
+          />
+        )}
+
         <div className="production-order-details__actions">
           <Button
             variant="secondary"

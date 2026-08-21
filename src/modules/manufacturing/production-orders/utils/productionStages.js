@@ -1,51 +1,20 @@
 import { getLocale } from "../../../../localization/i18n";
 
-export const DEFAULT_PRODUCTION_STAGES = [
-    {
-        id: "mixing",
-        name: "Aralashtirish",
-        status: "PENDING",
-        startedAt: null,
-        completedAt: null,
-    },
-    {
-        id: "baking",
-        name: "Pishirish",
-        status: "PENDING",
-        startedAt: null,
-        completedAt: null,
-    },
-    {
-        id: "cooling",
-        name: "Sovutish",
-        status: "PENDING",
-        startedAt: null,
-        completedAt: null,
-    },
-    {
-        id: "packaging",
-        name: "Qadoqlash",
-        status: "PENDING",
-        startedAt: null,
-        completedAt: null,
-    },
-];
+const normalizeStageStatus = (status) => (status === "PLANNED" ? "PENDING" : status);
+
+const normalizeProductionStage = (stage) => ({
+    ...stage,
+    status: normalizeStageStatus(stage.status || "PENDING"),
+    startedAt: stage.startedAt || null,
+    completedAt: stage.completedAt || stage.endedAt || null,
+});
 
 export const getProductionStages = (
     order,
 ) => {
-    if (
-        Array.isArray(order?.stages) &&
-        order.stages.length
-    ) {
-        return order.stages;
-    }
-
-    return DEFAULT_PRODUCTION_STAGES.map(
-        (stage) => ({
-            ...stage,
-        }),
-    );
+    return Array.isArray(order?.stages)
+        ? order.stages.filter((stage) => stage?.id).map(normalizeProductionStage)
+        : [];
 };
 
 export const startProductionStage = (
@@ -66,6 +35,12 @@ export const startProductionStage = (
 
     const stage =
         stages[stageIndex];
+
+    if (!stage.id) {
+        throw new Error(
+            "Bosqich ID topilmadi. Sahifani yangilang.",
+        );
+    }
 
     if (
         stage.status !== "PENDING"
@@ -120,6 +95,12 @@ export const completeProductionStage = (
     if (!stage) {
         throw new Error(
             "Bosqich topilmadi.",
+        );
+    }
+
+    if (!stage.id) {
+        throw new Error(
+            "Bosqich ID topilmadi. Sahifani yangilang.",
         );
     }
 

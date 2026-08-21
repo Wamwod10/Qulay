@@ -250,23 +250,20 @@ export const startProductionOrder = async (
 export const updateProductionOrderStages = async (
     orderId,
     stages,
+    stageId,
 ) => {
-    const current = getProductionOrderById(orderId);
-    const changedStage = stages.find((stage, index) => stage.status !== current?.stages?.[index]?.status);
-    if (current && changedStage?.id) {
+    const changedStage = stages.find((stage) => stage.id === stageId);
+    if (changedStage?.id) {
         const action = changedStage.status === "IN_PROGRESS" ? "start" : changedStage.status === "COMPLETED" ? "complete" : null;
         if (action) {
-            const remoteStage = await apiRequest(`/manufacturing/orders/${orderId}/stages/${changedStage.id}/${action}`, {
+            const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}/stages/${changedStage.id}/${action}`, {
                 method: "POST",
                 body: { notes: changedStage.notes },
             });
-    if (remoteStage?.id) {
-                const remoteOrder = await apiRequest(`/manufacturing/orders/${orderId}`);
-                if (remoteOrder?.id) {
-                    const orders = getStoredProductionOrders();
-                    saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
-                    return normalizeProductionOrder(remoteOrder);
-                }
+            if (remoteOrder?.id) {
+                const orders = getStoredProductionOrders();
+                saveProductionOrders(orders.map((order) => order.id === remoteOrder.id ? remoteOrder : order));
+                return normalizeProductionOrder(remoteOrder);
             }
         }
     }
