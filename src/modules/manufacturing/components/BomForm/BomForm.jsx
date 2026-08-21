@@ -270,25 +270,28 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
         </div>
 
         <div className="bom-form__materials">
-          {preparedMaterials.map((material, index) => (
+          {preparedMaterials.map((material) => (
             <div key={material.id} className="bom-form__material">
-              <div className="bom-form__material-number">{index + 1}</div>
-              <Select
-                label={translateText("Xomashyo")}
-                value={material.productId}
-                placeholder={translateText("Xomashyoni tanlang")}
-                options={materialOptions}
-                onChange={(event) => handleMaterialProductChange(material.id, event.target.value)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                leftIcon={<Plus size={15} />}
-                onClick={() => setProductModal({ kind: "material", materialId: material.id })}
-              >
-                {translateText("+ Yangi mahsulot qo'shish")}
-              </Button>
+              <div className="bom-form__material-product">
+                <Select
+                  label={translateText("Xomashyo")}
+                  value={material.productId}
+                  placeholder={translateText("Xomashyoni tanlang")}
+                  options={materialOptions}
+                  onChange={(event) => handleMaterialProductChange(material.id, event.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="bom-form__material-create"
+                  leftIcon={<Plus size={15} />}
+                  onClick={() => setProductModal({ kind: "material", materialId: material.id })}
+                >
+                  {translateText("Yangi")}
+                </Button>
+                {material.product?.sku && <span>SKU: {material.product.sku}</span>}
+              </div>
               <Input
                 label={translateText("Miqdor")}
                 type="number"
@@ -320,6 +323,8 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
                 variant="ghost"
                 size="sm"
                 title={translateText("Olib tashlash")}
+                aria-label={translateText("Xomashyoni olib tashlash")}
+                className="bom-form__material-delete"
                 disabled={materials.length <= 1}
                 onClick={() => handleRemoveMaterial(material.id)}
               >

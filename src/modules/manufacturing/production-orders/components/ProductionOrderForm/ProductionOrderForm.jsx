@@ -102,6 +102,10 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     value: warehouse.id,
     label: warehouse.name,
   }));
+  const getAvailabilityValue = (material, ...keys) => {
+    const key = keys.find((item) => material[item] !== undefined && material[item] !== null);
+    return key ? material[key] : 0;
+  };
 
   const validate = () => {
     const nextErrors = {};
@@ -245,23 +249,27 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
               <span>Qiymat</span>
             </div>
             {availability.map((material) => (
-              <div key={material.productId} className="production-order-form__material">
-                <div><strong>{material.productName}</strong><span>{material.sku || "-"}</span></div>
-                <strong>{formatProductionQuantity(material.requiredQuantity)} {material.unit}</strong>
-                <span>{formatProductionQuantity(material.quantity)} {material.unit}</span>
-                <span>{formatProductionQuantity(material.reserved)} {material.unit}</span>
-                <span>{formatProductionQuantity(material.available)} {material.unit}</span>
-                <span>{formatProductionQuantity(material.shortage)} {material.unit}</span>
-                <strong>{formatManufacturingMoney(material.totalCost)}</strong>
+              <div key={material.productId} className={["production-order-form__material", !material.enough ? "production-order-form__material--warning" : ""].filter(Boolean).join(" ")}>
+                <div className="production-order-form__material-name"><strong>{material.productName}</strong><span>SKU: {material.sku || "-"}</span></div>
+                <strong data-label="Kerak">{formatProductionQuantity(material.requiredQuantity)} {material.unit}</strong>
+                <span data-label="Qoldiq">{formatProductionQuantity(getAvailabilityValue(material, "warehouseQuantity", "quantity"))} {material.unit}</span>
+                <span data-label="Rezerv">{formatProductionQuantity(getAvailabilityValue(material, "reservedQuantity", "reserved"))} {material.unit}</span>
+                <span data-label="Mavjud">{formatProductionQuantity(getAvailabilityValue(material, "availableQuantity", "available"))} {material.unit}</span>
+                <span data-label="Yetishmaydi">{formatProductionQuantity(getAvailabilityValue(material, "missingQuantity", "shortage"))} {material.unit}</span>
+                <strong data-label="Qiymat" className="production-order-form__material-money">{formatManufacturingMoney(material.totalCost)}</strong>
               </div>
             ))}
             <div className="production-order-form__material-summary">
-              <strong>Jami miqdorlar</strong>
               {materialSummary.map((item) => (
-                <span key={item.dimension}>
-                  {translateText(item.dimension === "WEIGHT" ? "Jami massa" : item.dimension === "VOLUME" ? "Jami hajm" : item.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona")}: {item.value} {item.unit}
-                </span>
+                <div key={item.dimension}>
+                  <span>{translateText(item.dimension === "WEIGHT" ? "Jami massa" : item.dimension === "VOLUME" ? "Jami hajm" : item.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona")}</span>
+                  <strong>{item.value} {item.unit}</strong>
+                </div>
               ))}
+              <div>
+                <span>Material qiymati</span>
+                <strong>{formatManufacturingMoney(plannedMaterialCost)}</strong>
+              </div>
             </div>
           </div>
         )}

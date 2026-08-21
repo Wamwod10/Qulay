@@ -113,25 +113,28 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit, submitting = 
       open={open}
       onClose={onClose}
       title={translateText("Mahsulotlarni qabul qilish")}
-      description={`${purchase.number} · ${purchase.supplierName || ""}`}
+      description={`${purchase.number} - ${purchase.supplierName || ""}`}
       size="lg"
+      footer={(
+        <div className="purchase-receive-modal__actions">
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            {translateText("Bekor qilish")}
+          </Button>
+
+          <Button onClick={handleSubmit} loading={submitting} disabled={submitting}>
+            {translateText("Qabul qilish")}
+          </Button>
+        </div>
+      )}
     >
       <div className="purchase-receive-modal">
-        <Input
-          label={translateText("Qabul sanasi")}
-          type="date"
-          value={receivedDate}
-          onChange={(event) => setReceivedDate(event.target.value)}
-        />
-
-        <div className="purchase-receive-modal__header">
-          <span>{translateText("Mahsulot")}</span>
-          <span>{translateText("Buyurtma")}</span>
-          <span>{translateText("Oldin qabul")}</span>
-          <span>{translateText("Hozir qabul")}</span>
-          <span>{translateText("Qoladi")}</span>
-          <span>{translateText("Batch")}</span>
-          <span>{translateText("Yaroqlilik")}</span>
+        <div className="purchase-receive-modal__top">
+          <Input
+            label={translateText("Qabul sanasi")}
+            type="date"
+            value={receivedDate}
+            onChange={(event) => setReceivedDate(event.target.value)}
+          />
         </div>
 
         <div className="purchase-receive-modal__items">
@@ -149,37 +152,48 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit, submitting = 
                   <span>SKU: {item.sku || "-"}</span>
                 </div>
 
-                <span>{roundPurchaseNumber(ordered)} {unit}</span>
-                <span>{roundPurchaseNumber(received)} {unit}</span>
-
-                <Input
-                  type="number"
-                  min="0"
-                  max={Math.max(ordered - received, 0)}
-                  value={quantities[item.id] || ""}
-                  onChange={(event) =>
-                    setQuantities((currentValues) => ({
-                      ...currentValues,
-                      [item.id]: event.target.value,
-                    }))
-                  }
-                />
-
-                <strong>{roundPurchaseNumber(remaining)} {unit}</strong>
-
-                <Input
-                  value={batchNumbers[item.id] || ""}
-                  placeholder={translateText("Avto")}
-                  onChange={(event) =>
-                    setBatchNumbers((currentValues) => ({
-                      ...currentValues,
-                      [item.id]: event.target.value,
-                    }))
-                  }
-                />
-
-                <div className="purchase-receive-modal__dates">
+                <div className="purchase-receive-modal__quantities">
+                  <div>
+                    <span>{translateText("Buyurtma")}</span>
+                    <strong>{roundPurchaseNumber(ordered)} {unit}</strong>
+                  </div>
+                  <div>
+                    <span>{translateText("Oldin qabul")}</span>
+                    <strong>{roundPurchaseNumber(received)} {unit}</strong>
+                  </div>
                   <Input
+                    label={translateText("Hozir qabul")}
+                    type="number"
+                    min="0"
+                    max={Math.max(ordered - received, 0)}
+                    value={quantities[item.id] || ""}
+                    onChange={(event) =>
+                      setQuantities((currentValues) => ({
+                        ...currentValues,
+                        [item.id]: event.target.value,
+                      }))
+                    }
+                  />
+                  <div>
+                    <span>{translateText("Qoladi")}</span>
+                    <strong>{roundPurchaseNumber(remaining)} {unit}</strong>
+                  </div>
+                </div>
+
+                <div className="purchase-receive-modal__metadata">
+                  <Input
+                    label={translateText("Batch")}
+                    value={batchNumbers[item.id] || ""}
+                    placeholder={translateText("Avto")}
+                    onChange={(event) =>
+                      setBatchNumbers((currentValues) => ({
+                        ...currentValues,
+                        [item.id]: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    label={translateText("Yaroqlilik")}
                     type="date"
                     value={expiryDates[item.id] || ""}
                     onChange={(event) =>
@@ -190,6 +204,7 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit, submitting = 
                     }
                   />
                   <Input
+                    label={translateText("Ishlab chiqarilgan sana")}
                     type="date"
                     value={productionDates[item.id] || ""}
                     onChange={(event) =>
@@ -206,16 +221,6 @@ const PurchaseReceiveModal = ({ open, purchase, onClose, onSubmit, submitting = 
         </div>
 
         {error && <div className="purchase-receive-modal__error">{error}</div>}
-
-        <div className="purchase-receive-modal__actions">
-          <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            {translateText("Bekor qilish")}
-          </Button>
-
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {translateText("Qabul qilish")}
-          </Button>
-        </div>
       </div>
     </Modal>
   );

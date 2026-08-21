@@ -48,6 +48,8 @@
   }
 
   &__header {
+    flex: 0 0 auto;
+
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -102,11 +104,14 @@
 
   &__body {
     overflow-y: auto;
+    overflow-x: hidden;
 
     padding: 0 24px 24px;
   }
 
   &__footer {
+    flex: 0 0 auto;
+
     display: flex;
     justify-content: flex-end;
 

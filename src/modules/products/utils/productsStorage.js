@@ -48,6 +48,13 @@ const normalizeProduct = (product) => ({
       : product.category || "",
   brand: product.brand || "",
   unit: product.unit || "",
+  parentProductId: product.parentProductId || null,
+  packSize:
+    product.packSize === "" || product.packSize === null || product.packSize === undefined
+      ? null
+      : Number(product.packSize),
+  packUnit: product.packUnit || "",
+  isVariant: Boolean(product.isVariant),
   warehouseId:
     product.warehouseId ||
     product.stockItems?.find((item) => Number(item.quantity || 0) > 0)?.warehouseId ||

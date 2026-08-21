@@ -22,7 +22,6 @@ import {
   Card,
   ConfirmDialog,
   LiveIcon,
-  Table,
   Toast,
 } from "../../../../shared/ui";
 
@@ -163,6 +162,10 @@ const ProductionOrderDetailsPage = () => {
 
   const costDifference = actualProductionCost - plannedMaterialCost;
   const materialSummary = aggregateQuantities(order?.requiredMaterials || [], "requiredQuantity");
+  const getAvailabilityValue = (material, ...keys) => {
+    const key = keys.find((item) => material[item] !== undefined && material[item] !== null);
+    return key ? material[key] : 0;
+  };
 
   const handleStart = async () => {
     if (startPending || order.status !== "PLANNED") {
@@ -219,56 +222,6 @@ const ProductionOrderDetailsPage = () => {
       setActionError(getApiErrorMessage(error) || error.message || "Qo'shimcha xarajatlarni saqlashda xatolik.");
     }
   };
-
-  const materialColumns = [
-    {
-      key: "productName",
-      title: "Xomashyo",
-      render: (value, material) => (
-        <div className="production-order-details__material-name">
-          <strong>{value}</strong>
-          <span>SKU: {material.sku || "-"}</span>
-        </div>
-      ),
-    },
-    {
-      key: "requiredQuantity",
-      title: "Kerak",
-      render: (value, material) =>
-        `${formatProductionQuantity(value)} ${material.unit}`,
-    },
-    {
-      key: "availableQuantity",
-      title: "Omborda mavjud",
-      render: (value, material) =>
-        `${formatProductionQuantity(value)} ${material.unit}`,
-    },
-    {
-      key: "enough",
-      title: "Holat",
-      render: (value) => (
-        <Badge variant={value ? "success" : "danger"}>
-          {value ? (
-            <LiveIcon icon={CheckCircle2} motion="success-pop" size={14} />
-          ) : (
-            <LiveIcon icon={AlertTriangle} motion="warning-glow" size={14} />
-          )}
-          {value ? "Yetarli" : "Yetmaydi"}
-        </Badge>
-      ),
-    },
-    {
-      key: "missingQuantity",
-      title: "Yetishmaydi",
-      render: (value, material) =>
-        `${formatProductionQuantity(value)} ${material.unit}`,
-    },
-    {
-      key: "totalCost",
-      title: "Material qiymati",
-        render: (value) => formatManufacturingMoney(value),
-    },
-  ];
 
   const handleStartStage = async (stageId) => {
     const previousOrder = order;
@@ -725,12 +678,34 @@ const ProductionOrderDetailsPage = () => {
             </div>
           </div>
 
-          <Table
-            columns={materialColumns}
-            data={availability}
-            rowKey="productId"
-            emptyText="Xomashyo mavjud emas."
-          />
+          <div className="production-order-details__materials">
+            <div className="production-order-details__materials-header">
+              <span>Xomashyo</span>
+              <span>Kerak</span>
+              <span>Qoldiq</span>
+              <span>Rezerv</span>
+              <span>Mavjud</span>
+              <span>Yetishmaydi</span>
+              <span>Qiymat</span>
+            </div>
+
+            {availability.length > 0 ? availability.map((material) => (
+              <div key={material.productId} className={["production-order-details__material-row", !material.enough ? "production-order-details__material-row--warning" : ""].filter(Boolean).join(" ")}>
+                <div className="production-order-details__material-name">
+                  <strong>{material.productName}</strong>
+                  <span>SKU: {material.sku || "-"}</span>
+                </div>
+                <strong data-label="Kerak">{formatProductionQuantity(material.requiredQuantity)} {material.unit}</strong>
+                <span data-label="Qoldiq">{formatProductionQuantity(getAvailabilityValue(material, "warehouseQuantity", "quantity"))} {material.unit}</span>
+                <span data-label="Rezerv">{formatProductionQuantity(getAvailabilityValue(material, "reservedQuantity", "reserved"))} {material.unit}</span>
+                <span data-label="Mavjud">{formatProductionQuantity(getAvailabilityValue(material, "availableQuantity", "available"))} {material.unit}</span>
+                <span data-label="Yetishmaydi">{formatProductionQuantity(getAvailabilityValue(material, "missingQuantity", "shortage"))} {material.unit}</span>
+                <strong data-label="Qiymat" className="production-order-details__material-money">{formatManufacturingMoney(material.totalCost)}</strong>
+              </div>
+            )) : (
+              <div className="production-order-details__materials-empty">Xomashyo mavjud emas.</div>
+            )}
+          </div>
 
           {order.status === "IN_PROGRESS" && (
             <ProductionStages

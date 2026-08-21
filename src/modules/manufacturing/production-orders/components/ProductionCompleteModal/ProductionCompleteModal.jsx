@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Plus, Search, Trash2 } from "lucide-react";
 
 import { translateText } from "../../../../../localization/i18n";
 import {
@@ -7,7 +7,6 @@ import {
   Input,
   LiveIcon,
   Modal,
-  Select,
   Textarea,
 } from "../../../../../shared/ui";
 import { convertQuantity, normalizeUnit } from "../../../../../shared/utils/units";
@@ -34,15 +33,71 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   const products = useMemo(() => getStoredProducts().filter((product) => product.status !== "INACTIVE"), []);
   const packagedProductOptions = useMemo(
-    () => products
-      .filter((product) => product.type === "FINISHED_GOOD" && normalizeUnit(product.unit) === "dona")
-      .map((product) => ({ value: product.id, label: `${product.name} (${product.sku || "SKU"})` })),
+    () => products.filter((product) => {
+      try {
+        return product.type === "FINISHED_GOOD" && normalizeUnit(product.unit) === "dona";
+      } catch {
+        return false;
+      }
+    }),
     [products],
   );
-  const packagingMaterialOptions = useMemo(
-    () => products.map((product) => ({ value: product.id, label: `${product.name} (${product.unit})` })),
-    [products],
-  );
+  const packagingDatalistId = `packaging-products-${order?.id || "new"}`;
+
+  const getPackagingProduct = (row) =>
+    packagedProductOptions.find((product) => product.id === row.productId) || null;
+
+  const getProductSearchLabel = (product) => {
+    if (!product) return "";
+    return [product.name, product.sku ? `SKU: ${product.sku}` : "", product.barcode ? `Barcode: ${product.barcode}` : ""]
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const findPackagedProduct = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) return null;
+    return packagedProductOptions.find((product) => {
+      const label = getProductSearchLabel(product).toLowerCase();
+      return (
+        product.id === value ||
+        String(product.name || "").toLowerCase() === normalized ||
+        String(product.sku || "").toLowerCase() === normalized ||
+        String(product.barcode || "").toLowerCase() === normalized ||
+        label === normalized
+      );
+    }) || null;
+  };
+
+  const getRowPackSize = (row) => {
+    const product = getPackagingProduct(row);
+    const productPackSize = Number(product?.packSize || 0);
+    return productPackSize > 0 ? productPackSize : Number(row.packSize || 0);
+  };
+
+  const getRowPackUnit = (row) => {
+    const product = getPackagingProduct(row);
+    return product?.packUnit || row.packUnit || order.unit;
+  };
+
+  const getPlannedPackQuantity = (row) => {
+    const snapshotQuantity = Number(row.plannedQuantity ?? row.recipeQuantity ?? 0);
+    if (snapshotQuantity > 0) return Math.floor(snapshotQuantity);
+    const packSize = getRowPackSize(row);
+    if (packSize <= 0 || Number(order.plannedQuantity || 0) <= 0) return 0;
+    try {
+      const normalizedPackSize = convertQuantity(packSize, getRowPackUnit(row), order.unit);
+      return normalizedPackSize > 0 ? Math.floor(Number(order.plannedQuantity || 0) / normalizedPackSize) : 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const getPackagingMaterialCost = (row) =>
+    (row.materials || []).reduce(
+      (rowTotal, material) => rowTotal + Number(material.quantity || 0) * Number(row.quantity || 0) * Number(products.find((product) => product.id === material.productId)?.cost || 0),
+      0,
+    );
 
   useEffect(() => {
     if (!open || !order) return;
@@ -74,7 +129,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   const waste = Number(wasteQuantity || 0);
   const packagingTotal = packagingRows.reduce((total, row) => {
     try {
-      return total + Number(row.quantity || 0) * convertQuantity(Number(row.packSize || 0), row.packUnit || order.unit, order.unit);
+      return total + Number(row.quantity || 0) * convertQuantity(getRowPackSize(row), getRowPackUnit(row), order.unit);
     } catch {
       return total;
     }
@@ -82,10 +137,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   const remainingBulk = Math.max(accepted - packagingTotal, 0);
   const rawMaterialCost = actualMaterials.reduce((total, material) => total + Number(material.actualQuantity || 0) * Number(material.cost || 0), 0);
   const packagingPreviewCost = packagingRows.reduce(
-    (total, row) => total + (row.materials || []).reduce(
-      (rowTotal, material) => rowTotal + Number(material.quantity || 0) * Number(row.quantity || 0) * Number(products.find((product) => product.id === material.productId)?.cost || 0),
-      0,
-    ),
+    (total, row) => total + getPackagingMaterialCost(row),
     0,
   );
   const overheadCost = calculateOverheadCost(order.overheadItems);
@@ -97,15 +149,55 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     actualProductionCost,
     producedQuantity: accepted,
   });
+  const baseUnitCost = calculateActualUnitCost({
+    actualProductionCost: rawMaterialCost + overheadCost,
+    producedQuantity: accepted,
+  });
   const planDifference = accepted - Number(order.plannedQuantity || 0);
+  const packagingPlannedTotal = packagingRows.reduce((total, row) => total + getPlannedPackQuantity(row), 0);
+  const packagingActualTotal = packagingRows.reduce((total, row) => total + Number(row.quantity || 0), 0);
+  const packagingDifferenceTotal = packagingActualTotal - packagingPlannedTotal;
 
   const updateMaterial = (productId, value) => {
     setActualMaterials((current) => current.map((material) => material.productId === productId ? { ...material, actualQuantity: value } : material));
   };
   const updatePackaging = (index, key, value) => setPackagingRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
-  const addPackaging = () => setPackagingRows((current) => [...current, { productName: "", quantity: "", packSize: "", packUnit: order.unit, materials: [] }]);
+  const handlePackagingProductSearch = (index, value) => {
+    const product = findPackagedProduct(value);
+    setPackagingRows((current) => current.map((row, rowIndex) => {
+      if (rowIndex !== index) return row;
+      if (!product) return { ...row, searchText: value, productId: "", productName: "" };
+      const plannedQuantity = getPlannedPackQuantity({
+        ...row,
+        productId: product.id,
+        packSize: product.packSize || row.packSize,
+        packUnit: product.packUnit || row.packUnit || order.unit,
+      });
+      return {
+        ...row,
+        searchText: getProductSearchLabel(product),
+        productId: product.id,
+        productName: product.name,
+        packSize: product.packSize || row.packSize,
+        packUnit: product.packUnit || row.packUnit || order.unit,
+        quantity: row.quantity || (plannedQuantity > 0 ? String(plannedQuantity) : ""),
+      };
+    }));
+  };
+  const addPackaging = () => setPackagingRows((current) => [...current, { productName: "", productId: "", searchText: "", quantity: "", packSize: "", packUnit: order.unit, materials: [] }]);
   const removePackaging = (index) => setPackagingRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
-  const updatePackagingMaterial = (rowIndex, key, value) => setPackagingRows((current) => current.map((row, index) => index === rowIndex ? { ...row, materials: [{ ...(row.materials?.[0] || {}), [key]: value }] } : row));
+
+  const getPackagingUnitCost = (row) => {
+    const packSize = getRowPackSize(row);
+    let normalizedPackSize = 0;
+    try {
+      normalizedPackSize = convertQuantity(packSize, getRowPackUnit(row), order.unit);
+    } catch {
+      normalizedPackSize = Number(packSize || 0);
+    }
+    const perPackPackagingCost = Number(row.quantity || 0) > 0 ? getPackagingMaterialCost(row) / Number(row.quantity || 0) : 0;
+    return (baseUnitCost * normalizedPackSize) + perPackPackagingCost;
+  };
 
   const handleSubmit = async () => {
     setError("");
@@ -121,8 +213,12 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       setError("Xomashyo sarfi manfiy bo'lishi mumkin emas.");
       return;
     }
-    if (packagingRows.some((row) => !Number.isInteger(Number(row.quantity)) || Number(row.quantity) <= 0 || Number(row.packSize) <= 0)) {
-      setError("Qadoq soni butun son, qadoq hajmi esa 0 dan katta bo'lishi kerak.");
+    if (packagingRows.some((row) => !row.productId)) {
+      setError("Qadoqlash uchun real mahsulotni nomi, SKU yoki shtrix-kodi orqali tanlang.");
+      return;
+    }
+    if (packagingRows.some((row) => !Number.isInteger(Number(row.quantity)) || Number(row.quantity) <= 0 || getRowPackSize(row) <= 0)) {
+      setError("Haqiqiy qadoq soni butun son bo'lishi, mahsulotda qadoq hajmi saqlangan bo'lishi kerak.");
       return;
     }
 
@@ -139,12 +235,18 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           actualQuantity: Number(material.actualQuantity || 0),
           unit: material.unit,
         })),
-        packaging: packagingRows.map((row) => ({
+        packaging: packagingRows.map((row) => {
+          const product = getPackagingProduct(row);
+          return ({
           ...row,
-          packUnit: normalizeUnit(row.packUnit || order.unit),
+          productId: product?.id || row.productId,
+          productName: product?.name || row.productName,
+          unit: "dona",
+          packUnit: normalizeUnit(getRowPackUnit(row)),
           quantity: Number(row.quantity || 0),
-          packSize: Number(row.packSize || 0),
-        })),
+          packSize: Number(getRowPackSize(row) || 0),
+        });
+        }),
         outputWarehouseId: order.outputWarehouseId,
         materialWarehouseId: order.materialWarehouseId,
         completionNote,
@@ -181,21 +283,79 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           <div className="production-complete__materials-title">
             <div>
               <h4>Qadoqlash</h4>
-              <p>Qadoqlangan jami: {packagingTotal} {order.unit}; qolgan bulk: {remainingBulk} {order.unit}.</p>
+              <p>Mahsulot nomi, SKU yoki shtrix-kod bilan real tayyor SKU tanlanadi. Qolgan bulk: {remainingBulk} {order.unit}.</p>
             </div>
             <Button type="button" variant="secondary" onClick={addPackaging} leftIcon={<Plus size={15} />}>Qadoq qo'shish</Button>
           </div>
+          <datalist id={packagingDatalistId}>
+            {packagedProductOptions.map((product) => (
+              <option key={product.id} value={getProductSearchLabel(product)} />
+            ))}
+          </datalist>
           {packagingRows.map((row, index) => (
             <div className="production-complete__package-row" key={row.id || index}>
-              <Input label="SKU nomi" value={row.productName || ""} onChange={(event) => updatePackaging(index, "productName", event.target.value)} />
-              <Select label="Tayyor SKU" value={row.productId || ""} options={packagedProductOptions} onChange={(event) => updatePackaging(index, "productId", event.target.value)} />
-              <Input label="Soni" type="number" min="1" step="1" value={row.quantity || ""} onChange={(event) => updatePackaging(index, "quantity", event.target.value)} />
-              <Input label={`Hajmi (${order.unit})`} type="number" min="0" step="any" value={row.packSize || ""} onChange={(event) => updatePackaging(index, "packSize", event.target.value)} />
-              <Select label="Qadoq materiali" value={row.materials?.[0]?.productId || ""} options={packagingMaterialOptions} onChange={(event) => updatePackagingMaterial(index, "productId", event.target.value)} />
-              <Input label="Har bir qadoqqa material" type="number" min="0" step="any" value={row.materials?.[0]?.quantity || ""} onChange={(event) => updatePackagingMaterial(index, "quantity", event.target.value)} />
-              <Button type="button" variant="ghost" aria-label="Qadoqni o'chirish" onClick={() => removePackaging(index)} leftIcon={<Trash2 size={15} />} />
+              <Input
+                className="production-complete__package-product"
+                label="Mahsulot"
+                placeholder="Mahsulot nomi yoki shtrix-kod..."
+                value={row.searchText ?? getProductSearchLabel(getPackagingProduct(row)) ?? row.productName ?? ""}
+                list={packagingDatalistId}
+                rightIcon={<Search size={15} />}
+                onChange={(event) => handlePackagingProductSearch(index, event.target.value)}
+              />
+              <div className="production-complete__package-cost">
+                <span>Tannarx</span>
+                <strong>{formatManufacturingMoney(getPackagingUnitCost(row))} / dona</strong>
+              </div>
+              <div className="production-complete__package-qty">
+                <div>
+                  <span>Retsept bo'yicha</span>
+                  <strong>{getPlannedPackQuantity(row)} dona</strong>
+                </div>
+                <Input
+                  label="Haqiqiy"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  value={row.quantity || ""}
+                  onChange={(event) => updatePackaging(index, "quantity", event.target.value)}
+                />
+                <div>
+                  <span>Farq</span>
+                  <strong className={Number(row.quantity || 0) - getPlannedPackQuantity(row) < 0 ? "production-complete__negative" : Number(row.quantity || 0) - getPlannedPackQuantity(row) > 0 ? "production-complete__positive" : ""}>
+                    {Number(row.quantity || 0) - getPlannedPackQuantity(row) > 0 ? "+" : ""}{Number(row.quantity || 0) - getPlannedPackQuantity(row)} dona
+                  </strong>
+                </div>
+              </div>
+              <Button type="button" variant="ghost" aria-label="Qadoqni o'chirish" title="Qadoqni o'chirish" className="production-complete__package-delete" onClick={() => removePackaging(index)}>
+                <Trash2 size={16} />
+              </Button>
             </div>
           ))}
+          <div className="production-complete__packaging-summary">
+            <strong>Qadoqlash summary</strong>
+            {packagingRows.map((row, index) => {
+              const product = getPackagingProduct(row);
+              const planned = getPlannedPackQuantity(row);
+              const actual = Number(row.quantity || 0);
+              return (
+                <div key={row.id || `summary-${index}`}>
+                  <span>{product?.name || row.productName || "Mahsulot tanlanmagan"}</span>
+                  <strong>Retsept: {planned} dona</strong>
+                  <strong>Haqiqiy: {actual} dona</strong>
+                  <strong className={actual - planned < 0 ? "production-complete__negative" : actual - planned > 0 ? "production-complete__positive" : ""}>
+                    Farq: {actual - planned > 0 ? "+" : ""}{actual - planned} dona
+                  </strong>
+                </div>
+              );
+            })}
+            <div className="production-complete__packaging-total">
+              <span>Retsept bo'yicha jami: <strong>{packagingPlannedTotal} dona</strong></span>
+              <span>Haqiqiy jami: <strong>{packagingActualTotal} dona</strong></span>
+              <span>Farq: <strong className={packagingDifferenceTotal < 0 ? "production-complete__negative" : packagingDifferenceTotal > 0 ? "production-complete__positive" : ""}>{packagingDifferenceTotal > 0 ? "+" : ""}{packagingDifferenceTotal} dona</strong></span>
+            </div>
+          </div>
         </div>
 
         <div className="production-complete__materials">
