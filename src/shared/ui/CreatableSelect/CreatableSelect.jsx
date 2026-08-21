@@ -161,6 +161,7 @@ const CreatableSelect = ({
           className={
             !selected ? "ui-creatable-select__placeholder" : ""
           }
+          data-i18n-skip="true"
         >
           {selected?.label || placeholder}
         </span>
@@ -200,7 +201,7 @@ const CreatableSelect = ({
                 className="ui-creatable-select__option"
                 onClick={() => select(option)}
               >
-                <span>{option.label}</span>
+                <span data-i18n-skip="true">{option.label}</span>
 
                 {option.value === value && <Check size={15} />}
               </button>

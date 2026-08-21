@@ -53,7 +53,7 @@ const Table = ({
               tableData.map((row, rowIndex) => (
                 <tr key={row[rowKey] ?? rowIndex}>
                   {columns.map((column) => (
-                    <td key={column.key}>
+                    <td key={column.key} data-i18n-skip="true">
                       {column.render
                         ? column.render(row[column.key], row, rowIndex)
                         : row[column.key]}

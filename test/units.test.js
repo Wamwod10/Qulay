@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { aggregateQuantities, convertQuantity } from "../src/shared/utils/units.js";
 import { formatDecimal, roundDecimal } from "../src/shared/utils/number.js";
+import { setCurrentLanguage, translateText } from "../src/localization/i18n.js";
 
 test("frontend unit conversion rejects mixed dimensions", () => {
   assert.equal(convertQuantity(1000, "g", "kg"), 1);
@@ -30,4 +31,14 @@ test("frontend quantity summary keeps dimensions separate", () => {
 test("frontend decimal formatter removes floating point noise", () => {
   assert.equal(roundDecimal(0.1 + 0.2, 6), 0.3);
   assert.equal(formatDecimal(1.60000000004, { precision: 6, locale: "en-US" }), "1.6");
+});
+
+test("frontend i18n does not repair valid Cyrillic business text", () => {
+  setCurrentLanguage("uz");
+  assert.equal(translateText("Селес"), "Селес");
+
+  setCurrentLanguage("tj");
+  assert.equal(translateText("Селес"), "Селес");
+
+  setCurrentLanguage("uz");
 });

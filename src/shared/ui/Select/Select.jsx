@@ -67,7 +67,10 @@ const Select = ({
         }}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className={["ui-select__value", !selectedOption ? "ui-select__value--placeholder" : ""].filter(Boolean).join(" ")}>
+        <span
+          className={["ui-select__value", !selectedOption ? "ui-select__value--placeholder" : ""].filter(Boolean).join(" ")}
+          data-i18n-skip="true"
+        >
           {selectedOption?.label || placeholder}
         </span>
         <ChevronDown className="ui-select__chevron" size={17} strokeWidth={1.8} />
@@ -85,7 +88,7 @@ const Select = ({
                   className={["ui-select__option", selected ? "ui-select__option--selected" : ""].filter(Boolean).join(" ")}
                   onClick={() => handleSelect(option)}
                 >
-                  <span>{option.label}</span>
+                  <span data-i18n-skip="true">{option.label}</span>
                   {selected && <Check size={15} strokeWidth={2} />}
                 </button>
               );

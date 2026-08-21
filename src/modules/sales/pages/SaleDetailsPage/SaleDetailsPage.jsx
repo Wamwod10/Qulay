@@ -13,6 +13,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 
 import { Badge, Button, Card, Input, LiveIcon, Modal, Table, Textarea } from "../../../../shared/ui";
+import { translateText } from "../../../../localization/i18n";
 
 import ReceiptPreview from "../../pos/components/ReceiptPreview/ReceiptPreview";
 
@@ -250,14 +251,14 @@ const SaleDetailsPage = () => {
         </Card>
       )}
 
-      <Modal open={receiptOpen} title="Chek" size="sm" onClose={() => setReceiptOpen(false)}>
+      <Modal open={receiptOpen} title={translateText("Chek")} size="sm" onClose={() => setReceiptOpen(false)}>
         <ReceiptPreview sale={sale} onPrint={() => window.print()} />
       </Modal>
 
       <Modal
         open={returnOpen}
-        title="Qaytarish"
-        description="Sotilgan miqdordan oshmagan qisman qaytarish miqdorini kiriting."
+        title={translateText("Qaytarish")}
+        description={translateText("Sotilgan miqdordan oshmagan qisman qaytarish miqdorini kiriting.")}
         size="lg"
         onClose={() => setReturnOpen(false)}
         footer={

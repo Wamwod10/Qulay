@@ -304,7 +304,7 @@ const POSTerminalPage = () => {
     const available = Number(stockItem?.available || 0);
 
     if (available <= 0) {
-      setError(translateText(`${product.name} omborda mavjud emas.`));
+      setError(`${product.name} ${translateText("omborda mavjud emas.")}`);
       return;
     }
 

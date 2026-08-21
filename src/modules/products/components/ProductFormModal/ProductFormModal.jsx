@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { translateText } from "../../../../localization/i18n";
 import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
 import { Modal } from "../../../../shared/ui";
 import ProductForm from "../ProductForm/ProductForm";
@@ -45,8 +46,8 @@ const ProductFormModal = ({
     <Modal
       open={open}
       onClose={handleClose}
-      title={title}
-      description="Mahsulot katalogga to'liq ma'lumotlari bilan saqlanadi."
+      title={translateText(title)}
+      description={translateText("Mahsulot katalogga to'liq ma'lumotlari bilan saqlanadi.")}
       size="lg"
       closeOnOverlay={false}
     >

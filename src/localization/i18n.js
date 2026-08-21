@@ -3,15 +3,15 @@ import {
   LANGUAGE_LOCALES,
   LANGUAGE_STORAGE_KEY,
   normalizeLanguage,
-} from "./languages";
+} from "./languages.js";
 import {
   structuredTranslations,
   tajikPhraseMap,
   tajikWordReplacements,
   terminologyTranslations,
-} from "./translations";
-import { customerAgentTajikOverrides } from "./customerAgentOverrides";
-import { productPurchaseTajikOverrides } from "./productPurchaseOverrides";
+} from "./translations.js";
+import { customerAgentTajikOverrides } from "./customerAgentOverrides.js";
+import { productPurchaseTajikOverrides } from "./productPurchaseOverrides.js";
 
 let currentLanguage = DEFAULT_LANGUAGE;
 let currentTerminology = {};
@@ -99,6 +99,8 @@ const TAJIK_SAFE_TEXT_MAP = {
   "tugagan": "тамомшуда",
 };
 
+const REPLACEMENT_CHARACTER_PATTERN = /\uFFFD/;
+
 const isMojibake = (value) =>
   /\u0420[\u0400-\u04ff]\u0420|\u0421[\u0400-\u04ff]|\u0432\u0402|\?{2,}/.test(
     String(value),
@@ -134,9 +136,13 @@ const repairMojibake = (value) => {
   }
 
   try {
-    const repaired = new TextDecoder().decode(Uint8Array.from(bytes));
+    const repaired = new TextDecoder("utf-8", { fatal: true }).decode(
+      Uint8Array.from(bytes),
+    );
 
-    return isMojibake(repaired) ? source : repaired;
+    return isMojibake(repaired) || REPLACEMENT_CHARACTER_PATTERN.test(repaired)
+      ? source
+      : repaired;
   } catch {
     return source;
   }
@@ -178,6 +184,9 @@ const shouldSkipText = (value) => {
     text.length > 240
   );
 };
+
+const hasI18nSkipAncestor = (element) =>
+  Boolean(element?.closest?.("[data-i18n-skip='true']"));
 
 const resolvePath = (object, path) =>
   String(path)
@@ -362,6 +371,10 @@ export const localizeDom = (root = document.body) => {
         return NodeFilter.FILTER_REJECT;
       }
 
+      if (hasI18nSkipAncestor(parent)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+
       return shouldSkipText(node.nodeValue)
         ? NodeFilter.FILTER_REJECT
         : NodeFilter.FILTER_ACCEPT;
@@ -389,6 +402,10 @@ export const localizeDom = (root = document.body) => {
 
   TEXT_ATTRIBUTES.forEach((attribute) => {
     root.querySelectorAll?.(`[${attribute}]`)?.forEach((element) => {
+      if (hasI18nSkipAncestor(element)) {
+        return;
+      }
+
       const original =
         element.dataset?.[`i18n${toDatasetName(attribute)}Source`] ||
         element.getAttribute(attribute);

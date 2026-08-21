@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Pencil, Plus, Trash2, WalletCards } from "lucide-react";
 
+import { translateText } from "../../../../../localization/i18n";
 import {
   Button,
   Card,
@@ -217,8 +218,8 @@ const ProductionOverheadPanel = ({ order, readOnly = false, onChange }) => {
 
       <Modal
         open={Boolean(draft)}
-        title={draft && items.some((item) => item.id === draft.id) ? "Xarajatni tahrirlash" : "Xarajat qo'shish"}
-        description="Qo'shimcha xarajat real ishlab chiqarish tannarxiga qo'shiladi."
+        title={translateText(draft && items.some((item) => item.id === draft.id) ? "Xarajatni tahrirlash" : "Xarajat qo'shish")}
+        description={translateText("Qo'shimcha xarajat real ishlab chiqarish tannarxiga qo'shiladi.")}
         size="sm"
         onClose={closeModal}
         footer={(

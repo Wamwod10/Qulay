@@ -57,13 +57,13 @@ const Modal = ({
         className={`ui-modal__dialog ui-modal__dialog--${size}`}
         role="dialog"
         aria-modal="true"
-        aria-label={translateText(title)}
+        aria-label={typeof title === "string" ? title : undefined}
       >
         <header className="ui-modal__header">
           <div>
-            {title && <h2>{translateText(title)}</h2>}
+            {title && <h2 data-i18n-skip="true">{title}</h2>}
 
-            {description && <p>{translateText(description)}</p>}
+            {description && <p data-i18n-skip="true">{description}</p>}
           </div>
 
           <button
