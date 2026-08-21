@@ -110,6 +110,7 @@ export const getStoredProductsPage = async ({
   type = "",
   category = "",
   status = "ACTIVE,INACTIVE",
+  skipCache = false,
 } = {}) => {
   const params = new URLSearchParams({
     page: String(Math.max(Number(page) || 1, 1)),
@@ -121,7 +122,7 @@ export const getStoredProductsPage = async ({
   if (category) params.set("category", category);
   if (status) params.set("status", status);
 
-  const remoteResult = await apiRequest(`/products?${params.toString()}`);
+  const remoteResult = await apiRequest(`/products?${params.toString()}`, { skipCache });
   const remoteProducts = unwrapList(remoteResult, ["products"]);
 
   if (Array.isArray(remoteProducts)) {

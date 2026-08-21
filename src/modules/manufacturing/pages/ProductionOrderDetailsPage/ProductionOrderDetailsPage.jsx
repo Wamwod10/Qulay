@@ -220,6 +220,7 @@ const ProductionOrderDetailsPage = () => {
       setActionError("");
     } catch (error) {
       setActionError(getApiErrorMessage(error) || error.message || "Qo'shimcha xarajatlarni saqlashda xatolik.");
+      throw error;
     }
   };
 

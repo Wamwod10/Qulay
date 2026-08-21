@@ -4,6 +4,11 @@
 
   gap: 22px;
 
+  &__loading {
+    display: grid;
+    gap: 18px;
+  }
+
   &__filters {
     display: grid;
     grid-template-columns: repeat(4, minmax(170px, 1fr));

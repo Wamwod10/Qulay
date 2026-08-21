@@ -9,6 +9,7 @@
 .ui-creatable-select__options { max-height: 220px; overflow-y: auto; }
 .ui-creatable-select__option, .ui-creatable-select__create { display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%; min-height: 38px; padding: 0 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); text-align: left; cursor: pointer; }
 .ui-creatable-select__option:hover, .ui-creatable-select__create:hover:not(:disabled) { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.ui-creatable-select__empty { padding: 10px; color: var(--color-text-muted); font-size: 12px; }
 .ui-creatable-select__create { justify-content: flex-start; margin-top: 6px; background: var(--color-accent-soft); color: var(--color-accent); }
 .ui-creatable-select__create:disabled { opacity: .5; cursor: not-allowed; }
 .ui-creatable-select__error { color: var(--color-danger); font-size: 12px; }

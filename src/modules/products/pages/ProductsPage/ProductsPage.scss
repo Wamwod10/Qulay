@@ -132,6 +132,11 @@
     }
   }
 
+  &__loading-rows {
+    display: grid;
+    gap: 10px;
+  }
+
   &__modal-form {
     display: grid;
 

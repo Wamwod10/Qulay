@@ -43,7 +43,9 @@ export const fetchStoredPurchases = async (query = {}) => {
     }
   });
 
-  const result = await apiRequest(`/purchases${params.toString() ? `?${params.toString()}` : ""}`);
+  const result = await apiRequest(`/purchases${params.toString() ? `?${params.toString()}` : ""}`, {
+    skipCache: true,
+  });
   const purchases = unwrapList(result, ["purchases"]);
 
   if (!Array.isArray(purchases)) {

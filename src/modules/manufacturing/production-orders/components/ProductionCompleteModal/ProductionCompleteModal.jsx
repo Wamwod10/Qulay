@@ -55,15 +55,15 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   };
 
   const findPackagedProduct = (value) => {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "").trim().toLocaleLowerCase();
     if (!normalized) return null;
     return packagedProductOptions.find((product) => {
-      const label = getProductSearchLabel(product).toLowerCase();
+      const label = getProductSearchLabel(product).toLocaleLowerCase();
       return (
         product.id === value ||
-        String(product.name || "").toLowerCase() === normalized ||
-        String(product.sku || "").toLowerCase() === normalized ||
-        String(product.barcode || "").toLowerCase() === normalized ||
+        String(product.name || "").toLocaleLowerCase() === normalized ||
+        String(product.sku || "").toLocaleLowerCase() === normalized ||
+        String(product.barcode || "").toLocaleLowerCase() === normalized ||
         label === normalized
       );
     }) || null;

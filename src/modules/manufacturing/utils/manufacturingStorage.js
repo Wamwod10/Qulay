@@ -101,6 +101,16 @@ export const getStoredBoms = () => {
     return [];
 };
 
+export const fetchStoredBoms = async () => {
+    const result = await apiRequest("/manufacturing/boms", { skipCache: true });
+    const boms = unwrapList(result, ["boms"]);
+    if (!Array.isArray(boms)) {
+        throw new Error("Retseptlar backenddan olinmadi.");
+    }
+    saveBoms(boms);
+    return boms;
+};
+
 export const saveBoms = (boms) => {
     tenantSet(
         BOM_STORAGE_KEY,
@@ -145,6 +155,16 @@ export const getStoredProductionOrders =
         }
         return [];
     };
+
+export const fetchStoredProductionOrders = async () => {
+    const result = await apiRequest("/manufacturing/orders", { skipCache: true });
+    const orders = unwrapList(result, ["orders", "productionOrders"]);
+    if (!Array.isArray(orders)) {
+        throw new Error("Ishlab chiqarish buyurtmalari backenddan olinmadi.");
+    }
+    saveProductionOrders(orders);
+    return orders.map(normalizeProductionOrder);
+};
 
 export const saveProductionOrders = (
     orders,

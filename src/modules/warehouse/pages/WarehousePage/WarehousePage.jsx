@@ -48,9 +48,12 @@ import {
   Button,
   Card,
   Badge,
+  EmptyState,
   LiveIcon,
   Select,
+  Skeleton,
   TableToolbar,
+  Toast,
 } from "../../../../shared/ui";
 import { translateOptions, translateText } from "../../../../localization/i18n";
 
@@ -68,12 +71,17 @@ const WarehousePage = () => {
   const [batches, setBatches] = useState(() => getStoredBatches());
 
   const [movements, setMovements] = useState(() => getWarehouseMovements());
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const refreshWarehouseData = async () => {
+    setLoading(true);
+    setLoadError("");
     const [stockResult, batchResult, movementResult, warehouseResult] = await Promise.all([
-      apiRequest("/inventory/stock"),
-      apiRequest("/inventory/batches"),
-      apiRequest("/inventory/movements"),
+      apiRequest("/inventory/stock", { skipCache: true }),
+      apiRequest("/inventory/batches", { skipCache: true }),
+      apiRequest("/inventory/movements", { skipCache: true }),
       fetchStoredWarehouses(),
     ]);
 
@@ -85,6 +93,7 @@ const WarehousePage = () => {
     setBatches(Array.isArray(remoteBatches) ? remoteBatches : getStoredBatches());
     setMovements(Array.isArray(remoteMovements) ? remoteMovements : getWarehouseMovements());
     setWarehouses(Array.isArray(warehouseResult) ? warehouseResult : getStoredWarehouses());
+    setLoading(false);
   };
 
   const navigate = useNavigate();
@@ -145,7 +154,7 @@ const WarehousePage = () => {
 
       await refreshWarehouseData();
     } catch (error) {
-      alert(translateText(error.message || "Kirim qilishda xatolik yuz berdi."));
+      setActionError(translateText(error.message || "Kirim qilishda xatolik yuz berdi."));
     }
   };
 
@@ -157,9 +166,7 @@ const WarehousePage = () => {
 
       await refreshWarehouseData();
     } catch (error) {
-      alert(
-        translateText(error.message || "Inventarizatsiyada xatolik yuz berdi."),
-      );
+      setActionError(translateText(error.message || "Inventarizatsiyada xatolik yuz berdi."));
     }
   };
 
@@ -175,7 +182,7 @@ const WarehousePage = () => {
 
       await refreshWarehouseData();
     } catch (error) {
-      alert(translateText(error.message || "Chiqim qilishda xatolik yuz berdi."));
+      setActionError(translateText(error.message || "Chiqim qilishda xatolik yuz berdi."));
     }
   };
 
@@ -187,7 +194,7 @@ const WarehousePage = () => {
 
       await refreshWarehouseData();
     } catch (error) {
-      alert(translateText(error.message || "Ko‘chirishda xatolik yuz berdi."));
+      setActionError(translateText(error.message || "Ko'chirishda xatolik yuz berdi."));
     }
   };
 
@@ -285,7 +292,7 @@ const WarehousePage = () => {
 
       await refreshWarehouseData();
     } catch (error) {
-      alert(translateText(error.message || "Omborni saqlab bo'lmadi."));
+      setActionError(translateText(error.message || "Omborni saqlab bo'lmadi."));
     }
   };
 
@@ -300,12 +307,20 @@ const WarehousePage = () => {
       await toggleWarehouseStatus(warehouse.id);
       await refreshWarehouseData();
     } catch (error) {
-      alert(translateText(error.message || "Ombor holatini o'zgartirib bo'lmadi."));
+      setActionError(translateText(error.message || "Ombor holatini o'zgartirib bo'lmadi."));
     }
   };
 
   useEffect(() => {
-    refreshWarehouseData().catch(() => undefined);
+    refreshWarehouseData()
+      .catch((error) => {
+        setStock(getStoredWarehouseStock());
+        setBatches(getStoredBatches());
+        setMovements(getWarehouseMovements());
+        setWarehouses(getStoredWarehouses());
+        setLoadError(translateText(error?.message || "Ombor ma'lumotlarini yuklab bo'lmadi."));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -315,6 +330,14 @@ const WarehousePage = () => {
         "Mahsulot qoldiqlari, kirim-chiqim va ombor operatsiyalarini boshqarish.",
       )}
     >
+      {actionError && (
+        <Toast
+          type="error"
+          title={translateText("Xatolik")}
+          message={actionError}
+          onClose={() => setActionError("")}
+        />
+      )}
       <div className="warehouse-page">
         <section className="warehouse-page__top">
           <div className="warehouse-page__selector">
@@ -362,6 +385,15 @@ const WarehousePage = () => {
         </section>
 
         <section className="warehouse-page__stats">
+          {loading ? Array.from({ length: 6 }, (_, index) => (
+            <Card key={index} variant="soft" padding="md" className="warehouse-page__stat">
+              <Skeleton width={46} height={46} radius={14} />
+              <div>
+                <Skeleton width={92} height={11} />
+                <Skeleton width={66} height={22} />
+              </div>
+            </Card>
+          )) : <>
           <WarehouseStat
             icon={<Boxes size={21} />}
             label={translateText("Mahsulotlar")}
@@ -415,6 +447,7 @@ const WarehousePage = () => {
             value={stats.nearExpiryBatches}
             variant="warning"
           />
+          </>}
         </section>
 
         {expiryWarnings.length > 0 && (
@@ -539,6 +572,18 @@ const WarehousePage = () => {
             {filteredStock.length} {translateText("ta mahsulot")}
           </div>
 
+          {loading ? (
+            <div className="warehouse-page__loading-rows">
+              {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} height={96} radius={12} />)}
+            </div>
+          ) : loadError ? (
+            <EmptyState
+              title={translateText("Ma'lumotlarni yuklab bo'lmadi")}
+              description={loadError}
+              actionLabel={translateText("Qayta urinish")}
+              onAction={() => refreshWarehouseData().catch((error) => setLoadError(translateText(error?.message || "Ombor ma'lumotlarini yuklab bo'lmadi.")))}
+            />
+          ) : (
           <StockGrid
             items={filteredStock}
             onView={(item) =>
@@ -547,11 +592,12 @@ const WarehousePage = () => {
               )
             }
           />
+          )}
         </Card>
-        <StockMovements
+        {!loading && <StockMovements
           movements={warehouseMovements}
           warehouses={warehouses}
-        />
+        />}
       </div>
       <StockInModal
         open={stockInOpen}

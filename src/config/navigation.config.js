@@ -88,5 +88,6 @@ export const navigationItems = [
         label: "Sozlamalar",
         path: "/settings",
         icon: "Settings",
+        permission: "settings.view",
     },
 ];

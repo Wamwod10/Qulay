@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Boxes,
@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
-import { Button, Card, LiveIcon, Select } from "../../../../shared/ui";
+import { Button, Card, EmptyState, LiveIcon, Select, Skeleton } from "../../../../shared/ui";
 
 import BomCard from "../../components/BomCard/BomCard";
 import ProductionOrdersTable from "../../components/ProductionOrderTable/ProductionOrderTable";
@@ -21,6 +21,8 @@ import ProductionOrdersTable from "../../components/ProductionOrderTable/Product
 import {
   getStoredBoms,
   getStoredProductionOrders,
+  fetchStoredBoms,
+  fetchStoredProductionOrders,
 } from "../../utils/manufacturingStorage";
 
 import "./ManufacturingPage.scss";
@@ -28,13 +30,38 @@ import "./ManufacturingPage.scss";
 const ManufacturingPage = () => {
   const navigate = useNavigate();
 
-  const [boms] = useState(() =>
+  const [boms, setBoms] = useState(() =>
     getStoredBoms().filter((bom) => bom.status === "ACTIVE"),
   );
 
-  const [orders] = useState(() => getStoredProductionOrders());
+  const [orders, setOrders] = useState(() => getStoredProductionOrders());
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [statusFilter, setStatusFilter] = useState("");
+
+  const refreshManufacturing = async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const [remoteBoms, remoteOrders] = await Promise.all([
+        fetchStoredBoms(),
+        fetchStoredProductionOrders(),
+      ]);
+      setBoms(remoteBoms.filter((bom) => bom.status === "ACTIVE"));
+      setOrders(remoteOrders);
+    } catch (error) {
+      setLoadError(error?.message || "Ishlab chiqarish ma'lumotlarini yuklab bo'lmadi.");
+      setBoms(getStoredBoms().filter((bom) => bom.status === "ACTIVE"));
+      setOrders(getStoredProductionOrders());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshManufacturing();
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter(
@@ -93,6 +120,15 @@ const ManufacturingPage = () => {
         </div>
 
         <section className="manufacturing-page__stats">
+          {loading ? Array.from({ length: 4 }, (_, index) => (
+            <Card key={index} variant="soft" padding="md" className="manufacturing-page__stat">
+              <Skeleton width={42} height={42} radius={12} />
+              <div>
+                <Skeleton width={90} height={10} />
+                <Skeleton width={46} height={22} />
+              </div>
+            </Card>
+          )) : <>
           <ManufacturingStat
             icon={<Factory size={21} />}
             label="Jami buyurtma"
@@ -118,7 +154,16 @@ const ManufacturingPage = () => {
             value={stats.completed}
             variant="success"
           />
+          </>}
         </section>
+        {loadError && (
+          <EmptyState
+            title="Ma'lumotlarni yuklab bo'lmadi"
+            description={loadError}
+            actionLabel="Qayta urinish"
+            onAction={refreshManufacturing}
+          />
+        )}
 
         <Card padding="md">
           <div className="manufacturing-page__section-header">
@@ -130,7 +175,13 @@ const ManufacturingPage = () => {
           </div>
 
           <div className="manufacturing-page__bom-grid">
-            {boms.map((bom) => (
+            {loading ? Array.from({ length: 3 }, (_, index) => (
+              <Card key={index} padding="md">
+                <Skeleton width="65%" height={16} />
+                <Skeleton width="42%" height={12} />
+                <Skeleton width="100%" height={58} radius={12} />
+              </Card>
+            )) : boms.length ? boms.map((bom) => (
               <BomCard
                 key={bom.id}
                 bom={bom}
@@ -139,7 +190,9 @@ const ManufacturingPage = () => {
                   navigate(`/manufacturing/boms/${item.id}/edit`)
                 }
               />
-            ))}
+            )) : (
+              <EmptyState title="Retsept mavjud emas" description="Hozircha faol retsept topilmadi." />
+            )}
           </div>
         </Card>
 
@@ -178,10 +231,16 @@ const ManufacturingPage = () => {
             </div>
           </div>
 
+          {loading ? (
+            <div className="manufacturing-page__loading-rows">
+              {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} height={46} radius={12} />)}
+            </div>
+          ) : (
           <ProductionOrdersTable
             orders={filteredOrders}
             onView={(order) => navigate(`/manufacturing/orders/${order.id}`)}
           />
+          )}
         </Card>
       </div>
     </PageContainer>

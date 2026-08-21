@@ -17,6 +17,7 @@ import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import { navigationItems } from "../../../../config/navigation.config";
+import usePermissions from "../../../../hooks/usePermissions";
 import useModuleAccess from "../../../../hooks/useModuleAccess";
 import { tenantSet } from "../../../../modules/auth/utils/tenantStorage";
 import { mergeNavigationSettings } from "../../../../modules/settings/utils/moduleSettingsHelpers";
@@ -40,6 +41,8 @@ const iconMap = {
 
 const Sidebar = () => {
   const { hasModule } = useModuleAccess();
+  const { can } = usePermissions();
+  const userRole = useSelector((state) => state.auth.user?.role);
   const modules = useSelector((state) => state.settings.modules);
   const terminology = useSelector((state) => state.settings.terminology);
   const language = useSelector((state) => state.settings.formats?.language);
@@ -47,12 +50,18 @@ const Sidebar = () => {
     (state) => state.settings.behavior?.rememberLastOpenedModule,
   );
 
+  const fullSettingsAccess = userRole === "OWNER" || userRole === "ADMIN";
+
   const visibleItems = mergeNavigationSettings({
     items: navigationItems,
     modules,
     terminology,
     language,
-  }).filter((item) => !item.hidden && (!item.module || hasModule(item.module)));
+  }).filter((item) => {
+    const hidden = item.id === "settings" && fullSettingsAccess ? false : item.hidden;
+
+    return !hidden && (!item.module || hasModule(item.module)) && can(item.permission);
+  });
 
   return (
     <aside className="sidebar">

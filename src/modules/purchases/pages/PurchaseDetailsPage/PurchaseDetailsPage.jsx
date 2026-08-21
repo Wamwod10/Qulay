@@ -28,7 +28,8 @@ import {
   Card,
   ConfirmDialog,
   LiveIcon,
-  Table } from
+  Table,
+  Toast } from
 "../../../../shared/ui";
 
 import PurchasePaymentModal from "../../components/PurchasePaymentModal/PurchasePaymentModal";
@@ -68,6 +69,7 @@ const PurchaseDetailsPage = () => {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [receiveSubmitting, setReceiveSubmitting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -116,7 +118,7 @@ const PurchaseDetailsPage = () => {
 
       setCancelConfirmOpen(false);
     } catch (error) {
-      alert(error.message || "Xaridni bekor qilishda xatolik yuz berdi.");
+      setActionError(error.message || "Xaridni bekor qilishda xatolik yuz berdi.");
     }
   };
 
@@ -129,7 +131,7 @@ const PurchaseDetailsPage = () => {
 
       setPaymentOpen(false);
     } catch (error) {
-      alert(error.message || "To‘lovni yangilashda xatolik yuz berdi.");
+      setActionError(error.message || "To'lovni yangilashda xatolik yuz berdi.");
     } finally {
       setPaymentSubmitting(false);
     }
@@ -218,7 +220,7 @@ const PurchaseDetailsPage = () => {
 
       setReceiveOpen(false);
     } catch (error) {
-      alert(error.message || "Xaridni qabul qilishda xatolik.");
+      setActionError(error.message || "Xaridni qabul qilishda xatolik.");
     } finally {
       setReceiveSubmitting(false);
     }
@@ -229,6 +231,15 @@ const PurchaseDetailsPage = () => {
       title={purchase.number}
       description={`${purchase.supplierName} · ${purchase.warehouseName}`}>
       
+      {actionError && (
+        <Toast
+          type="error"
+          title={translateText("Xatolik")}
+          message={actionError}
+          onClose={() => setActionError("")}
+        />
+      )}
+
       <div className="purchase-details">
         <div className="purchase-details__actions">
           <Button

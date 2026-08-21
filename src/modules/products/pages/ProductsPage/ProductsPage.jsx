@@ -16,6 +16,7 @@ import {
   LiveIcon,
   Pagination,
   Select,
+  Skeleton,
   TableToolbar,
   Toast } from
 "../../../../shared/ui";
@@ -76,6 +77,7 @@ const ProductsPage = () => {
   const [pageSizeError, setPageSizeError] = useState("");
   const [remoteMeta, setRemoteMeta] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [busyProductId, setBusyProductId] = useState(null);
   const [categories, setCategories] = useState(() => getStoredCategories());
@@ -88,6 +90,7 @@ const ProductsPage = () => {
 
   const refreshProducts = useCallback(async () => {
     const usesLocalStockFilter = Boolean(stockFilter);
+    setLoading(true);
     try {
       const result = await getStoredProductsPage({
         page: usesLocalStockFilter ? 1 : page,
@@ -96,6 +99,7 @@ const ProductsPage = () => {
         type: typeFilter,
         category: categoryFilter,
         status: statusFilter || "ACTIVE,INACTIVE",
+        skipCache: true,
       });
 
       setProducts(result.products);
@@ -109,6 +113,8 @@ const ProductsPage = () => {
       });
     } catch (error) {
       setLoadError(error?.message || translateText("Mahsulotlarni yuklab bo'lmadi."));
+    } finally {
+      setLoading(false);
     }
   }, [categoryFilter, page, pageSize, search, statusFilter, stockFilter, typeFilter]);
 
@@ -131,12 +137,12 @@ const ProductsPage = () => {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = search.trim().toLocaleLowerCase();
 
     return products.filter((product) => {
-      const productName = product.name?.toLowerCase() || "";
-      const productSku = product.sku?.toLowerCase() || "";
-      const productBarcode = product.barcode?.toLowerCase() || "";
+      const productName = product.name?.toLocaleLowerCase() || "";
+      const productSku = product.sku?.toLocaleLowerCase() || "";
+      const productBarcode = product.barcode?.toLocaleLowerCase() || "";
 
       const matchesSearch =
       !normalizedSearch ||
@@ -362,6 +368,15 @@ const ProductsPage = () => {
 
       <div className="products-page">
         <section className="products-page__stats">
+          {loading ? Array.from({ length: 4 }, (_, index) => (
+            <Card key={index} variant="soft" padding="md" className="products-page__stat-card">
+              <Skeleton width={48} height={48} radius={15} />
+              <div>
+                <Skeleton width={88} height={12} />
+                <Skeleton width={54} height={26} />
+              </div>
+            </Card>
+          )) : <>
           <Card variant="soft" padding="md" className="products-page__stat-card">
             <div className="products-page__stat-icon">
               <Package size={21} strokeWidth={1.8} />
@@ -417,6 +432,7 @@ const ProductsPage = () => {
               <strong>{stats.outOfStock}</strong>
             </div>
           </Card>
+          </>}
         </section>
 
         <Card padding="md" className="products-page__workspace">
@@ -513,6 +529,11 @@ const ProductsPage = () => {
             </Button>
           </div>
 
+          {loading ? (
+            <div className="products-page__loading-rows">
+              {Array.from({ length: 7 }, (_, index) => <Skeleton key={index} height={48} radius={12} />)}
+            </div>
+          ) : (
           <ProductTable
             products={paginatedProducts}
             hasActiveFilters={hasActiveFilters}
@@ -527,9 +548,10 @@ const ProductsPage = () => {
             onArchive={handleArchiveProduct}
             onDelete={handleDeleteProduct}
             busyProductId={busyProductId} />
+          )}
           
 
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          {!loading && <Pagination page={page} totalPages={totalPages} onChange={setPage} />}
         </Card>
       </div>
 

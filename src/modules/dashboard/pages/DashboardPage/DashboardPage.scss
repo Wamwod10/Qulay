@@ -58,6 +58,14 @@
       outline: 0;
       box-shadow: var(--shadow-focus);
     }
+
+    &--loading {
+      cursor: default;
+
+      &:hover {
+        transform: none;
+      }
+    }
   }
 
   &__kpi-icon,

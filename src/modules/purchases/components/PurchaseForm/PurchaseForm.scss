@@ -55,14 +55,14 @@
     display: grid;
 
     grid-template-columns:
-      34px
-      minmax(240px, 2fr)
-      minmax(120px, 0.7fr)
-      minmax(150px, 0.9fr)
-      minmax(140px, 0.8fr)
-      40px;
+      minmax(260px, 2fr)
+      minmax(110px, 0.65fr)
+      minmax(120px, 0.75fr)
+      minmax(140px, 0.85fr)
+      minmax(160px, 1fr)
+      42px;
 
-    align-items: end;
+    align-items: center;
 
     gap: 12px;
 
@@ -74,30 +74,17 @@
   }
 
   &__product-picker {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
     gap: 8px;
     min-width: 0;
-  }
 
-  &__item-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 30px;
-    height: 30px;
-
-    margin-bottom: 7px;
-
-    border-radius: 9px;
-
-    color: var(--color-text-secondary);
-
-    font-size: 11px;
-    font-weight: 700;
-
-    box-shadow: var(--shadow-raised-sm);
+    > span {
+      grid-column: 1 / -1;
+      color: var(--color-text-muted);
+      font-size: 9px;
+    }
   }
 
   &__item-total {
@@ -122,7 +109,16 @@
 
       font-size: 13px;
       font-weight: 700;
+      white-space: nowrap;
     }
+  }
+
+  &__item-delete {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: var(--color-danger);
+    justify-self: end;
   }
 
   &__bottom-grid {
@@ -202,14 +198,12 @@
   .purchase-form {
     &__item {
       grid-template-columns:
-        32px
-        minmax(200px, 2fr)
-        110px
-        140px
-        120px
-        36px;
-
-      overflow-x: auto;
+        minmax(220px, 1.7fr)
+        minmax(96px, 0.65fr)
+        minmax(105px, 0.75fr)
+        minmax(125px, 0.85fr)
+        minmax(140px, 1fr)
+        42px;
     }
   }
 }
@@ -227,8 +221,13 @@
       align-items: stretch;
     }
 
-    &__item-number {
-      margin: 0;
+    &__product-picker {
+      grid-template-columns: 1fr;
+    }
+
+    &__item-delete {
+      width: 100%;
+      justify-self: stretch;
     }
   }
 }

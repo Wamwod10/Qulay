@@ -145,7 +145,9 @@ const request = async (path, options = {}) => {
   const method = String(options.method || "GET").toUpperCase();
   const cacheKey = getCacheKey(path, session, token);
 
-  if (method === "GET") {
+  const skipCache = Boolean(options.skipCache);
+
+  if (method === "GET" && !skipCache) {
     const cached = responseCache.get(cacheKey);
 
     if (
@@ -158,13 +160,14 @@ const request = async (path, options = {}) => {
     if (inFlightGets.has(cacheKey)) {
       return inFlightGets.get(cacheKey);
     }
-  } else {
+  } else if (method !== "GET") {
     invalidateApiCache();
   }
 
   const {
     idempotencyKey,
     inlineModule,
+    skipCache: _skipCache,
     headers: customHeaders,
     ...fetchOptions
   } = options;

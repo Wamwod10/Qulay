@@ -174,7 +174,7 @@ export const toggleWarehouseStatus = async (warehouseId) => {
 };
 
 export const fetchStoredWarehouses = async () => {
-    const result = await apiRequest("/warehouses");
+    const result = await apiRequest("/warehouses", { skipCache: true });
     const warehouses = unwrapList(result, ["warehouses"]);
 
     if (!Array.isArray(warehouses)) {

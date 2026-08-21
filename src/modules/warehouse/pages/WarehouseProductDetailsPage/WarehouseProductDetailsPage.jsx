@@ -14,7 +14,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
 
-import { Badge, Button, Card, EmptyState, Table } from "../../../../shared/ui";
+import { Badge, Button, Card, EmptyState, Table, Toast } from "../../../../shared/ui";
 import { translateText } from "../../../../localization/i18n";
 
 import StockInModal from "../../components/StockInModal/StockInModal";
@@ -54,6 +54,7 @@ const WarehouseProductDetailsPage = () => {
   const [stockOutOpen, setStockOutOpen] = useState(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const warehouses = getStoredWarehouses();
 
@@ -104,7 +105,7 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(translateText(error.message || "Kirim qilishda xatolik."));
+      setActionError(translateText(error.message || "Kirim qilishda xatolik."));
     }
   };
 
@@ -116,7 +117,7 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(translateText(error.message || "Chiqim qilishda xatolik."));
+      setActionError(translateText(error.message || "Chiqim qilishda xatolik."));
     }
   };
 
@@ -128,7 +129,7 @@ const WarehouseProductDetailsPage = () => {
 
       refreshData();
     } catch (error) {
-      alert(translateText(error.message || "Ko‘chirishda xatolik."));
+      setActionError(translateText(error.message || "Ko'chirishda xatolik."));
     }
   };
 
@@ -201,6 +202,15 @@ const WarehouseProductDetailsPage = () => {
       title={item.productName}
       description={`${warehouse?.name || translateText("Ombor")} · SKU: ${item.sku || "—"}`}
     >
+      {actionError && (
+        <Toast
+          type="error"
+          title={translateText("Xatolik")}
+          message={actionError}
+          onClose={() => setActionError("")}
+        />
+      )}
+
       <div className="warehouse-product-details">
         <div className="warehouse-product-details__actions">
           <Button

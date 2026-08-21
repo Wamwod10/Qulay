@@ -23,13 +23,15 @@ import {
 import { getStoredPurchases } from "../../utils/purchasesStorage";
 
 import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { getStoredProductsPage } from "../../../products/utils/productsStorage";
 import ProductFormModal from "../../../products/components/ProductFormModal/ProductFormModal";
 
-import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
+import { fetchStoredWarehouses, getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
 import { getDefaultWarehouseId } from "../../../warehouse/utils/warehouseDefaults";
 
 import {
   createSupplier,
+  fetchStoredSuppliers,
   getStoredSuppliers,
 } from "../../../suppliers/utils/suppliersStorage";
 
@@ -58,13 +60,11 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
   const products = productList;
 
-  const warehouses = useMemo(
-    () =>
-      getStoredWarehouses().filter(
-        (warehouse) => warehouse.status === "ACTIVE",
-      ),
-    [],
+  const [warehouseList, setWarehouseList] = useState(() =>
+    getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"),
   );
+
+  const warehouses = warehouseList;
 
   const [supplierId, setSupplierId] = useState(initialValues?.supplierId || "");
 
@@ -91,6 +91,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
   const [supplierList, setSupplierList] = useState(() =>
     getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
   );
+  const [referenceLoading, setReferenceLoading] = useState(false);
+  const [referenceError, setReferenceError] = useState("");
 
   const suppliers = supplierList;
 
@@ -121,8 +123,48 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
   const supplierOptions = suppliers.map((supplier) => ({
     value: supplier.id,
-    label: supplier.name,
+    label: [supplier.name, supplier.companyName, supplier.phone].filter(Boolean).join(" · "),
+    searchText: [supplier.name, supplier.companyName, supplier.contactPerson, supplier.phone].filter(Boolean).join(" | "),
   }));
+
+  useEffect(() => {
+    let alive = true;
+    setReferenceLoading(true);
+    setReferenceError("");
+
+    Promise.all([
+      fetchStoredSuppliers(),
+      fetchStoredWarehouses(),
+      getStoredProductsPage({ limit: 500, status: "ACTIVE", type: "", skipCache: true }),
+    ])
+      .then(([remoteSuppliers, remoteWarehouses, remoteProducts]) => {
+        if (!alive) return;
+
+        const activeSuppliers = remoteSuppliers.filter((supplier) => supplier.status === "ACTIVE");
+        const activeWarehouses = remoteWarehouses.filter((warehouse) => warehouse.status === "ACTIVE");
+        const activeProducts = (remoteProducts.products || []).filter((product) => product.status === "ACTIVE" && product.type !== "SERVICE");
+
+        setSupplierList(activeSuppliers);
+        setWarehouseList(activeWarehouses);
+        setProductList(activeProducts);
+
+        if (!initialValues?.warehouseId) {
+          setWarehouseId((current) => current || getDefaultWarehouseId(activeWarehouses) || "");
+        }
+      })
+      .catch((error) => {
+        if (alive) {
+          setReferenceError(error?.message || "Ma'lumotlarni yuklab bo'lmadi.");
+        }
+      })
+      .finally(() => {
+        if (alive) setReferenceLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [initialValues?.warehouseId]);
 
   const subtotal = useMemo(
     () =>
@@ -370,9 +412,11 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           <CreatableSelect
             label={translateText("Yetkazib beruvchi")}
             value={supplierId}
-            placeholder={translateText("Tanlang")}
+            placeholder={referenceLoading ? translateText("Yuklanmoqda...") : translateText("Tanlang")}
             options={supplierOptions}
             error={errors.supplier}
+            disabled={referenceLoading}
+            getOptionSearchText={(option) => option.searchText}
             onChange={(event) => setSupplierId(event.target.value)}
             onCreate={async (name) => {
               const created = await createSupplier(
@@ -389,6 +433,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
               setSupplierId(created.id);
 
+              fetchStoredSuppliers()
+                .then((items) => setSupplierList(items.filter((supplier) => supplier.status === "ACTIVE")))
+                .catch(() => undefined);
+
               return created;
             }}
           />
@@ -396,9 +444,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           <Select
             label={translateText("Qabul qiluvchi ombor")}
             value={warehouseId}
-            placeholder={translateText("Ombor tanlang")}
+            placeholder={referenceLoading ? translateText("Yuklanmoqda...") : translateText("Ombor tanlang")}
             options={warehouseOptions}
             error={errors.warehouse}
+            disabled={referenceLoading}
             onChange={(event) => setWarehouseId(event.target.value)}
           />
 
@@ -414,6 +463,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
             onChange={(event) => setExpectedDate(event.target.value)}
           />
         </div>
+        {referenceError && <div className="purchase-form__error">{referenceError}</div>}
       </Card>
 
       <Card padding="lg" className="purchase-form__section">
@@ -438,7 +488,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
         </div>
 
         <div className="purchase-form__items">
-          {items.map((item, index) => {
+          {items.map((item) => {
             const product = products.find(
               (productItem) => productItem.id === item.productId,
             );
@@ -476,8 +526,6 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
             return (
               <div key={item.id} className="purchase-form__item">
-                <div className="purchase-form__item-number">{index + 1}</div>
-
                 <div className="purchase-form__item-product">
                   <div className="purchase-form__product-picker">
                     <Select
@@ -496,8 +544,9 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
                       leftIcon={<Plus size={15} />}
                       onClick={() => setProductModalItemId(item.id)}
                     >
-                      {translateText("+ Yangi mahsulot qo'shish")}
+                      {translateText("Yangi")}
                     </Button>
+                    {product && <span>SKU: {product.sku || "-"}</span>}
                   </div>
                 </div>
 
@@ -593,6 +642,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
                   size="sm"
                   variant="ghost"
                   title={translateText("Olib tashlash")}
+                  aria-label={translateText("Mahsulotni olib tashlash")}
+                  className="purchase-form__item-delete"
                   disabled={items.length <= 1}
                   onClick={() => handleRemoveItem(item.id)}
                 >

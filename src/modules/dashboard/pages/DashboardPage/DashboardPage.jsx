@@ -22,7 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
-import { Badge, Button, Card, EmptyState, LiveIcon, Select } from "../../../../shared/ui";
+import { Badge, Button, Card, EmptyState, LiveIcon, Select, Skeleton } from "../../../../shared/ui";
 import {
   DASHBOARD_PERIODS,
   getDashboardData,
@@ -113,6 +113,7 @@ const DashboardPage = () => {
   const [period, setPeriod] = useState("today");
   const [refreshKey, setRefreshKey] = useState(0);
   const [serverDashboard, setServerDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const refresh = () => setRefreshKey((current) => current + 1);
@@ -134,8 +135,9 @@ const DashboardPage = () => {
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
 
-    apiRequest("/dashboard")
+    apiRequest("/dashboard", { skipCache: true })
       .then((result) => {
         if (alive) {
           setServerDashboard(result);
@@ -145,6 +147,9 @@ const DashboardPage = () => {
         if (alive) {
           setServerDashboard(null);
         }
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
       });
 
     return () => {
@@ -213,7 +218,16 @@ const DashboardPage = () => {
         </header>
 
         <section className="dashboard-page__kpis">
-          {dashboard.kpis.map((kpi) => (
+          {loading ? Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="dashboard-page__kpi dashboard-page__kpi--loading">
+              <Skeleton width={36} height={36} radius={10} />
+              <span className="dashboard-page__kpi-content">
+                <Skeleton width={88} height={13} />
+                <Skeleton width={96} height={24} />
+                <Skeleton width={130} height={12} />
+              </span>
+            </div>
+          )) : dashboard.kpis.map((kpi) => (
             <KpiCard
               key={kpi.id}
               kpi={kpi}
@@ -223,6 +237,9 @@ const DashboardPage = () => {
           ))}
         </section>
 
+        {loading ? (
+          <DashboardSkeletonPanels />
+        ) : <>
         <section className="dashboard-page__grid dashboard-page__grid--two">
           <SalesFinancePanel
             sales={dashboard.sales}
@@ -273,6 +290,7 @@ const DashboardPage = () => {
           items={dashboard.recentActivity}
           onOpen={(path) => navigate(path)}
         />
+        </>}
       </div>
     </PageContainer>
   );
@@ -282,6 +300,42 @@ const QuickAction = ({ icon, label, onClick }) => (
   <Button variant="secondary" size="sm" leftIcon={icon} onClick={onClick}>
     {label}
   </Button>
+);
+
+const DashboardSkeletonPanels = () => (
+  <>
+    {[0, 1, 2].map((row) => (
+      <section key={row} className="dashboard-page__grid dashboard-page__grid--two">
+        {[0, 1].map((panel) => (
+          <Card key={panel} padding="md" className="dashboard-page__panel">
+            <div className="dashboard-page__panel-header">
+              <div>
+                <Skeleton width={180} height={18} />
+                <Skeleton width={130} height={13} />
+              </div>
+              <Skeleton width={62} height={28} radius={10} />
+            </div>
+            <div className="dashboard-page__summary-grid">
+              {Array.from({ length: 6 }, (_, index) => (
+                <Skeleton key={index} height={52} radius={12} />
+              ))}
+            </div>
+          </Card>
+        ))}
+      </section>
+    ))}
+    <Card padding="md" className="dashboard-page__panel dashboard-page__recent">
+      <div className="dashboard-page__panel-header">
+        <div>
+          <Skeleton width={170} height={18} />
+          <Skeleton width={220} height={13} />
+        </div>
+      </div>
+      <div className="dashboard-page__activity">
+        {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} height={54} radius={12} />)}
+      </div>
+    </Card>
+  </>
 );
 
 const KpiCard = ({ kpi, periodLabel, onClick }) => {

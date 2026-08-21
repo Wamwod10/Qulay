@@ -16,6 +16,7 @@ const CreatableSelect = ({
   required = false,
   onCreate,
   createLabel = "Qo'shish",
+  getOptionSearchText,
   className = "",
 }) => {
   const generatedId = useId();
@@ -60,6 +61,28 @@ const CreatableSelect = ({
     setCreateError("");
   };
 
+  const getSearchText = (option) =>
+    String(getOptionSearchText?.(option) || option.label || "")
+      .trim()
+      .toLocaleLowerCase();
+
+  const normalizedDraft = draft.trim().toLocaleLowerCase();
+
+  const filteredOptions = options.filter((option) => {
+    if (!normalizedDraft) return true;
+    return getSearchText(option).includes(normalizedDraft);
+  });
+
+  const duplicateOption = options.find((option) => {
+    const searchText = getSearchText(option);
+    return searchText
+      .split("|")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .some((part) => part === normalizedDraft) ||
+      String(option.label || "").trim().toLocaleLowerCase() === normalizedDraft;
+  });
+
   const create = async () => {
     const name = draft.trim();
 
@@ -67,15 +90,8 @@ const CreatableSelect = ({
       return;
     }
 
-    const duplicate = options.find(
-      (option) =>
-        String(option.label || "")
-          .trim()
-          .toLocaleLowerCase() === name.toLocaleLowerCase(),
-    );
-
-    if (duplicate) {
-      select(duplicate);
+    if (duplicateOption) {
+      select(duplicateOption);
       return;
     }
 
@@ -177,7 +193,7 @@ const CreatableSelect = ({
           />
 
           <div className="ui-creatable-select__options">
-            {options.map((option) => (
+            {filteredOptions.map((option) => (
               <button
                 type="button"
                 key={option.value}
@@ -189,9 +205,13 @@ const CreatableSelect = ({
                 {option.value === value && <Check size={15} />}
               </button>
             ))}
+
+            {!filteredOptions.length && (
+              <div className="ui-creatable-select__empty">Variant topilmadi</div>
+            )}
           </div>
 
-          {onCreate && (
+          {onCreate && !duplicateOption && (
             <button
               type="button"
               className="ui-creatable-select__create"

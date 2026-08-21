@@ -544,12 +544,14 @@ const AppRouter = () => {
                 SETTINGS
             ===================== */}
 
-            <Route path="/settings" element={<GeneralSettingsPage />} />
+            <Route element={<PermissionGuard permission="settings.view" />}>
+              <Route path="/settings" element={<GeneralSettingsPage />} />
 
-            <Route
-              path="/settings/*"
-              element={<Navigate to="/settings" replace />}
-            />
+              <Route
+                path="/settings/*"
+                element={<Navigate to="/settings" replace />}
+              />
+            </Route>
 
             {/* NORMAL ERP FALLBACK */}
 

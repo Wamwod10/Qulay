@@ -85,7 +85,7 @@ export const createSupplier = async (supplier, options = {}) => {
 };
 
 export const fetchStoredSuppliers = async () => {
-    const result = await apiRequest("/suppliers");
+    const result = await apiRequest("/suppliers", { skipCache: true });
     const suppliers = unwrapList(result, ["suppliers"]);
 
     if (!Array.isArray(suppliers)) {

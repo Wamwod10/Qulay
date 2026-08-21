@@ -7,7 +7,7 @@ const LISTS = [
   { path: "/customers", key: "customers", keys: ["customers"], module: "customers", permission: "customers.view" },
   { path: "/sales", key: "sales", keys: ["sales"], module: "sales", permission: "sales.view" },
   { path: "/purchases", key: "purchases", keys: ["purchases"], module: "purchases", permission: "purchases.view" },
-  { path: "/suppliers", key: "suppliers", keys: ["suppliers"], module: "suppliers", permission: "suppliers.view" },
+  { path: "/suppliers", key: "suppliers", keys: ["suppliers"], module: "suppliers", permission: "suppliers.view", eager: true },
   { path: "/agents", key: "agents", keys: ["agents"], module: "agents", permission: "agents.view" },
   { path: "/inventory/stock", key: "warehouse_stock", keys: ["stock"], module: "warehouse", permission: "warehouse.view", eager: true },
   { path: "/inventory/movements", key: "warehouse_movements", keys: ["movements"], module: "warehouse", permission: "warehouse.view" },

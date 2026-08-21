@@ -21,6 +21,7 @@ import {
   Input,
   LiveIcon,
   Select,
+  Skeleton,
   Table,
 } from "../../../../shared/ui";
 
@@ -164,11 +165,13 @@ const ReportsPage = () => {
 
   const [hrMonth, setHrMonth] = useState(monthIso());
   const [serverReport, setServerReport] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
 
-    apiRequest("/reports")
+    apiRequest("/reports", { skipCache: true })
       .then((result) => {
         if (alive) {
           setServerReport(result);
@@ -178,6 +181,9 @@ const ReportsPage = () => {
         if (alive) {
           setServerReport(null);
         }
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
       });
 
     return () => {
@@ -485,6 +491,20 @@ const ReportsPage = () => {
       )}
     >
       <div className="reports-page">
+        {loading ? (
+          <div className="reports-page__loading">
+            {Array.from({ length: 4 }, (_, index) => (
+              <Card key={index} padding="lg" className="reports-page__section">
+                <Skeleton width={190} height={18} />
+                <Skeleton width={260} height={13} />
+                <div className="reports-page__summary-grid">
+                  {Array.from({ length: 6 }, (_, itemIndex) => <Skeleton key={itemIndex} height={58} radius={12} />)}
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+        <>
         {/* =========================
             SALES
         ========================== */}
@@ -1339,6 +1359,8 @@ const ReportsPage = () => {
             emptyText="Ishlab chiqarish buyurtmasi mavjud emas."
           />
         </ReportSection>
+        </>
+        )}
       </div>
     </PageContainer>
   );
