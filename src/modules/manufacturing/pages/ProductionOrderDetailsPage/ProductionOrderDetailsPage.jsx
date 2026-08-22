@@ -13,7 +13,7 @@ import PageContainer from "../../../../components/PageContainer/PageContainer";
 import { translateText } from "../../../../localization/i18n";
 import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
 import { Badge, Button, Card, LiveIcon, Modal, Toast } from "../../../../shared/ui";
-import { aggregateQuantities } from "../../../../shared/utils/units";
+import { aggregateQuantities, convertQuantity } from "../../../../shared/utils/units";
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
 import ProductionCompleteModal from "../../production-orders/components/ProductionCompleteModal/ProductionCompleteModal";
 import ProductionOverheadPanel from "../../production-orders/components/ProductionOverheadPanel/ProductionOverheadPanel";
@@ -164,6 +164,13 @@ const ProductionOrderDetailsPage = () => {
   const getAvailabilityValue = (material, ...keys) => {
     const key = keys.find((item) => material[item] !== undefined && material[item] !== null);
     return key ? material[key] : 0;
+  };
+  const getPackagedTotal = (row) => {
+    try {
+      return Number(row.quantity || 0) * convertQuantity(Number(row.packSize || 0), row.packUnit || order.unit, order.unit);
+    } catch {
+      return Number(row.quantity || 0) * Number(row.packSize || 0);
+    }
   };
 
   const handleStart = async () => {
@@ -441,7 +448,7 @@ const ProductionOrderDetailsPage = () => {
                       <div><strong>{row.productName || "Qadoqlangan SKU"}</strong></div>
                       <div><span>Qadoq soni</span><strong>{formatProductionQuantity(row.quantity || 0)} dona</strong></div>
                       <div><span>Hajmi</span><strong>{formatProductionQuantity(row.packSize || 0)} {row.packUnit || order.unit}</strong></div>
-                      <div><span>Jami</span><strong>{formatProductionQuantity(Number(row.quantity || 0) * Number(row.packSize || 0))} {order.unit}</strong></div>
+                      <div><span>Jami</span><strong>{formatProductionQuantity(getPackagedTotal(row))} {order.unit}</strong></div>
                     </div>
                   ))}
                   <OrderMetric label="Qolgan bulk" value={`${formatProductionQuantity(order.remainingBulkQuantity || 0)} ${order.unit}`} />

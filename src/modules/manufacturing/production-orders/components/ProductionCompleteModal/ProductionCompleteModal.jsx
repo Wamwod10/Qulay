@@ -3,9 +3,10 @@ import { AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 import { translateText } from "../../../../../localization/i18n";
 import { apiRequest, unwrapList } from "../../../../../services/api/apiClient";
-import { Button, Input, LiveIcon, Modal, Textarea } from "../../../../../shared/ui";
-import { convertQuantity, normalizeUnit } from "../../../../../shared/utils/units";
+import { Button, Input, LiveIcon, Modal, Select, Textarea } from "../../../../../shared/ui";
+import { convertQuantity, normalizeUnit, UNIT_DEFINITIONS } from "../../../../../shared/utils/units";
 import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
+import { formatProductionQuantity } from "../../utils/productionOrderHelpers";
 import {
   calculateActualProductionCost,
   calculateActualUnitCost,
@@ -14,10 +15,36 @@ import {
 
 import "./ProductionCompleteModal.scss";
 
+const PACK_UNITS_BY_DIMENSION = {
+  WEIGHT: ["kg", "g"],
+  VOLUME: ["litr", "ml"],
+  LENGTH: ["metr", "sm", "mm"],
+  COUNT: ["dona"],
+};
+
+const getParentUnit = (order) => {
+  try {
+    return normalizeUnit(order?.unit || "dona");
+  } catch {
+    return "dona";
+  }
+};
+
+const getCompatiblePackUnitOptions = (parentUnit) => {
+  const normalizedParentUnit = getParentUnit({ unit: parentUnit });
+  const dimension = UNIT_DEFINITIONS[normalizedParentUnit]?.dimension || "COUNT";
+  return (PACK_UNITS_BY_DIMENSION[dimension] || [normalizedParentUnit]).map((unit) => ({
+    value: unit,
+    label: UNIT_DEFINITIONS[unit]?.label || unit,
+  }));
+};
+
+const roundQuantity = (value) => Math.round(Number(value || 0) * 1_000_000) / 1_000_000;
+
 const createPackagingRow = (order, row = {}) => ({
   id: row.id || `package-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   packSize: row.packSize ? String(row.packSize) : "",
-  packUnit: row.packUnit || order.unit,
+  packUnit: row.packUnit || getParentUnit(order),
   quantity: row.quantity ? String(row.quantity) : "",
   materials: Array.isArray(row.materials || row.packagingMaterials) ? (row.materials || row.packagingMaterials) : [],
 });
@@ -120,19 +147,30 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   if (!order) return null;
 
+  const parentUnit = getParentUnit(order);
+  const packUnitOptions = getCompatiblePackUnitOptions(parentUnit);
   const produced = Number(producedQuantity || 0);
   const defect = Number(defectQuantity || 0);
   const waste = Number(wasteQuantity || 0);
   const accepted = Math.max(produced - defect - waste, 0);
-  const packagingTotal = packagingRows.reduce((total, row) => {
+  const getRowPackagedQuantity = (row) =>
+    roundQuantity(Number(row.quantity || 0) * convertQuantity(Number(row.packSize || 0), row.packUnit || parentUnit, parentUnit));
+  const getSafeRowPackagedQuantity = (row) => {
     try {
-      return total + Number(row.quantity || 0) * convertQuantity(Number(row.packSize || 0), row.packUnit || order.unit, order.unit);
+      return getRowPackagedQuantity(row);
+    } catch {
+      return 0;
+    }
+  };
+  const packagingTotal = roundQuantity(packagingRows.reduce((total, row) => {
+    try {
+      return total + getRowPackagedQuantity(row);
     } catch {
       return total;
     }
-  }, 0);
-  const remainingBulk = produced - packagingTotal;
-  const overPackAmount = Math.max(packagingTotal - produced, 0);
+  }, 0));
+  const remainingBulk = roundQuantity(produced - packagingTotal);
+  const overPackAmount = roundQuantity(Math.max(packagingTotal - produced, 0));
   const rawMaterialCost = actualMaterials.reduce((total, material) => total + Number(material.actualQuantity || 0) * Number(material.cost || 0), 0);
   const overheadCost = calculateOverheadCost(order.overheadItems);
   const actualProductionCost = calculateActualProductionCost({ actualMaterialCost: rawMaterialCost, overheadCost });
@@ -156,7 +194,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   const getPackageName = (row) => {
     const packSize = Number(row.packSize || 0);
-    return packSize > 0 ? `${order.productName} ${packSize} ${row.packUnit || order.unit}` : `${order.productName} qadoq`;
+    return packSize > 0 ? `${order.productName} ${packSize} ${row.packUnit || parentUnit}` : `${order.productName} qadoq`;
   };
 
   const handleSubmit = async () => {
@@ -182,6 +220,18 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       setError("Qadoq hajmi 0 dan katta, qadoq soni esa butun son bo'lishi kerak.");
       return;
     }
+    if (packagingRows.some((row) => {
+      if (Number(row.quantity || 0) <= 0) return false;
+      try {
+        convertQuantity(Number(row.packSize || 0), row.packUnit || parentUnit, parentUnit);
+        return false;
+      } catch {
+        return true;
+      }
+    })) {
+      setError("Qadoq hajmi birligi tayyor mahsulot birligiga mos bo'lishi kerak.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -203,7 +253,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
             quantity: Number(row.quantity || 0),
             unit: "dona",
             packSize: Number(row.packSize || 0),
-            packUnit: normalizeUnit(row.packUnit || order.unit),
+            packUnit: normalizeUnit(row.packUnit || parentUnit),
             materials: row.materials || [],
           })),
         outputWarehouseId: order.outputWarehouseId,
@@ -227,15 +277,15 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     >
       <div className="production-complete">
         <div className="production-complete__summary">
-          <div><span>Reja</span><strong>{order.plannedQuantity} {order.unit}</strong></div>
-          <div><span>Ishlab chiqarildi</span><strong>{produced} {order.unit}</strong></div>
-          <div><span>Qoldiq</span><strong className={overPackAmount > 0 ? "production-complete__negative" : ""}>{remainingBulk} {order.unit}</strong></div>
+          <div><span>Reja</span><strong>{formatProductionQuantity(order.plannedQuantity)} {parentUnit}</strong></div>
+          <div><span>Ishlab chiqarildi</span><strong>{formatProductionQuantity(produced)} {parentUnit}</strong></div>
+          <div><span>Qoldiq</span><strong className={overPackAmount > 0 ? "production-complete__negative" : ""}>{formatProductionQuantity(remainingBulk)} {parentUnit}</strong></div>
         </div>
 
         <div className="production-complete__result-grid">
-          <Input label={`Ishlab chiqarildi (${order.unit})`} type="number" min="0" step="any" value={producedQuantity} onChange={(event) => setProducedQuantity(event.target.value)} />
-          <Input label={`Brak (${order.unit})`} type="number" min="0" step="any" value={defectQuantity} onChange={(event) => setDefectQuantity(event.target.value)} />
-          <Input label={`Chiqindi (${order.unit})`} type="number" min="0" step="any" value={wasteQuantity} onChange={(event) => setWasteQuantity(event.target.value)} />
+          <Input label={`Ishlab chiqarildi (${parentUnit})`} type="number" min="0" step="any" value={producedQuantity} onChange={(event) => setProducedQuantity(event.target.value)} />
+          <Input label={`Brak (${parentUnit})`} type="number" min="0" step="any" value={defectQuantity} onChange={(event) => setDefectQuantity(event.target.value)} />
+          <Input label={`Chiqindi (${parentUnit})`} type="number" min="0" step="any" value={wasteQuantity} onChange={(event) => setWasteQuantity(event.target.value)} />
         </div>
 
         <div className="production-complete__packaging">
@@ -249,14 +299,22 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           {packagingLoadError && <div className="production-complete__error">{packagingLoadError}</div>}
           {packagingRows.map((row, index) => (
             <div className="production-complete__simple-package-row" key={row.id || index}>
-              <Input
-                label="Qadoq hajmi"
-                type="number"
-                min="0"
-                step="any"
-                value={row.packSize || ""}
-                onChange={(event) => updatePackaging(index, "packSize", event.target.value)}
-              />
+              <div className="production-complete__pack-size">
+                <Input
+                  label="Qadoq hajmi"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={row.packSize || ""}
+                  onChange={(event) => updatePackaging(index, "packSize", event.target.value)}
+                />
+                <Select
+                  label="Birlik"
+                  value={row.packUnit || parentUnit}
+                  options={packUnitOptions}
+                  onChange={(event) => updatePackaging(index, "packUnit", event.target.value)}
+                />
+              </div>
               <Input
                 label="Qadoq soni"
                 type="number"
@@ -268,7 +326,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
               />
               <div className="production-complete__package-total">
                 <span>{getPackageName(row)}</span>
-                <strong>{Number(row.packSize || 0) * Number(row.quantity || 0)} {order.unit}</strong>
+                <strong>{formatProductionQuantity(getSafeRowPackagedQuantity(row))} {parentUnit}</strong>
               </div>
               <Button type="button" variant="ghost" aria-label="Qadoqni o'chirish" title="Qadoqni o'chirish" className="production-complete__package-delete" onClick={() => removePackaging(index)}>
                 <Trash2 size={16} />
@@ -276,16 +334,16 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
             </div>
           ))}
           <div className="production-complete__live-summary">
-            <div><span>Ishlab chiqarildi</span><strong>{produced} {order.unit}</strong></div>
-            <div><span>Qadoqlandi</span><strong>{packagingTotal} {order.unit}</strong></div>
-            <div><span>Qoldi</span><strong className={overPackAmount > 0 ? "production-complete__negative" : ""}>{remainingBulk} {order.unit}</strong></div>
+            <div><span>Ishlab chiqarildi</span><strong>{formatProductionQuantity(produced)} {parentUnit}</strong></div>
+            <div><span>Qadoqlandi</span><strong>{formatProductionQuantity(packagingTotal)} {parentUnit}</strong></div>
+            <div><span>Qoldi</span><strong className={overPackAmount > 0 ? "production-complete__negative" : ""}>{formatProductionQuantity(remainingBulk)} {parentUnit}</strong></div>
           </div>
         </div>
 
         {overPackAmount > 0 && (
           <div className="production-complete__warning">
             <LiveIcon icon={AlertTriangle} motion="warning-glow" size={17} />
-            Qadoqlangan jami miqdor ishlab chiqarilgan miqdordan {overPackAmount} {order.unit} oshmoqda.
+            Qadoqlangan jami miqdor ishlab chiqarilgan miqdordan {formatProductionQuantity(overPackAmount)} {parentUnit} oshmoqda.
           </div>
         )}
         {overPackAmount === 0 && accepted === Number(order.plannedQuantity || 0) && (
