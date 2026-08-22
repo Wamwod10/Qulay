@@ -25,13 +25,13 @@ import {
   startProductionStage,
 } from "../../production-orders/utils/productionStages";
 import {
-  checkMaterialAvailability,
   hasEnoughMaterials,
 } from "../../production-orders/utils/materialAvailability";
 import { formatProductionQuantity } from "../../production-orders/utils/productionOrderHelpers";
 import QualityControlPanel from "../../quality/components/QualityControlPanel/QualityControlPanel";
 import {
   getProductionOrderById,
+  fetchProductionMaterialAvailability,
   refreshProductionOrder,
   startProductionOrder,
   updateProductionOrderOverhead,
@@ -65,6 +65,9 @@ const ProductionOrderDetailsPage = () => {
   const [startError, setStartError] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [availability, setAvailability] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
 
   useEffect(() => {
     const generation = refreshGeneration.current + 1;
@@ -83,19 +86,60 @@ const ProductionOrderDetailsPage = () => {
   const outputWarehouse = warehouses.find((item) => item.id === (order?.outputWarehouseId || order?.warehouseId));
   const stages = getProductionStages(order);
 
-  const availability = useMemo(() => {
-    if (!order) return [];
-    const materials = order.requiredMaterials || [];
-    if (materials.some((material) => material.available !== undefined || material.availableQuantity !== undefined)) {
-      return materials;
+  useEffect(() => {
+    if (!order) {
+      setAvailability([]);
+      setAvailabilityError("");
+      setAvailabilityLoading(false);
+      return undefined;
     }
-    return checkMaterialAvailability({
-      warehouseId: order.materialWarehouseId || order.warehouseId,
-      requiredMaterials: materials,
-    });
+
+    const materials = order.requiredMaterials || [];
+    if (order.status !== "PLANNED") {
+      setAvailability(materials);
+      setAvailabilityError("");
+      setAvailabilityLoading(false);
+      return undefined;
+    }
+
+    if (!order.bomId && !order.recipeSnapshot) {
+      setAvailability(materials);
+      setAvailabilityError("");
+      setAvailabilityLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+
+    fetchProductionMaterialAvailability({
+      bomId: order.bomId,
+      recipeId: order.bomId,
+      recipeSnapshot: order.recipeSnapshot,
+      plannedQuantity: Number(order.plannedQuantity || 0),
+      materialWarehouseId: order.materialWarehouseId || order.warehouseId,
+    })
+      .then((result) => {
+        if (!cancelled) setAvailability(result.materials || []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailability([]);
+          setAvailabilityError("Xomashyo holatini tekshirib bo'lmadi.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAvailabilityLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [order]);
 
   const enoughMaterials = hasEnoughMaterials(availability);
+  const availabilityFailed = Boolean(availabilityError);
   const missingMaterials = availability.filter((material) => !material.enough);
   const materialSummary = aggregateQuantities(order?.requiredMaterials || [], "requiredQuantity");
   const currentOverheadCost = calculateOverheadCost(order?.overheadItems);
@@ -281,14 +325,20 @@ const ProductionOrderDetailsPage = () => {
                 <ProductionStatusIcon status={order.status} />
                 {getProductionStatusLabel(order.status)}
               </Badge>
-              <Badge variant={enoughMaterials ? "success" : "danger"}>
-                {enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={14} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={14} />}
-                {enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
+              <Badge variant={availabilityFailed ? "warning" : enoughMaterials ? "success" : "danger"}>
+                {enoughMaterials && !availabilityFailed ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={14} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={14} />}
+                {availabilityLoading ? "Tekshirilmoqda" : availabilityFailed ? "Tekshirib bo'lmadi" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
               </Badge>
             </div>
           </div>
 
-          {enoughMaterials ? (
+          {availabilityLoading ? (
+            <div className="production-order-details__materials-empty">Xomashyo tekshirilmoqda...</div>
+          ) : availabilityFailed ? (
+            <div className="production-order-details__materials-empty production-order-details__materials-empty--warning">
+              {availabilityError}
+            </div>
+          ) : enoughMaterials ? (
             <div className="production-order-details__ready">
               <LiveIcon icon={CheckCircle2} motion="success-pop" size={18} />
               <strong>Barcha xomashyolar yetarli</strong>
@@ -464,7 +514,7 @@ const ProductionOrderDetailsPage = () => {
         <div className="production-order-details__start-summary">
           <div><span>Mahsulot</span><strong>{order.productName}</strong></div>
           <div><span>Reja</span><strong>{formatProductionQuantity(order.plannedQuantity)} {order.unit}</strong></div>
-          <div><span>Xomashyo</span><strong>{enoughMaterials ? "yetarli" : "yetishmaydi"}</strong></div>
+          <div><span>Xomashyo</span><strong>{availabilityFailed ? "tekshirib bo'lmadi" : enoughMaterials ? "yetarli" : "yetishmaydi"}</strong></div>
           <div><span>Ombor</span><strong>{materialWarehouse?.name || order.materialWarehouseId || order.warehouseId}</strong></div>
         </div>
         {startError && <div className="production-order-details__modal-error">{startError}</div>}

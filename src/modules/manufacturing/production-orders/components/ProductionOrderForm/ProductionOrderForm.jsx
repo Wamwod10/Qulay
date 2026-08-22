@@ -130,7 +130,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
       .catch((error) => {
         if (!cancelled) {
           setAvailability([]);
-          setAvailabilityError(error.message || "Xomashyo mavjudligini tekshirib bo'lmadi.");
+          setAvailabilityError(error?.status === 404 ? "Xomashyo holatini tekshirib bo'lmadi." : error.message || "Xomashyo holatini tekshirib bo'lmadi.");
         }
       })
       .finally(() => {
@@ -143,6 +143,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   }, [selectedBom, plannedQuantity, materialWarehouseId]);
 
   const enoughMaterials = availability.length > 0 && availability.every((material) => material.enough);
+  const availabilityFailed = Boolean(availabilityError);
   const missingMaterials = availability.filter((material) => !material.enough);
   const plannedMaterialCost = calculateProductionMaterialCost(availability);
   const materialSummary = aggregateQuantities(availability);
@@ -166,6 +167,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     if (Number(plannedQuantity) <= 0) nextErrors.quantity = "Reja miqdori 0 dan katta bo'lishi kerak.";
     if (!materialWarehouseId) nextErrors.materialWarehouse = "Xomashyo omborini tanlang.";
     if (!outputWarehouseId) nextErrors.outputWarehouse = "Tayyor mahsulot omborini tanlang.";
+    if (availabilityLoading) nextErrors.availability = "Xomashyo holati hali tekshirilmoqda.";
+    if (availabilityFailed) nextErrors.availability = "Xomashyo holatini tekshirib bo'lmadi.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) focusFirstInvalidField();
     return Object.keys(nextErrors).length === 0;
@@ -273,9 +276,9 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           </div>
 
           {selectedBom && Number(plannedQuantity) > 0 && (
-            <Badge className="production-order-form__availability-badge" variant={enoughMaterials ? "success" : "danger"}>
-              {enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
-              {availabilityLoading ? "Tekshirilmoqda" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
+            <Badge className="production-order-form__availability-badge" variant={availabilityFailed ? "warning" : enoughMaterials ? "success" : "danger"}>
+              {enoughMaterials && !availabilityFailed ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
+              {availabilityLoading ? "Tekshirilmoqda" : availabilityFailed ? "Tekshirib bo'lmadi" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
             </Badge>
           )}
         </div>
@@ -287,6 +290,10 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           <div className="production-order-form__materials">
             {availabilityLoading ? (
               <div className="production-order-form__empty">Xomashyo tekshirilmoqda...</div>
+            ) : availabilityFailed ? (
+              <div className="production-order-form__empty production-order-form__empty--warning">
+                Xomashyo holatini tekshirib bo'lmadi.
+              </div>
             ) : enoughMaterials ? (
               <div className="production-order-form__ready">
                 <LiveIcon icon={CheckCircle2} motion="success-pop" size={18} />
@@ -327,7 +334,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
       {!enoughMaterials && selectedBom && Number(plannedQuantity) > 0 && (
         <div className="production-order-form__warning">
           <LiveIcon icon={AlertTriangle} motion="warning-glow" size={17} />
-          <span>Xomashyo yetarli bo'lmasa boshlash backendda bloklanadi.</span>
+          <span>{availabilityFailed ? "Xomashyo holati aniqlanmaguncha rejalashtirishni davom ettirib bo'lmaydi." : "Xomashyo yetarli bo'lmasa boshlash backendda bloklanadi."}</span>
         </div>
       )}
 

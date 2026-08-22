@@ -289,6 +289,11 @@
     text-align: center;
 
     box-shadow: var(--shadow-inset);
+
+    &--warning {
+      color: var(--color-warning);
+      background: var(--color-warning-soft);
+    }
   }
 
   &__material-summary {
