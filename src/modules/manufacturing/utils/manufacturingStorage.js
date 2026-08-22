@@ -1,4 +1,4 @@
-import { tenantSet } from "../../auth/utils/tenantStorage";
+import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 import {
@@ -18,6 +18,22 @@ const BOM_STORAGE_KEY =
 
 const PRODUCTION_STORAGE_KEY =
     "production_orders";
+
+const normalizeBom = (bom) => ({
+    ...bom,
+    status: bom?.status || (bom?.active === false ? "INACTIVE" : "ACTIVE"),
+});
+
+const normalizeBoms = (boms) =>
+    Array.isArray(boms) ? boms.map(normalizeBom) : [];
+
+const emitManufacturingChanged = () => {
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(
+            new Event("manufacturing:changed"),
+        );
+    }
+};
 
 const refreshWarehouseStock = async (warehouseId) => {
     if (!warehouseId) return;
@@ -95,10 +111,12 @@ const normalizeProductionOrder = (order) => {
 export const getStoredBoms = () => {
     const remoteBoms = unwrapList(getCachedApiResponse("/manufacturing/boms"), ["boms"]);
     if (Array.isArray(remoteBoms)) {
-        tenantSet(BOM_STORAGE_KEY, remoteBoms);
-        return remoteBoms;
+        const normalizedBoms = normalizeBoms(remoteBoms);
+        tenantSet(BOM_STORAGE_KEY, normalizedBoms);
+        return normalizedBoms;
     }
-    return [];
+
+    return normalizeBoms(tenantGet(BOM_STORAGE_KEY, []));
 };
 
 export const fetchStoredBoms = async () => {
@@ -107,15 +125,17 @@ export const fetchStoredBoms = async () => {
     if (!Array.isArray(boms)) {
         throw new Error("Retseptlar backenddan olinmadi.");
     }
-    saveBoms(boms);
-    return boms;
+    const normalizedBoms = normalizeBoms(boms);
+    saveBoms(normalizedBoms);
+    return normalizedBoms;
 };
 
 export const saveBoms = (boms) => {
     tenantSet(
         BOM_STORAGE_KEY,
-        boms,
+        normalizeBoms(boms),
     );
+    emitManufacturingChanged();
 };
 
 export const createBom = async (bom) => {

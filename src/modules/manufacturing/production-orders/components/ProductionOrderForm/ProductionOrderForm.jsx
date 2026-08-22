@@ -18,6 +18,7 @@ import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefa
 import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
 import {
   fetchProductionMaterialAvailability,
+  fetchStoredBoms,
   getStoredBoms,
 } from "../../../utils/manufacturingStorage";
 import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
@@ -31,8 +32,11 @@ import "./ProductionOrderForm.scss";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
+const getProductionBoms = () =>
+  getStoredBoms().filter((bom) => bom.status !== "ARCHIVED");
+
 const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitError = "" }) => {
-  const boms = useMemo(() => getStoredBoms().filter((bom) => bom.status === "ACTIVE"), []);
+  const [boms, setBoms] = useState(() => getProductionBoms());
   const warehouses = useMemo(() => getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"), []);
   const defaultWarehouseId = getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]);
   const [bomId, setBomId] = useState(initialValues?.bomId || "");
@@ -48,10 +52,47 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const [availability, setAvailability] = useState([]);
   const [availabilityError, setAvailabilityError] = useState("");
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [bomLoadError, setBomLoadError] = useState("");
+  const [bomLoading, setBomLoading] = useState(false);
   const userEditedQuantity = useRef(Boolean(initialValues?.plannedQuantity));
 
   const selectedBom = boms.find((bom) => bom.id === bomId);
   const selectedBomSnapshot = getBomProductSnapshot(selectedBom);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBoms = async () => {
+      setBomLoading(true);
+      setBomLoadError("");
+
+      try {
+        const remoteBoms = await fetchStoredBoms();
+        if (!cancelled) {
+          setBoms(remoteBoms.filter((bom) => bom.status !== "ARCHIVED"));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setBoms(getProductionBoms());
+          setBomLoadError(error?.message || "Retseptlarni yuklab bo'lmadi.");
+        }
+      } finally {
+        if (!cancelled) setBomLoading(false);
+      }
+    };
+
+    const handleManufacturingChanged = () => {
+      setBoms(getProductionBoms());
+    };
+
+    window.addEventListener("manufacturing:changed", handleManufacturingChanged);
+    void loadBoms();
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("manufacturing:changed", handleManufacturingChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedBom || userEditedQuantity.current) return;
@@ -96,7 +137,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const materialSummary = aggregateQuantities(availability);
   const bomOptions = boms.map((bom) => ({
     value: bom.id,
-    label: `${bom.productName} - v${bom.version}`,
+    label: `${bom.productName || bom.name} - v${bom.version}${bom.status === "ACTIVE" ? "" : " (faol emas)"}`,
   }));
   const warehouseOptions = warehouses.map((warehouse) => ({
     value: warehouse.id,
@@ -110,6 +151,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const validate = () => {
     const nextErrors = {};
     if (!bomId) nextErrors.bom = "Retsept tanlang.";
+    if (selectedBom && selectedBom.status !== "ACTIVE") nextErrors.bom = "Bu retsept faol emas. Ishlab chiqarish uchun retseptni faollashtiring.";
     if (Number(plannedQuantity) <= 0) nextErrors.quantity = "Reja miqdori 0 dan katta bo'lishi kerak.";
     if (!materialWarehouseId) nextErrors.materialWarehouse = "Xomashyo omborini tanlang.";
     if (!outputWarehouseId) nextErrors.outputWarehouse = "Tayyor mahsulot omborini tanlang.";
@@ -159,9 +201,9 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           <Select
             label="Retsept"
             value={bomId}
-            placeholder="Retsept tanlang"
+            placeholder={bomLoading ? "Retseptlar yuklanmoqda" : "Retsept tanlang"}
             options={bomOptions}
-            error={errors.bom}
+            error={errors.bom || bomLoadError}
             onChange={(event) => {
               setBomId(event.target.value);
               userEditedQuantity.current = false;
