@@ -35,6 +35,17 @@ const getToday = () => new Date().toISOString().slice(0, 10);
 const getProductionBoms = () =>
   getStoredBoms().filter((bom) => bom.status !== "ARCHIVED");
 
+const getBomOptionLabel = (bom) => {
+  const recipeName = String(bom?.name || "").trim();
+  const productName = String(bom?.productName || bom?.outputProductName || "").trim();
+  const title =
+    recipeName && productName && recipeName !== productName
+      ? `${recipeName} (${productName})`
+      : recipeName || productName || "Nomsiz retsept";
+
+  return `${title} - v${bom?.version || 1}${bom?.status === "ACTIVE" ? "" : " (faol emas)"}`;
+};
+
 const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitError = "" }) => {
   const [boms, setBoms] = useState(() => getProductionBoms());
   const warehouses = useMemo(() => getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"), []);
@@ -137,7 +148,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const materialSummary = aggregateQuantities(availability);
   const bomOptions = boms.map((bom) => ({
     value: bom.id,
-    label: `${bom.productName || bom.name} - v${bom.version}${bom.status === "ACTIVE" ? "" : " (faol emas)"}`,
+    label: getBomOptionLabel(bom),
   }));
   const warehouseOptions = warehouses.map((warehouse) => ({
     value: warehouse.id,
@@ -254,6 +265,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
 
         {selectedBomSnapshot && (
           <div className="production-order-form__bom-summary">
+            <div><span>Retsept</span><strong>{selectedBom.name || "Nomsiz retsept"}</strong></div>
             <div><span>Tayyor mahsulot</span><strong>{selectedBomSnapshot.productName}</strong></div>
             <div><span>Retsept versiyasi</span><strong>v{selectedBomSnapshot.bomVersion}</strong></div>
             <div><span>Output</span><strong>{formatProductionQuantity(selectedBomSnapshot.outputQuantity)} {selectedBomSnapshot.unit}</strong></div>
