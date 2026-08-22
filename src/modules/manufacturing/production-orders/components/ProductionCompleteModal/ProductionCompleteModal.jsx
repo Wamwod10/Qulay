@@ -36,7 +36,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   useEffect(() => {
     if (!open || !order) return;
-    const produced = order.qualityControl?.producedQuantity ?? order.producedQuantity ?? order.plannedQuantity ?? 0;
+    const produced = Number(order.plannedQuantity || 0);
 
     setProducedQuantity(String(produced));
     setDefectQuantity(String(order.qualityControl?.defectQuantity ?? order.defectQuantity ?? 0));
@@ -131,8 +131,8 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       return total;
     }
   }, 0);
-  const remainingBulk = Math.max(accepted - packagingTotal, 0);
-  const overPackAmount = Math.max(packagingTotal - accepted, 0);
+  const remainingBulk = produced - packagingTotal;
+  const overPackAmount = Math.max(packagingTotal - produced, 0);
   const rawMaterialCost = actualMaterials.reduce((total, material) => total + Number(material.actualQuantity || 0) * Number(material.cost || 0), 0);
   const overheadCost = calculateOverheadCost(order.overheadItems);
   const actualProductionCost = calculateActualProductionCost({ actualMaterialCost: rawMaterialCost, overheadCost });
