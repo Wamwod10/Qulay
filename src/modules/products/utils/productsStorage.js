@@ -39,7 +39,7 @@ const writeJson = (key, value) => {
 const normalizeProduct = (product) => ({
   id: product.id || `prd-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
   name: product.name || "Nomsiz mahsulot",
-  sku: product.sku || generateRandomSku(),
+  sku: product.sku || "",
   barcode: product.barcode || "",
   type: product.type || "",
   category:
@@ -82,7 +82,7 @@ const normalizeProduct = (product) => ({
 });
 
 export const generateRandomSku = () =>
-  Math.floor(1000 + Math.random() * 9000).toString();
+  "";
 
 export const getStoredProducts = () => {
   const remoteProducts = unwrapList(getCachedApiResponse("/products"), ["products"]);

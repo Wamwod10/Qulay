@@ -14,6 +14,7 @@ import { translateText } from "../../../../localization/i18n";
 import { getApiErrorMessage } from "../../../../services/api/apiErrorHandler";
 import { Badge, Button, Card, LiveIcon, Modal, Toast } from "../../../../shared/ui";
 import { aggregateQuantities, convertQuantity } from "../../../../shared/utils/units";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
 import { getStoredWarehouses } from "../../../warehouse/utils/warehouseManagementStorage";
 import ProductionCompleteModal from "../../production-orders/components/ProductionCompleteModal/ProductionCompleteModal";
 import ProductionOverheadPanel from "../../production-orders/components/ProductionOverheadPanel/ProductionOverheadPanel";
@@ -84,6 +85,8 @@ const ProductionOrderDetailsPage = () => {
   const warehouses = useMemo(() => getStoredWarehouses(), []);
   const materialWarehouse = warehouses.find((item) => item.id === (order?.materialWarehouseId || order?.warehouseId));
   const outputWarehouse = warehouses.find((item) => item.id === (order?.outputWarehouseId || order?.warehouseId));
+  const materialWarehouseName = order?.materialWarehouseName || materialWarehouse?.name || "Ombor topilmadi";
+  const outputWarehouseName = order?.outputWarehouseName || outputWarehouse?.name || "Ombor topilmadi";
   const stages = getProductionStages(order);
 
   useEffect(() => {
@@ -316,8 +319,8 @@ const ProductionOrderDetailsPage = () => {
           <OrderMetric label="Mahsulot" value={order.productName} />
           <OrderMetric label="Status" value={getProductionStatusLabel(order.status)} />
           <OrderMetric label="Reja" value={`${formatProductionQuantity(order.plannedQuantity)} ${order.unit}`} />
-          <OrderMetric label="Xomashyo ombori" value={materialWarehouse?.name || order.materialWarehouseId || order.warehouseId} />
-          <OrderMetric label="Tayyor mahsulot ombori" value={outputWarehouse?.name || order.outputWarehouseId || order.warehouseId} />
+          <OrderMetric label="Xomashyo ombori" value={materialWarehouseName} />
+          <OrderMetric label="Tayyor mahsulot ombori" value={outputWarehouseName} />
         </section>
 
         <Card padding="lg">
@@ -332,14 +335,17 @@ const ProductionOrderDetailsPage = () => {
                 {getProductionStatusLabel(order.status)}
               </Badge>
               <Badge variant={availabilityFailed ? "warning" : enoughMaterials ? "success" : "danger"}>
-                {enoughMaterials && !availabilityFailed ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={14} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={14} />}
-                {availabilityLoading ? "Tekshirilmoqda" : availabilityFailed ? "Tekshirib bo'lmadi" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
+                {availabilityLoading ? <LiveIcon icon={LoaderCircle} motion="spin-slow" size={14} /> : enoughMaterials && !availabilityFailed ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={14} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={14} />}
+                {availabilityLoading ? "Xomashyolar tekshirilmoqda..." : availabilityFailed ? "Xomashyo holatini tekshirib bo'lmadi" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
               </Badge>
             </div>
           </div>
 
           {availabilityLoading ? (
-            <div className="production-order-details__materials-empty">Xomashyo tekshirilmoqda...</div>
+            <div className="production-order-details__materials-empty">
+              <LiveIcon icon={LoaderCircle} motion="spin-slow" size={18} />
+              Xomashyolar tekshirilmoqda...
+            </div>
           ) : availabilityFailed ? (
             <div className="production-order-details__materials-empty production-order-details__materials-empty--warning">
               {availabilityError}
@@ -363,7 +369,7 @@ const ProductionOrderDetailsPage = () => {
           )}
         </Card>
 
-        <details className="production-order-details__advanced">
+        <details className="production-order-details__advanced" open>
           <summary>Batafsil ma'lumotlar</summary>
           <div className="production-order-details__advanced-content">
             <section className="production-order-details__material-summary" aria-label="Material yig'indisi">
@@ -463,10 +469,12 @@ const ProductionOrderDetailsPage = () => {
               </div>
               <div className="production-order-details__cost-grid">
                 <div><span>Rejalashtirilgan material</span><strong>{formatManufacturingMoney(plannedMaterialCost)}</strong></div>
-                <div><span>Real material</span><strong>{formatManufacturingMoney(actualMaterialCost)}</strong></div>
-                <div><span>1 birlik tannarx</span><strong className="production-order-details__unit-cost">{formatManufacturingMoney(actualUnitCost)}</strong></div>
-                <div><span>Qo'shimcha xarajat</span><strong>{formatManufacturingMoney(completedOverheadCost)}</strong></div>
+                <div><span>Xomashyo tannarxi</span><strong>{formatManufacturingMoney(actualMaterialCost)}</strong></div>
+                <div><span>Qadoqlash xarajati</span><strong>{formatManufacturingMoney(Math.max(actualProductionCost - actualMaterialCost - completedOverheadCost, 0))}</strong></div>
+                <div><span>Qo'shimcha xarajatlar</span><strong>{formatManufacturingMoney(completedOverheadCost)}</strong></div>
                 <div><span>Jami real tannarx</span><strong>{formatManufacturingMoney(actualProductionCost)}</strong></div>
+                <div><span>Ishlab chiqarish hajmi</span><strong>{formatProductionQuantity(order.acceptedQuantity || order.producedQuantity || 0)} {order.unit}</strong></div>
+                {actualUnitCost > 0 && <div><span>1 {order.unit} taxminiy tannarxi</span><strong className="production-order-details__unit-cost">{formatManufacturingMoney(actualUnitCost)}</strong></div>}
                 <div>
                   <span>Farq</span>
                   <strong className={costDifference > 0 ? "production-order-details__cost-difference production-order-details__cost-difference--warning" : costDifference < 0 ? "production-order-details__cost-difference production-order-details__cost-difference--success" : "production-order-details__cost-difference"}>
@@ -478,12 +486,30 @@ const ProductionOrderDetailsPage = () => {
 
             <Card>
               <div className="production-order-details__section-title">
+                <h3>Batafsil tannarx</h3>
+              </div>
+              <div className="production-order-details__materials">
+                {(order.actualMaterials?.length ? order.actualMaterials : order.requiredMaterials || []).map((material) => (
+                  <div key={material.productId} className="production-order-details__material-row production-order-details__material-row--cost">
+                    <div className="production-order-details__material-name">
+                      <strong>{material.productName}</strong>
+                    </div>
+                    <span data-label="Miqdor">{formatProductionQuantity(material.actualQuantity ?? material.requiredQuantity)} {material.unit}</span>
+                    <span data-label="Tannarx">{formatManufacturingMoney(material.cost)} / {material.unit}</span>
+                    <strong data-label="Jami" className="production-order-details__material-money">{formatManufacturingMoney(material.actualCost ?? material.totalCost)}</strong>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <div className="production-order-details__section-title">
                 <h3>Ishlab chiqarish tarixi</h3>
               </div>
               <div className="production-order-details__timeline">
-                <ProductionHistoryItem title="Buyurtma yaratildi" date={order.createdAt} status="neutral" />
-                {order.startedAt && <ProductionHistoryItem title="Ishlab chiqarish boshlandi" date={order.startedAt} status="warning" />}
-                {order.completedAt && <ProductionHistoryItem title="Ishlab chiqarish yakunlandi" date={order.completedAt} status="success" />}
+                <ProductionHistoryItem title="Buyurtma yaratildi" date={formatAppDateTime(order.createdAt)} status="neutral" />
+                {order.startedAt && <ProductionHistoryItem title="Ishlab chiqarish boshlandi" date={formatAppDateTime(order.startedAt)} status="warning" />}
+                {order.completedAt && <ProductionHistoryItem title="Ishlab chiqarish yakunlandi" date={formatAppDateTime(order.completedAt)} status="success" />}
               </div>
             </Card>
           </>
@@ -521,7 +547,7 @@ const ProductionOrderDetailsPage = () => {
           <div><span>Mahsulot</span><strong>{order.productName}</strong></div>
           <div><span>Reja</span><strong>{formatProductionQuantity(order.plannedQuantity)} {order.unit}</strong></div>
           <div><span>Xomashyo</span><strong>{availabilityFailed ? "tekshirib bo'lmadi" : enoughMaterials ? "yetarli" : "yetishmaydi"}</strong></div>
-          <div><span>Ombor</span><strong>{materialWarehouse?.name || order.materialWarehouseId || order.warehouseId}</strong></div>
+          <div><span>Ombor</span><strong>{materialWarehouseName}</strong></div>
         </div>
         {startError && <div className="production-order-details__modal-error">{startError}</div>}
       </Modal>

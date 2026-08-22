@@ -9,6 +9,7 @@ import { translateText } from "../../../../localization/i18n";import {
 "lucide-react";
 
 import { Badge, Button, LiveIcon, Table } from "../../../../shared/ui";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
 
 import PurchaseActionsMenu from "../PurchaseActionsMenu/PurchaseActionsMenu";
 
@@ -37,9 +38,9 @@ const PurchaseTable = ({
 
     render: (value, purchase) =>
     <div className="purchase-table__number">
-          <strong>{value}</strong>
+          <strong>{purchase.title || purchase.items?.[0]?.productName || "Mahsulot ko'rsatilmagan"}</strong>
 
-          <span>{purchase.orderDate}</span>
+          <span>{value} · {formatAppDateTime(purchase.orderDate || purchase.createdAt)}</span>
         </div>
 
   },

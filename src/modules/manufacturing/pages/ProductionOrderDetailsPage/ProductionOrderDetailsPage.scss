@@ -169,6 +169,10 @@
       background: color-mix(in srgb, var(--color-warning) 8%, transparent);
     }
 
+    &--cost {
+      grid-template-columns: minmax(180px, 1.6fr) repeat(2, minmax(110px, 1fr)) minmax(130px, 1fr);
+    }
+
     > strong,
     > span {
       min-width: 0;

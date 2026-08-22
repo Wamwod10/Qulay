@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { logout, setAuth } from "../store/slices/authSlice";
@@ -9,16 +9,39 @@ import { setEnabledModules } from "../store/slices/modulesSlice";
 import { setPermissions, setRoles, clearPermissions } from "../store/slices/permissionsSlice";
 import authService from "../modules/auth/services/authService";
 import {
+  getPlatformSettings,
   loadPlatformSettings,
   markSettingsHydrated,
 } from "../modules/settings/utils/settingsStorage";
 import { SUPER_ADMIN_ROLE } from "../constants/auth";
 import { resetTenant } from "../store/slices/tenantSlice";
-import { preloadBusinessData } from "../services/api/businessDataLoader";
+
+const hydrateSettings = (dispatch) => {
+  markSettingsHydrated();
+  dispatch(setSettings(getPlatformSettings()));
+
+  window.requestIdleCallback?.(() => {
+    loadPlatformSettings()
+      .then((settings) => {
+        markSettingsHydrated();
+        dispatch(setSettings(settings));
+      })
+      .catch(() => undefined);
+  }) || window.setTimeout(() => {
+    loadPlatformSettings()
+      .then((settings) => {
+        markSettingsHydrated();
+        dispatch(setSettings(settings));
+      })
+      .catch(() => undefined);
+  }, 0);
+};
 
 const AppBootstrap = ({ children }) => {
   const dispatch = useDispatch();
   const bootstrapStarted = useRef(false);
+  const [bootstrapError, setBootstrapError] = useState("");
+  const [retryToken, setRetryToken] = useState(0);
 
   const isAuthInitialized = useSelector((state) => state.auth.isInitialized);
 
@@ -31,10 +54,16 @@ const AppBootstrap = ({ children }) => {
 
     const bootstrap = async () => {
       try {
+        setBootstrapError("");
         dispatch(setGlobalLoading(true));
 
         if (!isAuthInitialized) {
           const result = await authService.getSession();
+
+          if (result.isRecoverable) {
+            setBootstrapError(result.error || "Platformani yuklab bo'lmadi.");
+            return;
+          }
 
           if (result.isAuthenticated) {
             dispatch(setAuth(result));
@@ -55,15 +84,7 @@ const AppBootstrap = ({ children }) => {
               dispatch(setEnabledModules(result.modules));
             }
             if (result.user?.role !== SUPER_ADMIN_ROLE) {
-              await preloadBusinessData({
-                user: result.user,
-                modules: result.modules,
-                permissions: result.user?.permissions,
-                role: result.user?.role,
-              });
-              const settings = await loadPlatformSettings();
-              markSettingsHydrated();
-              dispatch(setSettings(settings));
+              hydrateSettings(dispatch);
             }
           } else {
             dispatch(logout());
@@ -82,7 +103,26 @@ const AppBootstrap = ({ children }) => {
     bootstrap();
 
     return undefined;
-  }, [dispatch, isAuthInitialized]);
+  }, [dispatch, isAuthInitialized, retryToken]);
+
+  if (bootstrapError) {
+    return (
+      <div className="global-loader" role="alert">
+        <div className="global-loader__logo">U</div>
+        <p>{bootstrapError}</p>
+        <button
+          type="button"
+          className="global-loader__retry"
+          onClick={() => {
+            bootstrapStarted.current = false;
+            setRetryToken((current) => current + 1);
+          }}
+        >
+          Qayta urinish
+        </button>
+      </div>
+    );
+  }
 
   return children;
 };

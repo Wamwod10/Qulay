@@ -7,6 +7,16 @@ import {
 import { API_BASE_URL } from "../../../services/api/apiUrl";
 import { getApiErrorMessage } from "../../../services/api/apiErrorHandler";
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+const SESSION_RESTORE_TIMEOUT_MS = 10000;
+
+const createTimeoutError = () => {
+  const error = new Error("Server javob bermayapti. Qayta urinib ko'ring.");
+  error.code = "REQUEST_TIMEOUT";
+  error.isRecoverable = true;
+  return error;
+};
+
 const getMessage = async (response) => {
   try {
     const data = await response.json();
@@ -42,6 +52,9 @@ const persistAuth = (result) => {
 
 const request = async (path, options = {}) => {
   const session = getStoredSession();
+  const { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -49,13 +62,27 @@ const request = async (path, options = {}) => {
     ...(session?.accountId && session.accountId !== "platform"
       ? { "X-Company-Id": session.accountId }
       : {}),
-    ...(options.headers || {}),
+    ...(fetchOptions.headers || {}),
   };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...fetchOptions,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw createTimeoutError();
+    }
+
+    error.isRecoverable = true;
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     throw new Error(await getMessage(response));
@@ -111,9 +138,21 @@ export const authService = {
     }
 
     try {
-      const result = await request("/auth/me");
+      const result = await request("/auth/me", { timeoutMs: SESSION_RESTORE_TIMEOUT_MS });
       return persistAuth(result);
     } catch (error) {
+      if (error.isRecoverable || error.code === "REQUEST_TIMEOUT") {
+        return {
+          user: null,
+          account: null,
+          session,
+          accessToken: session.accessToken,
+          isAuthenticated: false,
+          isRecoverable: true,
+          error: error.message,
+        };
+      }
+
       clearStoredSession();
       return {
         user: null,

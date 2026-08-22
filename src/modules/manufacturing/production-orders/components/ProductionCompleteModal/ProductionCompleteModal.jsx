@@ -245,14 +245,12 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   );
 
   const packagingProductOptions = useMemo(() => packagingProducts.map((product) => {
-    const availableText = product.inOutputWarehouse
-      ? `Mavjud: ${formatProductionQuantity(product.available || 0)} ${product.unit}`
-      : `Output omborda qoldiq yo'q (${product.unit})`;
+    const availableText = `Mavjud: ${formatProductionQuantity(product.available || 0)} ${product.unit}`;
 
     return {
       value: product.id,
       label: product.name,
-      description: [product.sku || "SKU yo'q", availableText].join(" - "),
+      description: [product.sku || "SKU yo'q", availableText].join(" · "),
       searchText: [product.name, product.sku, product.barcode, product.unit, product.id].filter(Boolean).join(" | "),
     };
   }), [packagingProducts]);
@@ -520,7 +518,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
         <Textarea label="Izoh" value={completionNote} placeholder="Ixtiyoriy izoh..." onChange={(event) => setCompletionNote(event.target.value)} />
 
-        <details className="production-complete__advanced">
+        <details className="production-complete__advanced" open>
           <summary>Batafsil ma'lumotlar</summary>
           <div className="production-complete__advanced-content">
             <div className="production-complete__materials">
@@ -549,10 +547,12 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
             </div>
 
             <div className="production-complete__cost">
-              <div><span>Xomashyo</span><strong>{formatManufacturingMoney(rawMaterialCost)}</strong></div>
-              <div><span>Qo'shimcha xarajat</span><strong>{formatManufacturingMoney(overheadCost)}</strong></div>
-              <div><span>Jami real tannarx</span><strong>{formatManufacturingMoney(actualProductionCost)}</strong></div>
-              <div><span>1 birlik real tannarx</span><strong>{formatManufacturingMoney(actualUnitCost)}</strong></div>
+              <div><span>Xomashyo tannarxi</span><strong>{formatManufacturingMoney(rawMaterialCost)}</strong></div>
+              <div><span>Qadoqlash xarajati</span><strong>{formatManufacturingMoney(0)}</strong></div>
+              <div><span>Qo'shimcha xarajatlar</span><strong>{formatManufacturingMoney(overheadCost)}</strong></div>
+              <div><span>Taxminiy jami tannarx</span><strong>{formatManufacturingMoney(actualProductionCost)}</strong></div>
+              <div><span>Ishlab chiqarish hajmi</span><strong>{formatProductionQuantity(accepted)} {parentUnit}</strong></div>
+              {actualUnitCost > 0 && <div><span>1 {parentUnit} taxminiy tannarxi</span><strong>{formatManufacturingMoney(actualUnitCost)}</strong></div>}
             </div>
           </div>
         </details>

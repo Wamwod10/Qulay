@@ -11,6 +11,7 @@ import {
 } from "../../utils/warehouseHelpers";
 import useConfiguredColumns from "../../../settings/hooks/useConfiguredColumns";
 import { translateText } from "../../../../localization/i18n";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
 
 import "./StockTable.scss";
 
@@ -116,7 +117,7 @@ const StockTable = ({ items = [], onView }) => {
 
       render: (_, item) => (
         <span className="warehouse-stock-table__muted">
-          {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "-"}
+          {formatAppDateTime(item.expiryDate)}
         </span>
       ),
     },

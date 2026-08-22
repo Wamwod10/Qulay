@@ -9,6 +9,8 @@ import { Badge, Card, EmptyState, LiveIcon, Table } from "../../../../shared/ui"
 
 import { formatWarehouseMoney } from "../../utils/warehouseHelpers";
 import { translateText } from "../../../../localization/i18n";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
+import { displayLotNumber } from "../../../../shared/utils/lot";
 
 import "./StockMovements.scss";
 
@@ -99,6 +101,7 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
     {
       key: "createdAt",
       title: translateText("Sana"),
+      render: (value) => formatAppDateTime(value),
     },
     {
       key: "type",
@@ -121,7 +124,7 @@ const StockMovements = ({ movements = [], warehouses = [] }) => {
       render: (value, row) => (
         <div className="stock-movements__product">
           <strong>{value || "—"}</strong>
-          <span>{row.productId}</span>
+          <span>{row.sku || displayLotNumber(row) || "вЂ”"}</span>
         </div>
       ),
     },

@@ -13,12 +13,12 @@ import { setCompany } from "../../../../store/slices/tenantSlice";
 import { setSettings } from "../../../../store/slices/settingsSlice";
 import { setEnabledModules } from "../../../../store/slices/modulesSlice";
 import {
+  getPlatformSettings,
   loadPlatformSettings,
   markSettingsHydrated,
 } from "../../../settings/utils/settingsStorage";
 import { SUPER_ADMIN_ROLE } from "../../../../constants/auth";
 import { resetTenant } from "../../../../store/slices/tenantSlice";
-import { preloadBusinessData } from "../../../../services/api/businessDataLoader";
 
 import "../authPages.scss";
 
@@ -65,10 +65,16 @@ const LoginPage = () => {
         dispatch(setEnabledModules(result.modules));
       }
       if (!isSuperAdmin) {
-        await preloadBusinessData();
-        const settings = await loadPlatformSettings();
         markSettingsHydrated();
-        dispatch(setSettings(settings));
+        dispatch(setSettings(getPlatformSettings()));
+        window.setTimeout(() => {
+          loadPlatformSettings()
+            .then((settings) => {
+              markSettingsHydrated();
+              dispatch(setSettings(settings));
+            })
+            .catch(() => undefined);
+        }, 0);
       }
       navigate(isSuperAdmin ? "/superadmin" : "/dashboard", { replace: true });
     } catch (loginError) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, LoaderCircle } from "lucide-react";
 
 import { translateText } from "../../../../../localization/i18n";
 import {
@@ -132,6 +132,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     }
   }, [defaultWarehouseId, materialWarehouseId, outputWarehouseId]);
 
+  const selectedBomId = selectedBom?.id || "";
+
   useEffect(() => {
     if (!selectedBom || Number(plannedQuantity) <= 0 || !materialWarehouseId) {
       availabilityRequestSeq.current += 1;
@@ -141,33 +143,40 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
       return undefined;
     }
 
+    const controller = new AbortController();
     const requestId = availabilityRequestSeq.current + 1;
+    const planned = Number(plannedQuantity);
     availabilityRequestSeq.current = requestId;
     setAvailability([]);
     setAvailabilityError("");
     setAvailabilityStatus(AVAILABILITY_STATUS.LOADING);
 
-    fetchProductionMaterialAvailability({
-      recipeId: selectedBom.id,
-      plannedQuantity: Number(plannedQuantity),
-      materialWarehouseId,
-    })
-      .then((result) => {
-        if (availabilityRequestSeq.current !== requestId) return;
-        setAvailability(result.materials || []);
-        setAvailabilityStatus(AVAILABILITY_STATUS.SUCCESS);
+    const timer = window.setTimeout(() => {
+      fetchProductionMaterialAvailability({
+        recipeId: selectedBomId,
+        plannedQuantity: planned,
+        materialWarehouseId,
+        signal: controller.signal,
       })
-      .catch((error) => {
-        if (availabilityRequestSeq.current !== requestId) return;
-        setAvailability([]);
-        setAvailabilityError(error?.status === 404 ? "Xomashyo holatini tekshirib bo'lmadi." : error.message || "Xomashyo holatini tekshirib bo'lmadi.");
-        setAvailabilityStatus(AVAILABILITY_STATUS.ERROR);
-      });
+        .then((result) => {
+          if (availabilityRequestSeq.current !== requestId) return;
+          setAvailability(result.materials || []);
+          setAvailabilityStatus(AVAILABILITY_STATUS.SUCCESS);
+        })
+        .catch((error) => {
+          if (controller.signal.aborted || availabilityRequestSeq.current !== requestId) return;
+          setAvailability([]);
+          setAvailabilityError(error?.status === 404 ? "Xomashyo holatini tekshirib bo'lmadi." : error.message || "Xomashyo holatini tekshirib bo'lmadi.");
+          setAvailabilityStatus(AVAILABILITY_STATUS.ERROR);
+        });
+    }, 250);
 
     return () => {
+      window.clearTimeout(timer);
+      controller.abort();
       availabilityRequestSeq.current += 1;
     };
-  }, [selectedBom, plannedQuantity, materialWarehouseId]);
+  }, [selectedBomId, plannedQuantity, materialWarehouseId]);
 
   const availabilityLoading = availabilityStatus === AVAILABILITY_STATUS.LOADING;
   const availabilitySucceeded = availabilityStatus === AVAILABILITY_STATUS.SUCCESS;
@@ -176,6 +185,9 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const availabilityFailed = availabilityStatus === AVAILABILITY_STATUS.ERROR;
   const missingMaterials = availability.filter((material) => !material.enough);
   const plannedMaterialCost = calculateProductionMaterialCost(availability);
+  const plannedOverheadCost = Number(selectedBom?.overheadCost || 0);
+  const plannedPackagingCost = 0;
+  const plannedTotalCost = plannedMaterialCost + plannedPackagingCost + plannedOverheadCost;
   const materialSummary = aggregateQuantities(availability);
   const bomOptions = boms.map((bom) => ({
     value: bom.id,
@@ -193,13 +205,16 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const availabilityBadgeText = availabilityIdle
     ? "Tekshirish kutilmoqda"
     : availabilityLoading
-      ? "Xomashyo holati tekshirilmoqda..."
+      ? "Xomashyolar tekshirilmoqda..."
       : availabilityFailed
-        ? "Tekshirib bo'lmadi"
+        ? "Xomashyo holatini tekshirib bo'lmadi"
         : enoughMaterials
           ? "Barcha xomashyolar yetarli"
           : "Xomashyo yetishmaydi";
   const shouldShowAvailabilityWarning = selectedBom && Number(plannedQuantity) > 0 && (availabilityFailed || (availabilitySucceeded && !enoughMaterials));
+  const planningBlockedByAvailability =
+    Boolean(selectedBom && Number(plannedQuantity) > 0 && materialWarehouseId) &&
+    (availabilityLoading || availabilityIdle || availabilityFailed || !availabilitySucceeded);
 
   const validate = () => {
     const nextErrors = {};
@@ -329,7 +344,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
 
           {selectedBom && Number(plannedQuantity) > 0 && (
             <Badge className="production-order-form__availability-badge" variant={availabilityBadgeVariant}>
-              {enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
+              {availabilityLoading ? <LiveIcon icon={LoaderCircle} motion="spin-slow" size={16} /> : enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
               {availabilityBadgeText}
             </Badge>
           )}
@@ -341,7 +356,10 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
         ) : (
           <div className="production-order-form__materials">
             {availabilityLoading ? (
-              <div className="production-order-form__empty">Xomashyo holati tekshirilmoqda...</div>
+              <div className="production-order-form__empty production-order-form__empty--loading">
+                <LiveIcon icon={LoaderCircle} motion="spin-slow" size={18} />
+                Xomashyolar tekshirilmoqda...
+              </div>
             ) : availabilityIdle ? (
               <div className="production-order-form__empty">Xomashyo holati tekshirishga tayyorlanmoqda...</div>
             ) : availabilityFailed ? (
@@ -367,19 +385,47 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             )}
 
             <details className="production-order-form__advanced">
-              <summary>Batafsil hisob-kitob</summary>
+              <summary>Batafsil tannarx</summary>
               <div className="production-order-form__material-summary">
+                <div>
+                  <span>Xomashyo tannarxi</span>
+                  <strong>{formatManufacturingMoney(plannedMaterialCost)}</strong>
+                </div>
+                <div>
+                  <span>Qadoqlash xarajati</span>
+                  <strong>{formatManufacturingMoney(plannedPackagingCost)}</strong>
+                </div>
+                <div>
+                  <span>Qo'shimcha xarajatlar</span>
+                  <strong>{formatManufacturingMoney(plannedOverheadCost)}</strong>
+                </div>
+                <div>
+                  <span>Taxminiy jami tannarx</span>
+                  <strong>{formatManufacturingMoney(plannedTotalCost)}</strong>
+                </div>
+                <div>
+                  <span>Ishlab chiqarish hajmi</span>
+                  <strong>{formatProductionQuantity(plannedQuantity)} {selectedBomSnapshot?.unit || ""}</strong>
+                </div>
                 {materialSummary.map((item) => (
                   <div key={item.dimension}>
-                    <span>{translateText(item.dimension === "WEIGHT" ? "Jami massa" : item.dimension === "VOLUME" ? "Jami hajm" : item.dimension === "LENGTH" ? "Jami uzunlik" : "Jami dona")}</span>
+                    <span>{translateText(item.dimension === "WEIGHT" ? "Massa" : item.dimension === "VOLUME" ? "Hajm" : item.dimension === "LENGTH" ? "Uzunlik" : "Dona")}</span>
                     <strong>{item.value} {item.unit}</strong>
                   </div>
                 ))}
-                <div>
-                  <span>Material qiymati</span>
-                  <strong>{formatManufacturingMoney(plannedMaterialCost)}</strong>
-                </div>
               </div>
+              {availabilitySucceeded && availability.length > 0 && (
+                <div className="production-order-form__materials-breakdown">
+                  {availability.map((material) => (
+                    <div key={material.productId} className="production-order-form__material-breakdown-row">
+                      <strong>{material.productName}</strong>
+                      <span>{formatProductionQuantity(material.requiredQuantity)} {material.unit}</span>
+                      <span>{formatManufacturingMoney(material.cost)} / {material.unit}</span>
+                      <strong>{formatManufacturingMoney(material.totalCost)}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
             </details>
           </div>
         )}
@@ -394,7 +440,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
 
       <div className="production-order-form__actions">
         <Button type="button" variant="secondary" onClick={onCancel}>Bekor qilish</Button>
-        <Button type="submit">Ishlab chiqarishni rejalashtirish</Button>
+        <Button type="submit" disabled={planningBlockedByAvailability}>Ishlab chiqarishni rejalashtirish</Button>
       </div>
     </form>
   );

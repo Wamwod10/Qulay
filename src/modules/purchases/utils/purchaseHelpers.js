@@ -2,10 +2,11 @@ import {
     getStoredPurchases,
     savePurchases,
 } from "./purchasesStorage";
-import { getLocale, translateText } from "../../../localization/i18n";
+import { translateText } from "../../../localization/i18n";
 import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
 import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 import { convertQuantity } from "../../../shared/utils/units";
+import { formatAppDateTime } from "../../../shared/utils/dateTime";
 
 export const formatPurchaseMoney = (
     value,
@@ -61,37 +62,12 @@ export const getPurchaseStatusVariant = (
 export const formatPurchaseDate = (
     value,
 ) => {
-    if (!value) {
-        return "—";
-    }
-
-    const dateValue =
-        String(value);
-
-    if (
-        dateValue.includes("-")
-    ) {
-        const [
-            year,
-            month,
-            day,
-        ] = dateValue.split("-");
-
-        if (
-            year &&
-            month &&
-            day
-        ) {
-            return `${day}.${month}.${year}`;
-        }
-    }
-
-    return dateValue;
+    return formatAppDateTime(value);
 };
 
-export const applyPurchaseReceipt = ({
+export const updatePurchaseReceipt = ({
     purchaseId,
-    receivedItems,
+    receivedItems = [],
 }) => {
     const purchases =
         getStoredPurchases();
@@ -187,9 +163,7 @@ export const applyPurchaseReceipt = ({
 
                 receivedAt:
                     allReceived
-                        ? new Date().toLocaleString(
-                            getLocale(),
-                        )
+                        ? new Date().toISOString()
                         : purchase.receivedAt,
             };
 

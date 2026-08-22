@@ -20,6 +20,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import PageContainer from "../../../../components/PageContainer/PageContainer";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
+import { displayLotNumber } from "../../../../shared/utils/lot";
 import PurchaseReceiveModal from "../../components/PurchaseReceiveModal/PurchaseReceiveModal";
 
 import {
@@ -226,9 +228,12 @@ const PurchaseDetailsPage = () => {
     }
   };
 
+  const purchaseTitle =
+  purchase.title || purchase.items?.[0]?.productName || translateText("Mahsulot ko'rsatilmagan");
+
   return (
     <PageContainer
-      title={purchase.number}
+      title={purchaseTitle}
       description={`${purchase.supplierName} · ${purchase.warehouseName}`}>
       
       {actionError && (
@@ -357,11 +362,11 @@ const PurchaseDetailsPage = () => {
                 value={purchase.warehouseName} />
               
 
-              <InfoItem label={translateText("Buyurtma sanasi")} value={purchase.orderDate} />
+              <InfoItem label={translateText("Buyurtma sanasi")} value={formatAppDateTime(purchase.orderDate)} />
 
               <InfoItem
                 label={translateText("Kutilayotgan sana")}
-                value={purchase.expectedDate || "—"} />
+                value={formatAppDateTime(purchase.expectedDate)} />
               
             </div>
           </Card>
@@ -418,7 +423,7 @@ const PurchaseDetailsPage = () => {
 
             <Table
             columns={[
-              { key: "batchNumber", title: translateText("Batch") },
+              { key: "batchNumber", title: translateText("Batch"), render: (_, batch) => displayLotNumber(batch) },
               { key: "productName", title: translateText("Mahsulot") },
               {
                 key: "movementQuantity",
@@ -430,8 +435,8 @@ const PurchaseDetailsPage = () => {
                 title: translateText("Tannarx"),
                 render: (value) => <span>{formatPurchaseMoney(value)}</span>
               },
-              { key: "receivedDate", title: translateText("Qabul sanasi") },
-              { key: "expiryDate", title: translateText("Yaroqlilik") }
+              { key: "receivedDate", title: translateText("Qabul sanasi"), render: (value) => formatAppDateTime(value) },
+              { key: "expiryDate", title: translateText("Yaroqlilik"), render: (value) => formatAppDateTime(value) }
             ]}
             data={purchase.batches}
             rowKey="movementId"
@@ -472,7 +477,7 @@ const PurchaseDetailsPage = () => {
             <span>
                   <CalendarDays size={13} />
 
-                  {purchase.receivedAt}
+                  {formatAppDateTime(purchase.receivedAt)}
                 </span>
             }
             </div>
@@ -498,7 +503,7 @@ const PurchaseDetailsPage = () => {
             <span>
                   <CalendarDays size={13} />
 
-                  {purchase.cancelledAt}
+                  {formatAppDateTime(purchase.cancelledAt)}
                 </span>
             }
             </div>

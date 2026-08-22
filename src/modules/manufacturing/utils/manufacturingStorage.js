@@ -217,8 +217,10 @@ export const createProductionOrder = async (
 export const fetchProductionMaterialAvailability = async (payload) => {
     const result = await apiRequest("/manufacturing/material-availability", {
         method: "POST",
+        signal: payload?.signal,
         body: {
             ...payload,
+            signal: undefined,
             recipeId: payload?.recipeId || payload?.bomId,
         },
     });

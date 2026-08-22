@@ -169,6 +169,7 @@ const request = async (path, options = {}) => {
     inlineModule,
     skipCache: _skipCache,
     headers: customHeaders,
+    signal,
     ...fetchOptions
   } = options;
 
@@ -203,6 +204,7 @@ const request = async (path, options = {}) => {
     ...fetchOptions,
     method,
     headers,
+    signal,
     body:
       fetchOptions.body === undefined
         ? undefined

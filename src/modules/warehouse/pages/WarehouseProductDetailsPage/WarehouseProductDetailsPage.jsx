@@ -16,6 +16,7 @@ import PageContainer from "../../../../components/PageContainer/PageContainer";
 
 import { Badge, Button, Card, EmptyState, Table, Toast } from "../../../../shared/ui";
 import { translateText } from "../../../../localization/i18n";
+import { formatAppDateTime } from "../../../../shared/utils/dateTime";
 
 import StockInModal from "../../components/StockInModal/StockInModal";
 import StockOutModal from "../../components/StockOutModal/StockOutModal";
@@ -137,6 +138,7 @@ const WarehouseProductDetailsPage = () => {
     {
       key: "createdAt",
       title: translateText("Sana"),
+      render: (value) => formatAppDateTime(value),
     },
     {
       key: "type",
@@ -358,7 +360,7 @@ const WarehouseProductDetailsPage = () => {
                 value={getWarehouseStockStatusLabel(item)}
               />
 
-              <InfoItem label={translateText("Mahsulot ID")} value={item.productId} />
+              <InfoItem label={translateText("SKU")} value={item.sku} />
             </div>
           </Card>
         </section>

@@ -13,10 +13,10 @@ import { setCompany } from "../../../../store/slices/tenantSlice";
 import { setSettings } from "../../../../store/slices/settingsSlice";
 import { setEnabledModules } from "../../../../store/slices/modulesSlice";
 import {
+  getPlatformSettings,
   loadPlatformSettings,
   markSettingsHydrated,
 } from "../../../settings/utils/settingsStorage";
-import { preloadBusinessData } from "../../../../services/api/businessDataLoader";
 import { SUPPORTED_CURRENCIES } from "../../../../shared/utils/currency";
 
 import "../authPages.scss";
@@ -94,10 +94,16 @@ const RegisterPage = () => {
       if (Array.isArray(result.modules)) {
         dispatch(setEnabledModules(result.modules));
       }
-      await preloadBusinessData();
-      const settings = await loadPlatformSettings();
       markSettingsHydrated();
-      dispatch(setSettings(settings));
+      dispatch(setSettings(getPlatformSettings()));
+      window.setTimeout(() => {
+        loadPlatformSettings()
+          .then((settings) => {
+            markSettingsHydrated();
+            dispatch(setSettings(settings));
+          })
+          .catch(() => undefined);
+      }, 0);
       navigate("/dashboard", { replace: true });
     } catch (error) {
       setServerError(error.message || "Ro'yxatdan o'tish yakunlanmadi.");

@@ -15,7 +15,7 @@ import GuestGuard from "./guards/GuestGuard";
 import ModuleGuard from "./guards/ModuleGuard";
 import PermissionGuard from "./guards/PermissionGuard";
 import SuperAdminGuard from "./guards/SuperAdminGuard";
-import { lazyRoute } from "./helpers/lazyRoute";
+import { lazyRoute } from "./helpers/lazyRoute.jsx";
 
 /* =========================
    AUTH

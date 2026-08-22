@@ -300,10 +300,6 @@ const ProductForm = ({
       nextErrors.name = "Mahsulot nomini kiriting.";
     }
 
-    if (!form.sku.trim()) {
-      nextErrors.sku = "SKU kiriting.";
-    }
-
     if (!form.type) {
       nextErrors.type = "Mahsulot turini tanlang.";
     }
@@ -356,7 +352,6 @@ const ProductForm = ({
     const product = {
       id: initialValues?.id || `prd-${Date.now()}`,
       name: form.name.trim(),
-      sku: form.sku.trim(),
       barcode: form.barcode.trim(),
       type: form.type,
       category: selectedCategory?.name || form.category || null,
@@ -528,14 +523,6 @@ const ProductForm = ({
             placeholder={translateText("Masalan: Universal Foods")}
             value={form.brand}
             onChange={(event) => handleChange("brand", event.target.value)}
-          />
-
-          <Input
-            label="SKU"
-            placeholder={translateText("Masalan: 4821")}
-            value={form.sku}
-            error={errors.sku || (submitField === "sku" ? submitError : "")}
-            onChange={(event) => handleChange("sku", event.target.value)}
           />
 
           <Input

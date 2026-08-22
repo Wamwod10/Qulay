@@ -56,6 +56,7 @@ import {
   Toast,
 } from "../../../../shared/ui";
 import { translateOptions, translateText } from "../../../../localization/i18n";
+import { displayLotNumber } from "../../../../shared/utils/lot";
 
 import {
   formatWarehouseMoney,
@@ -466,7 +467,7 @@ const WarehousePage = () => {
                   <div key={batch.id} className="warehouse-page__expiry-warning-row">
                     <div>
                       <strong>{batch.productName}</strong>
-                      <span>{batch.batchNumber}</span>
+                      <span>{displayLotNumber(batch)}</span>
                     </div>
                     <Badge variant={expired ? "danger" : "warning"}>
                       {expired

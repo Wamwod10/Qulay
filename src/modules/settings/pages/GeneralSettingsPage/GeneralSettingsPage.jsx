@@ -110,6 +110,8 @@ const PAYMENT_OPTIONS = [
   { value: "DEBT", label: "Qarz" },
 ];
 
+const FX_CURRENCIES = SUPPORTED_CURRENCIES.map((currency) => currency.value);
+
 const safeValue = (value, options) =>
   options.some((option) => option.value === value) ? value : "";
 
@@ -191,6 +193,29 @@ const GeneralSettingsPage = () => {
 
   const update = (section, changes) => {
     dispatch(updateSection({ section, changes }));
+  };
+
+  const updateExchangeRate = (toCurrency, value) => {
+    const fromCurrency = settings.formats.baseCurrency || "UZS";
+    const key = `${fromCurrency}:${toCurrency}`;
+    const nextRates = { ...(settings.formats.exchangeRates || {}) };
+    const numericValue = Number(value);
+
+    if (!value || !Number.isFinite(numericValue) || numericValue <= 0) {
+      delete nextRates[key];
+    } else {
+      nextRates[key] = {
+        rate: numericValue,
+        source: "manual-settings",
+        fallback: true,
+        effectiveAt: new Date().toISOString(),
+      };
+    }
+
+    dispatch(updateFormats({
+      exchangeRates: nextRates,
+      exchangeRatesUpdatedAt: new Date().toISOString(),
+    }));
   };
 
   const matchesSearch = (text) => {
@@ -516,6 +541,31 @@ const GeneralSettingsPage = () => {
             <SettingRow title="Valyuta" description="Standart valyuta kodi.">
               <Select value={settings.formats.currency} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ currency: event.target.value }))} />
             </SettingRow>
+            <SettingRow title="Asosiy hisob valyutasi" description="Old tranzaksiyalar shu original/base qiymatdan ko'rsatiladi. Display valyuta o'zgarsa bu sonlar qayta yozilmaydi.">
+              <Select value={settings.formats.baseCurrency || "UZS"} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ baseCurrency: event.target.value }))} />
+            </SettingRow>
+            {FX_CURRENCIES.filter((currency) => currency !== (settings.formats.baseCurrency || "UZS")).map((currency) => {
+              const baseCurrency = settings.formats.baseCurrency || "UZS";
+              const savedRate = settings.formats.exchangeRates?.[`${baseCurrency}:${currency}`];
+              const rateValue = typeof savedRate === "object" ? savedRate?.rate ?? "" : savedRate ?? "";
+
+              return (
+                <SettingRow
+                  key={currency}
+                  title={`${baseCurrency} -> ${currency} kursi`}
+                  description="Manual exchange rate. Kurs bo'lmasa noto'g'ri label o'rniga 'Kurs mavjud emas' ko'rsatiladi."
+                >
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={rateValue}
+                    placeholder={`1 ${baseCurrency} = ? ${currency}`}
+                    onChange={(event) => updateExchangeRate(currency, event.target.value)}
+                  />
+                </SettingRow>
+              );
+            })}
             <SettingRow title="Son aniqligi" description="Pul va umumiy sonlar uchun kasr xonalari.">
               <Select value={String(settings.formats.numberPrecision)} options={[2, 3, 4, 6].map((value) => ({ value: String(value), label: `${value}` }))} onChange={(event) => dispatch(updateFormats({ numberPrecision: Number(event.target.value) }))} />
             </SettingRow>

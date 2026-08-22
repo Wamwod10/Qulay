@@ -204,7 +204,10 @@ const CreatableSelect = ({
               <button
                 type="button"
                 key={option.value}
-                className="ui-creatable-select__option"
+                className={[
+                  "ui-creatable-select__option",
+                  option.value === value ? "ui-creatable-select__option--selected" : "",
+                ].filter(Boolean).join(" ")}
                 onClick={() => select(option)}
               >
                 <span className="ui-creatable-select__option-text" data-i18n-skip="true">
