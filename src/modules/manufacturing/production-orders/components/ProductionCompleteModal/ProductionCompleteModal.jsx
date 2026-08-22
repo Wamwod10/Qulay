@@ -334,11 +334,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       setError("Qadoq hajmi birligi tayyor mahsulot birligiga mos bo'lishi kerak.");
       return;
     }
-    if (packagingRows.some((row) => Number(row.quantity || 0) > 0 && !row.productId)) {
-      setShowPackagingValidation(true);
-      setError("Qadoqlanadigan mahsulotni ombordagi ro'yxatdan tanlang.");
-      return;
-    }
+    setShowPackagingValidation(false);
 
     setSubmitting(true);
     try {
