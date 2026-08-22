@@ -18,6 +18,7 @@ const ProductionStages = ({
   orderStatus,
   onStart,
   onComplete,
+  readOnly = false,
 }) => {
   return (
     <Card padding="lg" className="production-stages">
@@ -35,11 +36,13 @@ const ProductionStages = ({
             index === 0 || stages[index - 1]?.status === "COMPLETED";
 
           const canStart =
+            !readOnly &&
             orderStatus === "IN_PROGRESS" &&
             stage.status === "PENDING" &&
             previousCompleted;
 
           const canComplete =
+            !readOnly &&
             orderStatus === "IN_PROGRESS" && stage.status === "IN_PROGRESS";
 
           return (
