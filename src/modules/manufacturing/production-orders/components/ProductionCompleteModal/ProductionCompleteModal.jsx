@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 import { translateText } from "../../../../../localization/i18n";
 import { apiRequest, unwrapList } from "../../../../../services/api/apiClient";
-import { Button, Input, LiveIcon, Modal, Select, Textarea } from "../../../../../shared/ui";
+import { Button, CreatableSelect, Input, LiveIcon, Modal, Select, Textarea } from "../../../../../shared/ui";
 import { convertQuantity, normalizeUnit, UNIT_DEFINITIONS } from "../../../../../shared/utils/units";
 import { formatManufacturingMoney } from "../../../utils/manufacturingHelpers";
 import { formatProductionQuantity } from "../../utils/productionOrderHelpers";
@@ -48,6 +48,14 @@ const getGeneratedProductName = (order, row = {}) => {
   return packSize > 0 ? `${parentName} ${packSize} ${packUnit}` : `${parentName} qadoq`;
 };
 
+const getNormalizedUnit = (unit, fallback = "dona") => {
+  try {
+    return normalizeUnit(unit || fallback);
+  } catch {
+    return fallback;
+  }
+};
+
 const createPackagingRow = (order, row = {}) => ({
   id: row.id || `package-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   productId: row.productId || "",
@@ -61,11 +69,13 @@ const createPackagingRow = (order, row = {}) => ({
 
 const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   const [products, setProducts] = useState([]);
+  const [warehouseStock, setWarehouseStock] = useState([]);
   const [producedQuantity, setProducedQuantity] = useState("");
   const [defectQuantity, setDefectQuantity] = useState("0");
   const [wasteQuantity, setWasteQuantity] = useState("0");
   const [actualMaterials, setActualMaterials] = useState([]);
   const [packagingRows, setPackagingRows] = useState([]);
+  const [showPackagingValidation, setShowPackagingValidation] = useState(false);
   const [completionNote, setCompletionNote] = useState("");
   const [error, setError] = useState("");
   const [packagingLoadError, setPackagingLoadError] = useState("");
@@ -87,6 +97,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       cost: Number(material.cost || 0),
     })));
     setPackagingRows(Array.isArray(order.packaging) ? order.packaging.map((row) => createPackagingRow(order, row)) : []);
+    setShowPackagingValidation(false);
     setCompletionNote("");
     setError("");
   }, [open, order]);
@@ -96,17 +107,25 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
     let cancelled = false;
     setPackagingLoadError("");
+    const stockUrl = order.outputWarehouseId
+      ? `/inventory/stock?warehouseId=${encodeURIComponent(order.outputWarehouseId)}`
+      : "/inventory/stock";
 
-    apiRequest("/products?status=ACTIVE&type=FINISHED_GOOD&limit=500", { skipCache: true })
-      .then((result) => {
+    Promise.allSettled([
+      apiRequest("/products?status=ACTIVE&type=FINISHED_GOOD&limit=500", { skipCache: true }),
+      apiRequest(stockUrl, { skipCache: true }),
+    ])
+      .then(([productResult, stockResult]) => {
         if (cancelled) return;
-        const remoteProducts = unwrapList(result, ["products"]);
+        const remoteProducts = productResult.status === "fulfilled" ? unwrapList(productResult.value, ["products"]) : [];
+        const remoteStock = stockResult.status === "fulfilled" ? unwrapList(stockResult.value, ["stock"]) : [];
+
         setProducts(Array.isArray(remoteProducts) ? remoteProducts : []);
-      })
-      .catch((loadError) => {
-        if (cancelled) return;
-        setProducts([]);
-        setPackagingLoadError(loadError?.message || "Qadoq variantlarini backenddan olib bo'lmadi.");
+        setWarehouseStock(Array.isArray(remoteStock) ? remoteStock : []);
+
+        if (productResult.status === "rejected" || stockResult.status === "rejected") {
+          setPackagingLoadError("Qadoqlash mahsulotlari ro'yxatini backenddan to'liq olib bo'lmadi.");
+        }
       });
 
     return () => {
@@ -151,6 +170,54 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
     return [...bySize.values()].sort((left, right) => Number(right.packSize || 0) - Number(left.packSize || 0));
   }, [order, products]);
+
+  const packagingProducts = useMemo(() => {
+    if (!order) return [];
+    const parentProductId = order.outputProductId || order.productId;
+    const productDetailsById = new Map(products.map((product) => [product.id, product]));
+    const byId = new Map();
+
+    const addProduct = (source) => {
+      const productId = source.productId || source.id;
+      if (!productId || byId.has(productId)) return;
+
+      const details = productDetailsById.get(productId) || {};
+      const unit = getNormalizedUnit(source.unit || details.unit);
+      const type = source.type || details.type;
+
+      if (type !== "FINISHED_GOOD" || unit !== "dona") return;
+
+      byId.set(productId, {
+        id: productId,
+        name: source.productName || source.name || details.name || "Mahsulot",
+        sku: source.sku || details.sku || "",
+        unit,
+        type,
+        parentProductId: details.parentProductId || source.parentProductId || null,
+        packSize: details.packSize ?? source.packSize ?? null,
+        packUnit: details.packUnit || source.packUnit || null,
+        available: source.available,
+      });
+    };
+
+    warehouseStock.forEach(addProduct);
+    products
+      .filter((product) => product.parentProductId === parentProductId || product.isVariant)
+      .forEach(addProduct);
+
+    return [...byId.values()].sort((left, right) => left.name.localeCompare(right.name));
+  }, [order, products, warehouseStock]);
+
+  const packagingProductById = useMemo(
+    () => new Map(packagingProducts.map((product) => [product.id, product])),
+    [packagingProducts],
+  );
+
+  const packagingProductOptions = useMemo(() => packagingProducts.map((product) => ({
+    value: product.id,
+    label: [product.name, product.unit, product.sku].filter(Boolean).join(" - "),
+    searchText: [product.name, product.unit, product.sku, product.id].filter(Boolean).join(" | "),
+  })), [packagingProducts]);
 
   useEffect(() => {
     if (!open || !order || packagingRows.length > 0 || existingPackRows.length === 0) return;
@@ -203,6 +270,23 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     }));
   };
 
+  const selectPackagingProduct = (index, productId) => {
+    const product = packagingProductById.get(productId);
+    if (!product) {
+      updatePackaging(index, { productId: "", productName: "", productNameEdited: false });
+      return;
+    }
+
+    setShowPackagingValidation(false);
+    updatePackaging(index, {
+      productId: product.id,
+      productName: product.name,
+      productNameEdited: true,
+      packSize: Number(product.packSize || 0) > 0 ? String(product.packSize) : packagingRows[index]?.packSize || "",
+      packUnit: product.packUnit || packagingRows[index]?.packUnit || parentUnit,
+    });
+  };
+
   const addPackaging = () => {
     setPackagingRows((current) => [...current, createPackagingRow(order)]);
   };
@@ -250,6 +334,11 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       setError("Qadoq hajmi birligi tayyor mahsulot birligiga mos bo'lishi kerak.");
       return;
     }
+    if (packagingRows.some((row) => Number(row.quantity || 0) > 0 && !row.productId)) {
+      setShowPackagingValidation(true);
+      setError("Qadoqlanadigan mahsulotni ombordagi ro'yxatdan tanlang.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -267,6 +356,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
         packaging: packagingRows
           .filter((row) => Number(row.quantity || 0) > 0 && Number(row.packSize || 0) > 0)
           .map((row) => ({
+            productId: row.productId,
             productName: getPackageName(row),
             quantity: Number(row.quantity || 0),
             unit: "dona",
@@ -317,10 +407,15 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           {packagingLoadError && <div className="production-complete__error">{packagingLoadError}</div>}
           {packagingRows.map((row, index) => (
             <div className="production-complete__simple-package-row" key={row.id || index}>
-              <Input
+              <CreatableSelect
                 label="Mahsulot nomi"
-                value={row.productName ?? getGeneratedProductName(order, row)}
-                onChange={(event) => updatePackaging(index, { productName: event.target.value, productNameEdited: true })}
+                value={row.productId || ""}
+                options={packagingProductOptions}
+                placeholder={getPackageName(row)}
+                searchPlaceholder="Mahsulot nomi, birlik yoki SKU bo'yicha qidirish"
+                getOptionSearchText={(option) => option.searchText}
+                error={showPackagingValidation && Number(row.quantity || 0) > 0 && !row.productId ? "Mahsulotni ro'yxatdan tanlang." : ""}
+                onChange={(event) => selectPackagingProduct(index, event.target.value)}
               />
               <div className="production-complete__pack-size">
                 <Input

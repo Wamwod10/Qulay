@@ -11,6 +11,7 @@ const CreatableSelect = ({
   onChange,
   options = [],
   placeholder = "Tanlang",
+  searchPlaceholder = "Qidirish...",
   error,
   disabled = false,
   required = false,
@@ -175,8 +176,8 @@ const CreatableSelect = ({
             autoFocus
             disabled={saving}
             value={draft}
-            placeholder="Yangi qiymat yozing"
-            aria-label="Yangi qiymat"
+            placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
             onChange={(event) => {
               setDraft(event.target.value);
               setCreateError("");

@@ -2,6 +2,7 @@
 .ui-creatable-select__label { color: var(--color-text-secondary); font-size: 13px; font-weight: 600; }
 .ui-creatable-select__required { margin-left: 4px; color: var(--color-danger); }
 .ui-creatable-select__trigger { display: flex; align-items: center; justify-content: space-between; min-height: 46px; padding: 0 14px; border: 0; border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); box-shadow: var(--shadow-inset); cursor: pointer; }
+.ui-creatable-select__trigger span { min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .ui-creatable-select__trigger svg { color: var(--color-text-muted); }
 .ui-creatable-select__placeholder { color: var(--color-text-muted); }
 .ui-creatable-select__dropdown { position: absolute; z-index: var(--z-toast); top: calc(100% + 8px); left: 0; right: 0; padding: 7px; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-floating); }
