@@ -56,6 +56,11 @@ const getNormalizedUnit = (unit, fallback = "dona") => {
   }
 };
 
+const getAvailableQuantity = (item) => {
+  const value = Number(item?.available ?? item?.quantity ?? 0);
+  return Number.isFinite(value) ? value : 0;
+};
+
 const createPackagingRow = (order, row = {}) => ({
   id: row.id || `package-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   productId: row.productId || "",
@@ -112,7 +117,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       : "/inventory/stock";
 
     Promise.allSettled([
-      apiRequest("/products?status=ACTIVE&type=FINISHED_GOOD&limit=500", { skipCache: true }),
+      apiRequest("/products?status=ACTIVE&limit=500", { skipCache: true }),
       apiRequest(stockUrl, { skipCache: true }),
     ])
       .then(([productResult, stockResult]) => {
@@ -124,7 +129,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
         setWarehouseStock(Array.isArray(remoteStock) ? remoteStock : []);
 
         if (productResult.status === "rejected" || stockResult.status === "rejected") {
-          setPackagingLoadError("Qadoqlash mahsulotlari ro'yxatini backenddan to'liq olib bo'lmadi.");
+          setPackagingLoadError("Mahsulotlarni yuklab bo'lmadi.");
         }
       });
 
@@ -173,39 +178,65 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   const packagingProducts = useMemo(() => {
     if (!order) return [];
-    const parentProductId = order.outputProductId || order.productId;
     const productDetailsById = new Map(products.map((product) => [product.id, product]));
+    const outputStockByProductId = new Map();
     const byId = new Map();
+
+    warehouseStock.forEach((stockItem) => {
+      const productId = stockItem.productId || stockItem.id;
+      if (!productId) return;
+      const current = outputStockByProductId.get(productId);
+      const available = getAvailableQuantity(stockItem);
+      outputStockByProductId.set(productId, {
+        ...(current || {}),
+        ...stockItem,
+        productId,
+        available: (current?.available || 0) + available,
+      });
+    });
 
     const addProduct = (source) => {
       const productId = source.productId || source.id;
-      if (!productId || byId.has(productId)) return;
+      if (!productId) return;
 
       const details = productDetailsById.get(productId) || {};
-      const unit = getNormalizedUnit(source.unit || details.unit);
+      const stockItem = outputStockByProductId.get(productId);
+      const unit = getNormalizedUnit(source.unit || details.unit || stockItem?.unit);
       const type = source.type || details.type;
+      const status = source.status || details.status || "ACTIVE";
+      const isVariant = Boolean(details.isVariant || source.isVariant || details.parentProductId || source.parentProductId);
 
-      if (type !== "FINISHED_GOOD" || unit !== "dona") return;
+      if (status !== "ACTIVE" || type === "SERVICE") return;
 
-      byId.set(productId, {
+      const nextProduct = {
         id: productId,
-        name: source.productName || source.name || details.name || "Mahsulot",
-        sku: source.sku || details.sku || "",
+        name: details.name || source.productName || source.name || "Mahsulot",
+        sku: details.sku || source.sku || "",
+        barcode: details.barcode || source.barcode || "",
         unit,
         type,
         parentProductId: details.parentProductId || source.parentProductId || null,
         packSize: details.packSize ?? source.packSize ?? null,
         packUnit: details.packUnit || source.packUnit || null,
-        available: source.available,
-      });
+        isVariant,
+        available: stockItem ? stockItem.available : null,
+        inOutputWarehouse: Boolean(stockItem),
+      };
+
+      const current = byId.get(productId);
+      if (!current || (nextProduct.inOutputWarehouse && !current.inOutputWarehouse)) {
+        byId.set(productId, nextProduct);
+      }
     };
 
     warehouseStock.forEach(addProduct);
-    products
-      .filter((product) => product.parentProductId === parentProductId || product.isVariant)
-      .forEach(addProduct);
+    products.forEach(addProduct);
 
-    return [...byId.values()].sort((left, right) => left.name.localeCompare(right.name));
+    return [...byId.values()].sort((left, right) => {
+      if (left.inOutputWarehouse !== right.inOutputWarehouse) return left.inOutputWarehouse ? -1 : 1;
+      if (left.isVariant !== right.isVariant) return left.isVariant ? -1 : 1;
+      return left.name.localeCompare(right.name);
+    });
   }, [order, products, warehouseStock]);
 
   const packagingProductById = useMemo(
@@ -213,11 +244,18 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     [packagingProducts],
   );
 
-  const packagingProductOptions = useMemo(() => packagingProducts.map((product) => ({
-    value: product.id,
-    label: [product.name, product.unit, product.sku].filter(Boolean).join(" - "),
-    searchText: [product.name, product.unit, product.sku, product.id].filter(Boolean).join(" | "),
-  })), [packagingProducts]);
+  const packagingProductOptions = useMemo(() => packagingProducts.map((product) => {
+    const availableText = product.inOutputWarehouse
+      ? `Mavjud: ${formatProductionQuantity(product.available || 0)} ${product.unit}`
+      : `Output omborda qoldiq yo'q (${product.unit})`;
+
+    return {
+      value: product.id,
+      label: product.name,
+      description: [product.sku || "SKU yo'q", availableText].join(" - "),
+      searchText: [product.name, product.sku, product.barcode, product.unit, product.id].filter(Boolean).join(" | "),
+    };
+  }), [packagingProducts]);
 
   useEffect(() => {
     if (!open || !order || packagingRows.length > 0 || existingPackRows.length === 0) return;
@@ -285,6 +323,16 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       packSize: Number(product.packSize || 0) > 0 ? String(product.packSize) : packagingRows[index]?.packSize || "",
       packUnit: product.packUnit || packagingRows[index]?.packUnit || parentUnit,
     });
+  };
+
+  const createManualPackagingName = async (index, name) => {
+    updatePackaging(index, {
+      productId: "",
+      productName: name,
+      productNameEdited: true,
+    });
+    setShowPackagingValidation(false);
+    return null;
   };
 
   const addPackaging = () => {
@@ -408,10 +456,13 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                 value={row.productId || ""}
                 options={packagingProductOptions}
                 placeholder={getPackageName(row)}
-                searchPlaceholder="Mahsulot nomi, birlik yoki SKU bo'yicha qidirish"
+                searchPlaceholder="Mahsulot nomi, SKU yoki barcode bo'yicha qidirish"
                 getOptionSearchText={(option) => option.searchText}
-                error={showPackagingValidation && Number(row.quantity || 0) > 0 && !row.productId ? "Mahsulotni ro'yxatdan tanlang." : ""}
+                emptyMessage={packagingLoadError ? "Mahsulotlarni yuklab bo'lmadi" : "Variant topilmadi"}
+                error={showPackagingValidation && Number(row.quantity || 0) > 0 && !getPackageName(row) ? "Mahsulot nomini kiriting." : ""}
                 onChange={(event) => selectPackagingProduct(index, event.target.value)}
+                onCreate={(name) => createManualPackagingName(index, name)}
+                createLabel="Yangi nom"
               />
               <div className="production-complete__pack-size">
                 <Input

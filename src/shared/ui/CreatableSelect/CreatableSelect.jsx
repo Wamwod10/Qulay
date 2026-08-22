@@ -18,6 +18,7 @@ const CreatableSelect = ({
   onCreate,
   createLabel = "Qo'shish",
   getOptionSearchText,
+  emptyMessage = "Variant topilmadi",
   className = "",
 }) => {
   const generatedId = useId();
@@ -109,6 +110,10 @@ const CreatableSelect = ({
         };
 
         select(option);
+      } else if (created === null) {
+        setOpen(false);
+        setDraft("");
+        setCreateError("");
       }
     } catch (createRequestError) {
       setCreateError(getApiErrorMessage(createRequestError));
@@ -202,14 +207,19 @@ const CreatableSelect = ({
                 className="ui-creatable-select__option"
                 onClick={() => select(option)}
               >
-                <span data-i18n-skip="true">{option.label}</span>
+                <span className="ui-creatable-select__option-text" data-i18n-skip="true">
+                  <span className="ui-creatable-select__option-label">{option.label}</span>
+                  {option.description && (
+                    <span className="ui-creatable-select__option-description">{option.description}</span>
+                  )}
+                </span>
 
                 {option.value === value && <Check size={15} />}
               </button>
             ))}
 
             {!filteredOptions.length && (
-              <div className="ui-creatable-select__empty">Variant topilmadi</div>
+              <div className="ui-creatable-select__empty">{emptyMessage}</div>
             )}
           </div>
 
