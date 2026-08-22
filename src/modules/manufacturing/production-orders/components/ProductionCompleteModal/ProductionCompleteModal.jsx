@@ -41,8 +41,18 @@ const getCompatiblePackUnitOptions = (parentUnit) => {
 
 const roundQuantity = (value) => Math.round(Number(value || 0) * 1_000_000) / 1_000_000;
 
+const getGeneratedProductName = (order, row = {}) => {
+  const parentName = String(order?.productName || "Mahsulot").trim();
+  const packSize = Number(row.packSize || 0);
+  const packUnit = row.packUnit || getParentUnit(order);
+  return packSize > 0 ? `${parentName} ${packSize} ${packUnit}` : `${parentName} qadoq`;
+};
+
 const createPackagingRow = (order, row = {}) => ({
   id: row.id || `package-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  productId: row.productId || "",
+  productName: row.productName || row.name || getGeneratedProductName(order, row),
+  productNameEdited: Boolean(row.productNameEdited),
   packSize: row.packSize ? String(row.packSize) : "",
   packUnit: row.packUnit || getParentUnit(order),
   quantity: row.quantity ? String(row.quantity) : "",
@@ -130,6 +140,8 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       const key = `${Number(product.packSize)}:${product.packUnit || order.unit}`;
       if (!bySize.has(key)) {
         bySize.set(key, createPackagingRow(order, {
+          productId: product.id,
+          productName: product.name,
           packSize: product.packSize,
           packUnit: product.packUnit || order.unit,
           quantity: "",
@@ -180,8 +192,15 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
     setActualMaterials((current) => current.map((material) => material.productId === productId ? { ...material, actualQuantity: value } : material));
   };
 
-  const updatePackaging = (index, key, value) => {
-    setPackagingRows((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  const updatePackaging = (index, changes, options = {}) => {
+    setPackagingRows((current) => current.map((row, rowIndex) => {
+      if (rowIndex !== index) return row;
+      const nextRow = { ...row, ...changes };
+      if (options.regenerateName && !nextRow.productNameEdited) {
+        nextRow.productName = getGeneratedProductName(order, nextRow);
+      }
+      return nextRow;
+    }));
   };
 
   const addPackaging = () => {
@@ -193,8 +212,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
   };
 
   const getPackageName = (row) => {
-    const packSize = Number(row.packSize || 0);
-    return packSize > 0 ? `${order.productName} ${packSize} ${row.packUnit || parentUnit}` : `${order.productName} qadoq`;
+    return String(row.productName || "").trim() || getGeneratedProductName(order, row);
   };
 
   const handleSubmit = async () => {
@@ -299,6 +317,11 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
           {packagingLoadError && <div className="production-complete__error">{packagingLoadError}</div>}
           {packagingRows.map((row, index) => (
             <div className="production-complete__simple-package-row" key={row.id || index}>
+              <Input
+                label="Mahsulot nomi"
+                value={row.productName ?? getGeneratedProductName(order, row)}
+                onChange={(event) => updatePackaging(index, { productName: event.target.value, productNameEdited: true })}
+              />
               <div className="production-complete__pack-size">
                 <Input
                   label="Qadoq hajmi"
@@ -306,13 +329,13 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                   min="0"
                   step="any"
                   value={row.packSize || ""}
-                  onChange={(event) => updatePackaging(index, "packSize", event.target.value)}
+                  onChange={(event) => updatePackaging(index, { packSize: event.target.value, productId: "" }, { regenerateName: true })}
                 />
                 <Select
                   label="Birlik"
                   value={row.packUnit || parentUnit}
                   options={packUnitOptions}
-                  onChange={(event) => updatePackaging(index, "packUnit", event.target.value)}
+                  onChange={(event) => updatePackaging(index, { packUnit: event.target.value, productId: "" }, { regenerateName: true })}
                 />
               </div>
               <Input
@@ -322,10 +345,10 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                 step="1"
                 inputMode="numeric"
                 value={row.quantity || ""}
-                onChange={(event) => updatePackaging(index, "quantity", event.target.value)}
+                onChange={(event) => updatePackaging(index, { quantity: event.target.value })}
               />
               <div className="production-complete__package-total">
-                <span>{getPackageName(row)}</span>
+                <span>Qadoqlandi</span>
                 <strong>{formatProductionQuantity(getSafeRowPackagedQuantity(row))} {parentUnit}</strong>
               </div>
               <Button type="button" variant="ghost" aria-label="Qadoqni o'chirish" title="Qadoqni o'chirish" className="production-complete__package-delete" onClick={() => removePackaging(index)}>

@@ -136,7 +136,7 @@
 
   &__simple-package-row {
     display: grid;
-    grid-template-columns: minmax(220px, 1.2fr) minmax(120px, 0.7fr) minmax(180px, 1fr) 42px;
+    grid-template-columns: minmax(180px, 1.25fr) minmax(220px, 1.1fr) minmax(120px, 0.7fr) minmax(150px, 0.8fr) 42px;
     align-items: end;
     gap: 12px;
     min-width: 0;
