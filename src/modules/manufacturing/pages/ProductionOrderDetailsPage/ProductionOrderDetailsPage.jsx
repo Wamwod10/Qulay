@@ -114,7 +114,6 @@ const ProductionOrderDetailsPage = () => {
     setAvailabilityError("");
 
     fetchProductionMaterialAvailability({
-      bomId: order.bomId,
       recipeId: order.bomId,
       recipeSnapshot: order.recipeSnapshot,
       plannedQuantity: Number(order.plannedQuantity || 0),

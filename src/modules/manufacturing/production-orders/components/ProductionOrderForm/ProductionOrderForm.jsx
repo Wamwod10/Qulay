@@ -34,6 +34,13 @@ const getToday = () => new Date().toISOString().slice(0, 10);
 const getProductionBoms = () =>
   getStoredBoms().filter((bom) => bom.status !== "ARCHIVED");
 
+const AVAILABILITY_STATUS = {
+  IDLE: "idle",
+  LOADING: "loading",
+  SUCCESS: "success",
+  ERROR: "error",
+};
+
 const getBomOptionLabel = (bom) => {
   const recipeName = String(bom?.name || "").trim();
   const productName = String(bom?.productName || bom?.outputProductName || "").trim();
@@ -61,13 +68,20 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const [errors, setErrors] = useState({});
   const [availability, setAvailability] = useState([]);
   const [availabilityError, setAvailabilityError] = useState("");
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState(AVAILABILITY_STATUS.IDLE);
   const [bomLoadError, setBomLoadError] = useState("");
   const [bomLoading, setBomLoading] = useState(false);
   const userEditedQuantity = useRef(Boolean(initialValues?.plannedQuantity));
+  const availabilityRequestSeq = useRef(0);
 
   const selectedBom = boms.find((bom) => bom.id === bomId);
   const selectedBomSnapshot = getBomProductSnapshot(selectedBom);
+  const resetAvailabilityState = () => {
+    availabilityRequestSeq.current += 1;
+    setAvailability([]);
+    setAvailabilityError("");
+    setAvailabilityStatus(AVAILABILITY_STATUS.IDLE);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -110,40 +124,56 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   }, [selectedBom]);
 
   useEffect(() => {
+    if (!materialWarehouseId && defaultWarehouseId) {
+      setMaterialWarehouseId(defaultWarehouseId);
+    }
+    if (!outputWarehouseId && defaultWarehouseId) {
+      setOutputWarehouseId(defaultWarehouseId);
+    }
+  }, [defaultWarehouseId, materialWarehouseId, outputWarehouseId]);
+
+  useEffect(() => {
     if (!selectedBom || Number(plannedQuantity) <= 0 || !materialWarehouseId) {
+      availabilityRequestSeq.current += 1;
       setAvailability([]);
+      setAvailabilityError("");
+      setAvailabilityStatus(AVAILABILITY_STATUS.IDLE);
       return undefined;
     }
 
-    let cancelled = false;
-    setAvailabilityLoading(true);
+    const requestId = availabilityRequestSeq.current + 1;
+    availabilityRequestSeq.current = requestId;
+    setAvailability([]);
     setAvailabilityError("");
+    setAvailabilityStatus(AVAILABILITY_STATUS.LOADING);
 
     fetchProductionMaterialAvailability({
-      bomId: selectedBom.id,
+      recipeId: selectedBom.id,
       plannedQuantity: Number(plannedQuantity),
       materialWarehouseId,
     })
       .then((result) => {
-        if (!cancelled) setAvailability(result.materials || []);
+        if (availabilityRequestSeq.current !== requestId) return;
+        setAvailability(result.materials || []);
+        setAvailabilityStatus(AVAILABILITY_STATUS.SUCCESS);
       })
       .catch((error) => {
-        if (!cancelled) {
-          setAvailability([]);
-          setAvailabilityError(error?.status === 404 ? "Xomashyo holatini tekshirib bo'lmadi." : error.message || "Xomashyo holatini tekshirib bo'lmadi.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setAvailabilityLoading(false);
+        if (availabilityRequestSeq.current !== requestId) return;
+        setAvailability([]);
+        setAvailabilityError(error?.status === 404 ? "Xomashyo holatini tekshirib bo'lmadi." : error.message || "Xomashyo holatini tekshirib bo'lmadi.");
+        setAvailabilityStatus(AVAILABILITY_STATUS.ERROR);
       });
 
     return () => {
-      cancelled = true;
+      availabilityRequestSeq.current += 1;
     };
   }, [selectedBom, plannedQuantity, materialWarehouseId]);
 
-  const enoughMaterials = availability.length > 0 && availability.every((material) => material.enough);
-  const availabilityFailed = Boolean(availabilityError);
+  const availabilityLoading = availabilityStatus === AVAILABILITY_STATUS.LOADING;
+  const availabilitySucceeded = availabilityStatus === AVAILABILITY_STATUS.SUCCESS;
+  const availabilityIdle = availabilityStatus === AVAILABILITY_STATUS.IDLE;
+  const enoughMaterials = availabilitySucceeded && availability.length > 0 && availability.every((material) => material.enough);
+  const availabilityFailed = availabilityStatus === AVAILABILITY_STATUS.ERROR;
   const missingMaterials = availability.filter((material) => !material.enough);
   const plannedMaterialCost = calculateProductionMaterialCost(availability);
   const materialSummary = aggregateQuantities(availability);
@@ -159,6 +189,17 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     const key = keys.find((item) => material[item] !== undefined && material[item] !== null);
     return key ? material[key] : 0;
   };
+  const availabilityBadgeVariant = availabilityIdle || availabilityLoading ? "neutral" : availabilityFailed ? "warning" : enoughMaterials ? "success" : "danger";
+  const availabilityBadgeText = availabilityIdle
+    ? "Tekshirish kutilmoqda"
+    : availabilityLoading
+      ? "Xomashyo holati tekshirilmoqda..."
+      : availabilityFailed
+        ? "Tekshirib bo'lmadi"
+        : enoughMaterials
+          ? "Barcha xomashyolar yetarli"
+          : "Xomashyo yetishmaydi";
+  const shouldShowAvailabilityWarning = selectedBom && Number(plannedQuantity) > 0 && (availabilityFailed || (availabilitySucceeded && !enoughMaterials));
 
   const validate = () => {
     const nextErrors = {};
@@ -168,7 +209,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     if (!materialWarehouseId) nextErrors.materialWarehouse = "Xomashyo omborini tanlang.";
     if (!outputWarehouseId) nextErrors.outputWarehouse = "Tayyor mahsulot omborini tanlang.";
     if (availabilityLoading) nextErrors.availability = "Xomashyo holati hali tekshirilmoqda.";
-    if (availabilityFailed) nextErrors.availability = "Xomashyo holatini tekshirib bo'lmadi.";
+    else if (availabilityFailed) nextErrors.availability = "Xomashyo holatini tekshirib bo'lmadi.";
+    else if (selectedBom && Number(plannedQuantity) > 0 && materialWarehouseId && !availabilitySucceeded) nextErrors.availability = "Xomashyo holati hali tekshirilmagan.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) focusFirstInvalidField();
     return Object.keys(nextErrors).length === 0;
@@ -218,8 +260,14 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             options={bomOptions}
             error={errors.bom || bomLoadError}
             onChange={(event) => {
-              setBomId(event.target.value);
+              const nextBomId = event.target.value;
+              const nextBom = boms.find((bom) => bom.id === nextBomId);
+              setBomId(nextBomId);
               userEditedQuantity.current = false;
+              resetAvailabilityState();
+              if (Number(nextBom?.outputQuantity) > 0) setPlannedQuantity(String(nextBom.outputQuantity));
+              if (!materialWarehouseId && defaultWarehouseId) setMaterialWarehouseId(defaultWarehouseId);
+              if (!outputWarehouseId && defaultWarehouseId) setOutputWarehouseId(defaultWarehouseId);
             }}
           />
           <Input
@@ -232,6 +280,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             error={errors.quantity}
             onChange={(event) => {
               userEditedQuantity.current = true;
+              resetAvailabilityState();
               setPlannedQuantity(event.target.value);
             }}
           />
@@ -240,7 +289,10 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             value={materialWarehouseId}
             options={warehouseOptions}
             error={errors.materialWarehouse}
-            onChange={(event) => setMaterialWarehouseId(event.target.value)}
+            onChange={(event) => {
+              resetAvailabilityState();
+              setMaterialWarehouseId(event.target.value);
+            }}
           />
           <Select
             label="Tayyor mahsulot tushadigan ombor"
@@ -276,9 +328,9 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           </div>
 
           {selectedBom && Number(plannedQuantity) > 0 && (
-            <Badge className="production-order-form__availability-badge" variant={availabilityFailed ? "warning" : enoughMaterials ? "success" : "danger"}>
-              {enoughMaterials && !availabilityFailed ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
-              {availabilityLoading ? "Tekshirilmoqda" : availabilityFailed ? "Tekshirib bo'lmadi" : enoughMaterials ? "Barcha xomashyolar yetarli" : "Xomashyo yetishmaydi"}
+            <Badge className="production-order-form__availability-badge" variant={availabilityBadgeVariant}>
+              {enoughMaterials ? <LiveIcon icon={CheckCircle2} motion="success-pop" size={16} /> : <LiveIcon icon={AlertTriangle} motion="warning-glow" size={16} />}
+              {availabilityBadgeText}
             </Badge>
           )}
         </div>
@@ -289,7 +341,9 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
         ) : (
           <div className="production-order-form__materials">
             {availabilityLoading ? (
-              <div className="production-order-form__empty">Xomashyo tekshirilmoqda...</div>
+              <div className="production-order-form__empty">Xomashyo holati tekshirilmoqda...</div>
+            ) : availabilityIdle ? (
+              <div className="production-order-form__empty">Xomashyo holati tekshirishga tayyorlanmoqda...</div>
             ) : availabilityFailed ? (
               <div className="production-order-form__empty production-order-form__empty--warning">
                 Xomashyo holatini tekshirib bo'lmadi.
@@ -331,7 +385,7 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
         )}
       </Card>
 
-      {!enoughMaterials && selectedBom && Number(plannedQuantity) > 0 && (
+      {shouldShowAvailabilityWarning && (
         <div className="production-order-form__warning">
           <LiveIcon icon={AlertTriangle} motion="warning-glow" size={17} />
           <span>{availabilityFailed ? "Xomashyo holati aniqlanmaguncha rejalashtirishni davom ettirib bo'lmaydi." : "Xomashyo yetarli bo'lmasa boshlash backendda bloklanadi."}</span>
