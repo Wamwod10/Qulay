@@ -78,21 +78,21 @@ const PurchaseTable = ({
     key: "total",
     title: translateText("Jami"),
 
-    render: (value) => <strong>{formatPurchaseMoney(value)}</strong>
+    render: (value, purchase) => <strong>{formatPurchaseMoney(value, purchase.currency)}</strong>
   },
 
   {
     key: "paidAmount",
     title: translateText("To‘langan"),
 
-    render: (value) => <span>{formatPurchaseMoney(value)}</span>
+    render: (value, purchase) => <span>{formatPurchaseMoney(value, purchase.currency)}</span>
   },
 
   {
     key: "debtAmount",
     title: translateText("Qarz"),
 
-    render: (value) => {
+    render: (value, purchase) => {
       const debt = Number(value || 0);
 
       if (debt <= 0) {
@@ -101,7 +101,7 @@ const PurchaseTable = ({
 
       return (
         <div className="purchase-table__debt">
-            <strong>{formatPurchaseMoney(debt)}</strong>
+            <strong>{formatPurchaseMoney(debt, purchase.currency)}</strong>
 
             <Badge size="sm" variant="warning">
               <LiveIcon icon={Wallet} motion="pulse-soft" size={13} />{translateText("Qarz bor")}

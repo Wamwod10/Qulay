@@ -3,15 +3,29 @@ import {
     savePurchases,
 } from "./purchasesStorage";
 import { translateText } from "../../../localization/i18n";
-import { formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
+import { convertCurrency, formatMoneyWithSettings } from "../../settings/utils/formatSettingsHelpers";
 import { getPlatformSettings } from "../../settings/utils/settingsStorage";
 import { convertQuantity } from "../../../shared/utils/units";
 import { formatAppDateTime } from "../../../shared/utils/dateTime";
 
 export const formatPurchaseMoney = (
     value,
+    fromCurrency = null,
 ) => {
-    return formatMoneyWithSettings(Number(value) || 0, getPlatformSettings().formats);
+    const formats = getPlatformSettings().formats;
+    return formatMoneyWithSettings(Number(value) || 0, {
+        ...formats,
+        fromCurrency: fromCurrency || formats.currency || formats.baseCurrency || "UZS",
+    });
+};
+
+export const getPurchaseMoneyValue = (value, fromCurrency = null) => {
+    const formats = getPlatformSettings().formats;
+    const sourceCurrency = fromCurrency || formats.currency || formats.baseCurrency || "UZS";
+    const targetCurrency = formats.currency || "UZS";
+    const conversion = convertCurrency(Number(value) || 0, sourceCurrency, targetCurrency, formats);
+
+    return conversion.available ? conversion.amount : null;
 };
 
 export const getPurchaseStatusLabel = (

@@ -190,21 +190,21 @@ const PurchaseDetailsPage = () => {
     key: "subtotal",
     title: translateText("Xarid narxi"),
 
-      render: (value) => <span>{formatPurchaseMoney(value)}</span>
+      render: (value) => <span>{formatPurchaseMoney(value, purchase.currency)}</span>
   },
 
   {
     key: "cost",
     title: translateText("Canonical tannarx"),
 
-      render: (value, item) => <span>{formatPurchaseMoney(value)} / {item.unit}</span>
+      render: (value, item) => <span>{formatPurchaseMoney(value, purchase.currency)} / {item.unit}</span>
   },
 
   {
     key: "subtotal",
     title: translateText("Jami"),
 
-      render: (value) => <strong>{formatPurchaseMoney(value)}</strong>
+      render: (value) => <strong>{formatPurchaseMoney(value, purchase.currency)}</strong>
   }];
 
 
@@ -322,12 +322,12 @@ const PurchaseDetailsPage = () => {
           <PurchaseMetric
             icon={<Wallet size={20} />}
             label={translateText("Jami")}
-            value={formatPurchaseMoney(purchase.total)} />
+            value={formatPurchaseMoney(purchase.total, purchase.currency)} />
           
 
           <PurchaseMetric
             label={translateText("To‘langan")}
-            value={formatPurchaseMoney(purchase.paidAmount)} />
+            value={formatPurchaseMoney(purchase.paidAmount, purchase.currency)} />
           
 
           <PurchaseMetric
@@ -340,7 +340,7 @@ const PurchaseDetailsPage = () => {
 
             }
             label={translateText("Qarz")}
-            value={formatPurchaseMoney(purchase.debtAmount)} />
+            value={formatPurchaseMoney(purchase.debtAmount, purchase.currency)} />
           
         </section>
 
@@ -380,17 +380,17 @@ const PurchaseDetailsPage = () => {
             <div className="purchase-details__info-grid">
               <InfoItem
                 label={translateText("Jami")}
-                value={formatPurchaseMoney(purchase.total)} />
+                value={formatPurchaseMoney(purchase.total, purchase.currency)} />
               
 
               <InfoItem
                 label={translateText("To‘langan")}
-                value={formatPurchaseMoney(purchase.paidAmount)} />
+                value={formatPurchaseMoney(purchase.paidAmount, purchase.currency)} />
               
 
               <InfoItem
                 label={translateText("Qarz")}
-                value={formatPurchaseMoney(purchase.debtAmount)} />
+                value={formatPurchaseMoney(purchase.debtAmount, purchase.currency)} />
               
 
               <InfoItem
@@ -433,7 +433,7 @@ const PurchaseDetailsPage = () => {
               {
                 key: "unitCost",
                 title: translateText("Tannarx"),
-                render: (value) => <span>{formatPurchaseMoney(value)}</span>
+                render: (value) => <span>{formatPurchaseMoney(value, purchase.currency)}</span>
               },
               { key: "receivedDate", title: translateText("Qabul sanasi"), render: (value) => formatAppDateTime(value) },
               { key: "expiryDate", title: translateText("Yaroqlilik"), render: (value) => formatAppDateTime(value) }

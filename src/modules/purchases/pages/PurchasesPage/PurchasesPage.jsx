@@ -27,7 +27,7 @@ import {
   updatePurchasePayment,
 } from "../../utils/purchasesStorage";
 import { receivePurchaseIntoWarehouse } from "../../utils/receivePurchase";
-import { formatPurchaseMoney } from "../../utils/purchaseHelpers";
+import { formatPurchaseMoney, getPurchaseMoneyValue } from "../../utils/purchaseHelpers";
 
 import "./PurchasesPage.scss";
 
@@ -69,10 +69,8 @@ const PurchasesPage = () => {
       setPurchases(items);
       return items;
     } catch (error) {
-      const cached = getStoredPurchases();
-      setPurchases(cached);
       setLoadError(error?.message || translateText("Xaridlarni yuklab bo'lmadi."));
-      return cached;
+      return purchases;
     } finally {
       setLoading(false);
     }
@@ -92,7 +90,6 @@ const PurchasesPage = () => {
         })
         .catch((error) => {
           if (!alive) return;
-          setPurchases(getStoredPurchases());
           setLoadError(error?.message || translateText("Xaridlarni yuklab bo'lmadi."));
         })
         .finally(() => {
@@ -163,13 +160,22 @@ const PurchasesPage = () => {
       (purchase) => purchase.status === "ORDERED" || purchase.status === "PARTIALLY_RECEIVED",
     ).length;
     const received = purchases.filter((purchase) => purchase.status === "RECEIVED").length;
-    const totalAmount = purchases.reduce((total, purchase) => total + Number(purchase.total || 0), 0);
+    let hasUnavailableFx = false;
+    const totalAmount = purchases.reduce((total, purchase) => {
+      const converted = getPurchaseMoneyValue(purchase.total, purchase.currency);
+      if (converted === null) {
+        hasUnavailableFx = true;
+        return total;
+      }
+      return total + converted;
+    }, 0);
 
     return {
       total: purchases.length,
       pending,
       received,
       totalAmount,
+      hasUnavailableFx,
     };
   }, [purchases]);
 
@@ -289,7 +295,7 @@ const PurchasesPage = () => {
                 value={stats.received}
                 variant="success"
               />
-              <PurchaseStat icon={<Wallet size={21} />} label={translateText("Umumiy xarid")} value={formatPurchaseMoney(stats.totalAmount)} />
+              <PurchaseStat icon={<Wallet size={21} />} label={translateText("Umumiy xarid")} value={stats.hasUnavailableFx ? "Kurs mavjud emas" : formatPurchaseMoney(stats.totalAmount)} />
             </>
           )}
         </section>

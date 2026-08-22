@@ -86,8 +86,8 @@ const PurchasePaymentModal = ({ open, purchase, onClose, onSubmit, submitting = 
       size="sm"
     >
       <div style={{ display: "grid", gap: 18 }}>
-        <Input label={translateText("Jami xarid")} value={formatPurchaseMoney(purchase.total)} disabled />
-        <Input label={translateText("Qolgan qarz")} value={formatPurchaseMoney(debt)} disabled />
+        <Input label={translateText("Jami xarid")} value={formatPurchaseMoney(purchase.total, purchase.currency)} disabled />
+        <Input label={translateText("Qolgan qarz")} value={formatPurchaseMoney(debt, purchase.currency)} disabled />
 
         <Input
           label={translateText("To'lov summasi")}
