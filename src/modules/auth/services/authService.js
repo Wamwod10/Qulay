@@ -8,14 +8,37 @@ import { API_BASE_URL } from "../../../services/api/apiUrl";
 import { getApiErrorMessage } from "../../../services/api/apiErrorHandler";
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
-const SESSION_RESTORE_TIMEOUT_MS = 10000;
+const SESSION_RESTORE_TIMEOUT_MS = 15000;
+
+const delay = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
 
 const createTimeoutError = () => {
   const error = new Error("Server javob bermayapti. Qayta urinib ko'ring.");
   error.code = "REQUEST_TIMEOUT";
+  error.status = 0;
   error.isRecoverable = true;
   return error;
 };
+
+const createHttpError = (message, status) => {
+  const error = new Error(message);
+  error.status = status;
+  error.statusCode = status;
+  error.isRecoverable = status === 408 || status === 429 || status >= 500;
+  return error;
+};
+
+const isTransientError = (error) =>
+  error?.code === "REQUEST_TIMEOUT" ||
+  error?.status === 0 ||
+  error?.status === 408 ||
+  error?.status === 429 ||
+  error?.status === 502 ||
+  error?.status === 503 ||
+  error?.status === 504 ||
+  error?.status >= 500;
 
 const getMessage = async (response) => {
   try {
@@ -52,7 +75,12 @@ const persistAuth = (result) => {
 
 const request = async (path, options = {}) => {
   const session = getStoredSession();
-  const { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, ...fetchOptions } = options;
+  const {
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    retries = 0,
+    retryDelayMs = 800,
+    ...fetchOptions
+  } = options;
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
   const headers = {
@@ -78,6 +106,7 @@ const request = async (path, options = {}) => {
       throw createTimeoutError();
     }
 
+    error.status = error.status || 0;
     error.isRecoverable = true;
     throw error;
   } finally {
@@ -85,7 +114,7 @@ const request = async (path, options = {}) => {
   }
 
   if (!response.ok) {
-    throw new Error(await getMessage(response));
+    throw createHttpError(await getMessage(response), response.status);
   }
 
   if (response.status === 204) {
@@ -95,9 +124,30 @@ const request = async (path, options = {}) => {
   return response.json();
 };
 
+const requestWithRetry = async (path, options = {}) => {
+  const retries = Math.max(Number(options.retries) || 0, 0);
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await request(path, { ...options, retries: 0 });
+    } catch (error) {
+      lastError = error;
+
+      if (attempt >= retries || !isTransientError(error)) {
+        throw error;
+      }
+
+      await delay((Number(options.retryDelayMs) || 800) * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+};
+
 export const authService = {
   async register(values) {
-    const result = await request("/auth/register", {
+    const result = await requestWithRetry("/auth/register", {
       method: "POST",
       body: JSON.stringify(values),
     });
@@ -106,7 +156,7 @@ export const authService = {
   },
 
   async login(values) {
-    const result = await request("/auth/login", {
+    const result = await requestWithRetry("/auth/login", {
       method: "POST",
       body: JSON.stringify(values),
     });
@@ -138,7 +188,11 @@ export const authService = {
     }
 
     try {
-      const result = await request("/auth/me", { timeoutMs: SESSION_RESTORE_TIMEOUT_MS });
+      const result = await requestWithRetry("/auth/me", {
+        timeoutMs: SESSION_RESTORE_TIMEOUT_MS,
+        retries: 2,
+        retryDelayMs: 1200,
+      });
       return persistAuth(result);
     } catch (error) {
       if (error.isRecoverable || error.code === "REQUEST_TIMEOUT") {
@@ -166,28 +220,28 @@ export const authService = {
   },
 
   async updateProfile(values) {
-    return persistAuth(await request("/auth/profile", {
+    return persistAuth(await requestWithRetry("/auth/profile", {
       method: "POST",
       body: JSON.stringify(values),
     }));
   },
 
   async updateAccount(values) {
-    return persistAuth(await request("/auth/account", {
+    return persistAuth(await requestWithRetry("/auth/account", {
       method: "POST",
       body: JSON.stringify(values),
     }));
   },
 
   async changePassword(values) {
-    return request("/auth/password", {
+    return requestWithRetry("/auth/password", {
       method: "POST",
       body: JSON.stringify(values),
     });
   },
 
   async resetPassword(values) {
-    return request("/auth/reset-password", {
+    return requestWithRetry("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify(values),
     });

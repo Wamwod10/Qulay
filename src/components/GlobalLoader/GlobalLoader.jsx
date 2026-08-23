@@ -1,6 +1,6 @@
 import "./GlobalLoader.scss";
 
-const GlobalLoader = () => {
+const GlobalLoader = ({ message = "Platforma yuklanmoqda..." }) => {
   return (
     <div className="global-loader">
       <div className="global-loader__logo">U</div>
@@ -11,7 +11,7 @@ const GlobalLoader = () => {
         <span />
       </div>
 
-      <p>Platforma yuklanmoqda...</p>
+      <p>{message}</p>
     </div>
   );
 };

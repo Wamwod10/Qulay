@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { logout, setAuth } from "../store/slices/authSlice";
-import { setGlobalLoading } from "../store/slices/appSlice";
+import { setGlobalLoading, setGlobalLoadingMessage } from "../store/slices/appSlice";
 import { setCompany } from "../store/slices/tenantSlice";
 import { setSettings } from "../store/slices/settingsSlice";
 import { setEnabledModules } from "../store/slices/modulesSlice";
@@ -53,9 +53,17 @@ const AppBootstrap = ({ children }) => {
     bootstrapStarted.current = true;
 
     const bootstrap = async () => {
+      let wakeupTimer = null;
+
       try {
         setBootstrapError("");
-        dispatch(setGlobalLoading(true));
+        dispatch(setGlobalLoading({
+          loading: true,
+          message: "Platforma yuklanmoqda...",
+        }));
+        wakeupTimer = window.setTimeout(() => {
+          dispatch(setGlobalLoadingMessage("Server uyg'onmoqda..."));
+        }, 3000);
 
         if (!isAuthInitialized) {
           const result = await authService.getSession();
@@ -66,6 +74,16 @@ const AppBootstrap = ({ children }) => {
           }
 
           if (result.isAuthenticated) {
+            if (!result.user) {
+              setBootstrapError("Foydalanuvchi ma'lumotlarini yuklab bo'lmadi.");
+              return;
+            }
+
+            if (result.user.role !== SUPER_ADMIN_ROLE && !result.account) {
+              setBootstrapError("Kompaniya kontekstini yuklab bo'lmadi.");
+              return;
+            }
+
             dispatch(setAuth(result));
             dispatch(setPermissions(result.user?.permissions || []));
             dispatch(setRoles(result.user?.role ? [result.user.role] : []));
@@ -95,7 +113,9 @@ const AppBootstrap = ({ children }) => {
         if (import.meta.env.DEV) {
           console.error("App bootstrap error:", error);
         }
+        setBootstrapError(error?.message || "Platformani yuklab bo'lmadi.");
       } finally {
+        if (wakeupTimer) window.clearTimeout(wakeupTimer);
         dispatch(setGlobalLoading(false));
       }
     };

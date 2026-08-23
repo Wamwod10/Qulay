@@ -3,9 +3,16 @@ import { getApiErrorMessage } from "./apiErrorHandler";
 import { isLocalBusinessFallbackEnabled } from "../../modules/auth/utils/tenantStorage";
 
 const GET_CACHE_TTL_MS = 5000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
+const DEFAULT_GET_RETRIES = 2;
+const RETRY_BASE_DELAY_MS = 700;
 
 const responseCache = new Map();
 const inFlightGets = new Map();
+
+const delay = (ms) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
 
 const createApiUnavailableError = (path, status = 0) => {
   const error = new Error(
@@ -20,6 +27,14 @@ const createApiUnavailableError = (path, status = 0) => {
   error.isApiError = true;
   error.path = path;
 
+  return error;
+};
+
+const createRequestTimeoutError = (path) => {
+  const error = createApiUnavailableError(path, 0);
+  error.code = "REQUEST_TIMEOUT";
+  error.message = "Server javob bermayapti. Qayta urinib ko'ring.";
+  error.isNetworkError = true;
   return error;
 };
 
@@ -168,6 +183,8 @@ const request = async (path, options = {}) => {
     idempotencyKey,
     inlineModule,
     skipCache: _skipCache,
+    retries: _retries,
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
     headers: customHeaders,
     signal,
     ...fetchOptions
@@ -200,17 +217,79 @@ const request = async (path, options = {}) => {
     ...(customHeaders || {}),
   };
 
-  const promise = fetch(`${API_BASE_URL}${path}`, {
-    ...fetchOptions,
-    method,
-    headers,
-    signal,
-    body:
-      fetchOptions.body === undefined
-        ? undefined
-        : JSON.stringify(fetchOptions.body),
-  })
-    .then((response) => parseResponse(response, path))
+  const fetchOnce = async () => {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    const handleExternalAbort = () => controller.abort();
+
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort();
+      } else {
+        signal.addEventListener("abort", handleExternalAbort, { once: true });
+      }
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...fetchOptions,
+        method,
+        headers,
+        signal: controller.signal,
+        body:
+          fetchOptions.body === undefined
+            ? undefined
+            : JSON.stringify(fetchOptions.body),
+      });
+
+      return parseResponse(response, path);
+    } catch (error) {
+      if (error?.name === "AbortError" && timedOut) {
+        throw createRequestTimeoutError(path);
+      }
+
+      if (error?.name === "AbortError" && signal?.aborted) {
+        error.code = "REQUEST_ABORTED";
+        error.status = 0;
+        error.path = path;
+      }
+
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+      signal?.removeEventListener?.("abort", handleExternalAbort);
+    }
+  };
+
+  const promise = (async () => {
+    const retryCount = getRetryCount(method, options);
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+      try {
+        return await fetchOnce();
+      } catch (error) {
+        lastError = error;
+
+        if (
+          attempt >= retryCount ||
+          signal?.aborted ||
+          error?.code === "REQUEST_ABORTED" ||
+          !isRetryableStatus(error?.status || 0)
+        ) {
+          throw error;
+        }
+
+        await delay(RETRY_BASE_DELAY_MS * (attempt + 1));
+      }
+    }
+
+    throw lastError;
+  })()
     .then((result) => {
       emitApiStatus("erp:api-online");
 
@@ -225,9 +304,21 @@ const request = async (path, options = {}) => {
     })
     .catch((error) => {
       if (error?.isApiError) {
-        if (error.status === 0 || error.status >= 500) {
+        if (error.status === 401) {
+          emitApiStatus("erp:session-expired", {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+            path: error.path,
+          });
+        }
+
+        if (error.status === 0 || error.code === "REQUEST_TIMEOUT") {
           emitApiStatus("erp:api-error", {
             message: error.message,
+            code: error.code,
+            status: error.status,
+            path: error.path,
           });
         }
 
@@ -245,6 +336,9 @@ const request = async (path, options = {}) => {
 
       emitApiStatus("erp:api-error", {
         message: normalizedError.message,
+        code: normalizedError.code,
+        status: normalizedError.status,
+        path: normalizedError.path,
       });
 
       throw normalizedError;
@@ -330,4 +424,21 @@ export const unwrapList = (result, keys = []) => {
   }
 
   return null;
+};
+
+const isRetryableStatus = (status) =>
+  status === 0 ||
+  status === 408 ||
+  status === 429 ||
+  status === 502 ||
+  status === 503 ||
+  status === 504 ||
+  status >= 500;
+
+const getRetryCount = (method, options = {}) => {
+  if (options.retries !== undefined) {
+    return Math.max(Number(options.retries) || 0, 0);
+  }
+
+  return method === "GET" ? DEFAULT_GET_RETRIES : 0;
 };

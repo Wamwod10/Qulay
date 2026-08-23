@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   Badge,
   Card,
   DatePicker,
+  EmptyState,
   Input,
   LiveIcon,
   Select,
@@ -166,30 +167,34 @@ const ReportsPage = () => {
   const [hrMonth, setHrMonth] = useState(monthIso());
   const [serverReport, setServerReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const loadReports = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+
+    try {
+      const result = await apiRequest("/reports", { skipCache: true });
+      setServerReport(result);
+    } catch (error) {
+      setServerReport(null);
+      setLoadError(error?.message || translateText("Hisobotlarni yuklab bo'lmadi."));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
 
-    apiRequest("/reports", { skipCache: true })
-      .then((result) => {
-        if (alive) {
-          setServerReport(result);
-        }
-      })
-      .catch(() => {
-        if (alive) {
-          setServerReport(null);
-        }
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    loadReports().catch(() => {
+      if (alive) setLoading(false);
+    });
 
     return () => {
       alive = false;
     };
-  }, []);
+  }, [loadReports]);
 
   /* =========================================
    * PRODUCT OPTIONS
@@ -505,6 +510,15 @@ const ReportsPage = () => {
           </div>
         ) : (
         <>
+        {loadError && (
+          <EmptyState
+            title={translateText("Ma'lumotlarni yuklab bo'lmadi")}
+            description={loadError}
+            actionLabel={translateText("Qayta urinish")}
+            onAction={loadReports}
+          />
+        )}
+
         {/* =========================
             SALES
         ========================== */}

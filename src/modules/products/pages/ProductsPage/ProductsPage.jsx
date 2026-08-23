@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  EmptyState,
   Input,
   LiveIcon,
   Pagination,
@@ -533,6 +534,13 @@ const ProductsPage = () => {
             <div className="products-page__loading-rows">
               {Array.from({ length: 7 }, (_, index) => <Skeleton key={index} height={48} radius={12} />)}
             </div>
+          ) : loadError ? (
+            <EmptyState
+              title={translateText("Ma'lumotlarni yuklab bo'lmadi")}
+              description={loadError}
+              actionLabel={translateText("Qayta urinish")}
+              onAction={refreshProducts}
+            />
           ) : (
           <ProductTable
             products={paginatedProducts}
