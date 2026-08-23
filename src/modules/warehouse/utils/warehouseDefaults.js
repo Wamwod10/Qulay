@@ -32,15 +32,15 @@ export const getDefaultWarehouseId = (
     }
   }
 
-  const primary = activeWarehouses.find(
-    (warehouse) =>
-      warehouse.isPrimary ||
-      warehouse.isDefault ||
-      warehouse.primary ||
-      String(warehouse.code || "").toUpperCase() === "MAIN" ||
-      String(warehouse.name || "").trim().toLocaleLowerCase() === "asosiy ombor",
+  const mainWarehouse = activeWarehouses.find(
+    (warehouse) => String(warehouse.code || "").toUpperCase() === "MAIN",
   );
 
-  return primary?.id || activeWarehouses[0]?.id || "";
-};
+  if (mainWarehouse?.id) return mainWarehouse.id;
 
+  const asosiyWarehouse = activeWarehouses.find(
+    (warehouse) => String(warehouse.name || "").trim().toLocaleLowerCase() === "asosiy ombor",
+  );
+
+  return asosiyWarehouse?.id || activeWarehouses[0]?.id || "";
+};

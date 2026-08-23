@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { translateText } from "../../../../localization/i18n";
@@ -18,7 +18,7 @@ import {
   UNIT_OPTIONS,
 } from "../../../../shared/utils/units";
 import ProductFormModal from "../../../products/components/ProductFormModal/ProductFormModal";
-import { getStoredProducts } from "../../../products/utils/productsStorage";
+import { getStoredProducts, getStoredProductsPage } from "../../../products/utils/productsStorage";
 import { formatManufacturingMoney } from "../../utils/manufacturingHelpers";
 
 import "./BomForm.scss";
@@ -29,6 +29,7 @@ const createEmptyMaterial = () => ({
   quantity: "",
   unit: "",
 });
+const REFERENCE_LOAD_ERROR = "Ma'lumotlarni yuklab bo'lmadi. Qayta urinib ko'ring.";
 
 const getCompatibleUnitOptions = (unit) => {
   try {
@@ -70,6 +71,46 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
   );
   const [errors, setErrors] = useState({});
   const [productModal, setProductModal] = useState(null);
+  const [productLoading, setProductLoading] = useState(false);
+  const [productLoadError, setProductLoadError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+
+    const handleProductsChanged = () => {
+      setProductList(getStoredProducts());
+    };
+
+    const loadProducts = async () => {
+      setProductLoading(true);
+      setProductLoadError("");
+
+      try {
+        const result = await getStoredProductsPage({
+          limit: 500,
+          status: "ACTIVE",
+          type: "",
+          skipCache: true,
+        });
+
+        if (alive) setProductList(result.products || []);
+      } catch {
+        if (alive) {
+          setProductLoadError(REFERENCE_LOAD_ERROR);
+        }
+      } finally {
+        if (alive) setProductLoading(false);
+      }
+    };
+
+    window.addEventListener("products:changed", handleProductsChanged);
+    void loadProducts();
+
+    return () => {
+      alive = false;
+      window.removeEventListener("products:changed", handleProductsChanged);
+    };
+  }, []);
 
   const finishedProducts = useMemo(
     () => productList.filter((product) => product.status === "ACTIVE" && ["FINISHED_GOOD", "SEMI_FINISHED"].includes(product.type)),
@@ -214,9 +255,11 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
           <Select
             label={translateText("Natijada olinadigan mahsulot")}
             value={productId}
-            placeholder={translateText("Mahsulotni tanlang")}
+            placeholder={productLoading ? translateText("Yuklanmoqda...") : translateText("Mahsulotni tanlang")}
             options={productOptions}
-            error={errors.product}
+            loading={productLoading}
+            emptyMessage={productLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
+            error={errors.product || productLoadError}
             onChange={(event) => setProductId(event.target.value)}
           />
 
@@ -276,8 +319,10 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
                 <Select
                   label={translateText("Xomashyo")}
                   value={material.productId}
-                  placeholder={translateText("Xomashyoni tanlang")}
+                  placeholder={productLoading ? translateText("Yuklanmoqda...") : translateText("Xomashyoni tanlang")}
                   options={materialOptions}
+                  loading={productLoading}
+                  emptyMessage={productLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
                   onChange={(event) => handleMaterialProductChange(material.id, event.target.value)}
                 />
                 <Button

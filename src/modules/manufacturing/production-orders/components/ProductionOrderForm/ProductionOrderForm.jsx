@@ -14,7 +14,7 @@ import {
 import { focusFirstInvalidField } from "../../../../../shared/utils/formFocus";
 import { aggregateQuantities } from "../../../../../shared/utils/units";
 import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefaults";
-import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import { fetchStoredWarehouses, getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
 import {
   fetchProductionMaterialAvailability,
   fetchStoredBoms,
@@ -40,6 +40,7 @@ const AVAILABILITY_STATUS = {
   SUCCESS: "success",
   ERROR: "error",
 };
+const REFERENCE_LOAD_ERROR = "Ma'lumotlarni yuklab bo'lmadi. Qayta urinib ko'ring.";
 
 const getBomOptionLabel = (bom) => {
   const recipeName = String(bom?.name || "").trim();
@@ -54,12 +55,22 @@ const getBomOptionLabel = (bom) => {
 
 const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitError = "" }) => {
   const [boms, setBoms] = useState(() => getProductionBoms());
-  const warehouses = useMemo(() => getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"), []);
-  const defaultWarehouseId = getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]);
+  const isEditMode = Boolean(initialValues?.id);
+  const initialWarehouses = getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE");
+  const initialDefaultWarehouseId = getDefaultWarehouseId(initialWarehouses, ["manufacturing.defaultProductionWarehouseId"]);
+  const [warehouses, setWarehouses] = useState(() => initialWarehouses);
+  const defaultWarehouseId = useMemo(
+    () => getDefaultWarehouseId(warehouses, ["manufacturing.defaultProductionWarehouseId"]),
+    [warehouses],
+  );
   const [bomId, setBomId] = useState(initialValues?.bomId || "");
   const [plannedQuantity, setPlannedQuantity] = useState(initialValues?.plannedQuantity || "");
-  const [materialWarehouseId, setMaterialWarehouseId] = useState(initialValues?.materialWarehouseId || initialValues?.warehouseId || defaultWarehouseId);
-  const [outputWarehouseId, setOutputWarehouseId] = useState(initialValues?.outputWarehouseId || initialValues?.warehouseId || defaultWarehouseId);
+  const [materialWarehouseId, setMaterialWarehouseId] = useState(
+    initialValues?.materialWarehouseId || initialValues?.warehouseId || (!isEditMode ? initialDefaultWarehouseId : ""),
+  );
+  const [outputWarehouseId, setOutputWarehouseId] = useState(
+    initialValues?.outputWarehouseId || initialValues?.warehouseId || (!isEditMode ? initialDefaultWarehouseId : ""),
+  );
   const plannedDate = initialValues?.plannedDate?.slice?.(0, 10) || getToday();
   const dueDate = initialValues?.dueDate?.slice?.(0, 10) || null;
   const priority = initialValues?.priority || "NORMAL";
@@ -71,6 +82,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   const [availabilityStatus, setAvailabilityStatus] = useState(AVAILABILITY_STATUS.IDLE);
   const [bomLoadError, setBomLoadError] = useState("");
   const [bomLoading, setBomLoading] = useState(false);
+  const [warehouseLoadError, setWarehouseLoadError] = useState("");
+  const [warehouseLoading, setWarehouseLoading] = useState(false);
   const userEditedQuantity = useRef(Boolean(initialValues?.plannedQuantity));
   const availabilityRequestSeq = useRef(0);
 
@@ -85,6 +98,24 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
 
   useEffect(() => {
     let cancelled = false;
+
+    const loadWarehouses = async () => {
+      setWarehouseLoading(true);
+      setWarehouseLoadError("");
+
+      try {
+        const remoteWarehouses = await fetchStoredWarehouses();
+        if (!cancelled) {
+          setWarehouses(remoteWarehouses.filter((warehouse) => warehouse.status === "ACTIVE"));
+        }
+      } catch {
+        if (!cancelled) {
+          setWarehouseLoadError(REFERENCE_LOAD_ERROR);
+        }
+      } finally {
+        if (!cancelled) setWarehouseLoading(false);
+      }
+    };
 
     const loadBoms = async () => {
       setBomLoading(true);
@@ -108,13 +139,19 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
     const handleManufacturingChanged = () => {
       setBoms(getProductionBoms());
     };
+    const handleWarehouseChanged = () => {
+      setWarehouses(getStoredWarehouses().filter((warehouse) => warehouse.status === "ACTIVE"));
+    };
 
     window.addEventListener("manufacturing:changed", handleManufacturingChanged);
+    window.addEventListener("warehouse:changed", handleWarehouseChanged);
+    void loadWarehouses();
     void loadBoms();
 
     return () => {
       cancelled = true;
       window.removeEventListener("manufacturing:changed", handleManufacturingChanged);
+      window.removeEventListener("warehouse:changed", handleWarehouseChanged);
     };
   }, []);
 
@@ -124,13 +161,14 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
   }, [selectedBom]);
 
   useEffect(() => {
+    if (isEditMode) return;
     if (!materialWarehouseId && defaultWarehouseId) {
       setMaterialWarehouseId(defaultWarehouseId);
     }
     if (!outputWarehouseId && defaultWarehouseId) {
       setOutputWarehouseId(defaultWarehouseId);
     }
-  }, [defaultWarehouseId, materialWarehouseId, outputWarehouseId]);
+  }, [defaultWarehouseId, isEditMode, materialWarehouseId, outputWarehouseId]);
 
   const selectedBomId = selectedBom?.id || "";
 
@@ -302,8 +340,11 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           <Select
             label="Xomashyo olinadigan ombor"
             value={materialWarehouseId}
+            placeholder={warehouseLoading ? "Yuklanmoqda..." : "Ombor tanlang"}
             options={warehouseOptions}
-            error={errors.materialWarehouse}
+            loading={warehouseLoading}
+            emptyMessage={warehouseLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
+            error={errors.materialWarehouse || warehouseLoadError}
             onChange={(event) => {
               resetAvailabilityState();
               setMaterialWarehouseId(event.target.value);
@@ -312,8 +353,11 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
           <Select
             label="Tayyor mahsulot tushadigan ombor"
             value={outputWarehouseId}
+            placeholder={warehouseLoading ? "Yuklanmoqda..." : "Ombor tanlang"}
             options={warehouseOptions}
-            error={errors.outputWarehouse}
+            loading={warehouseLoading}
+            emptyMessage={warehouseLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
+            error={errors.outputWarehouse || warehouseLoadError}
             onChange={(event) => setOutputWarehouseId(event.target.value)}
           />
           <Textarea

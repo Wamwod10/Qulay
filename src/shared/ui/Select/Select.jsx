@@ -10,6 +10,8 @@ const Select = ({
   onChange,
   options = [],
   placeholder = "Tanlang",
+  loading = false,
+  emptyMessage = "Variantlar yo'q",
   error,
   disabled = false,
   required = false,
@@ -79,7 +81,9 @@ const Select = ({
       {open && (
         <div className="ui-select__dropdown">
           <div className="ui-select__options">
-            {options.length ? options.map((option) => {
+            {loading && !options.length ? (
+              <div className="ui-select__empty">Yuklanmoqda...</div>
+            ) : options.length ? options.map((option) => {
               const selected = option.value === value;
               return (
                 <button
@@ -92,7 +96,7 @@ const Select = ({
                   {selected && <Check size={15} strokeWidth={2} />}
                 </button>
               );
-            }) : <div className="ui-select__empty">Variantlar yo'q</div>}
+            }) : <div className="ui-select__empty">{emptyMessage}</div>}
           </div>
         </div>
       )}
