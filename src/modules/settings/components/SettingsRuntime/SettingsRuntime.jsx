@@ -1,5 +1,11 @@
 import { useEffect } from "react";
 
+import { useDispatch } from "react-redux";
+
+import { updateFormats } from "../../../../store/slices/settingsSlice";
+import { apiRequest } from "../../../../services/api/apiClient";
+import { SUPPORTED_CURRENCIES, normalizeCurrency } from "../../../../shared/utils/currency";
+import { markSettingsHydrated } from "../../utils/settingsStorage";
 import {
   useAppearanceSettings,
   useFormatSettings,
@@ -93,8 +99,11 @@ const SIDEBAR_WIDTHS = {
 };
 
 const SettingsRuntime = ({ children }) => {
+  const dispatch = useDispatch();
   const appearance = useAppearanceSettings();
   const formats = useFormatSettings();
+  const baseCurrency = normalizeCurrency(formats.baseCurrency || "UZS");
+  const displayCurrency = normalizeCurrency(formats.displayCurrency || formats.currency || baseCurrency);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -164,6 +173,57 @@ const SettingsRuntime = ({ children }) => {
     root.dataset.density = appearance.density || "normal";
     root.dataset.sidebarDefault = appearance.sidebarDefault || "expanded";
   }, [appearance, formats.language]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const currencies = SUPPORTED_CURRENCIES.map((currency) => currency.value);
+    const sources = currencies.filter((currency) => currency !== displayCurrency);
+
+    if (sources.length === 0) {
+      markSettingsHydrated();
+      dispatch(updateFormats({
+        fxRates: {},
+        fxUpdatedAt: new Date().toISOString(),
+        fxProvider: "same-currency",
+      }));
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    Promise.all(
+      sources.map((source) =>
+        apiRequest(`/fx/rates?base=${encodeURIComponent(source)}&symbols=${encodeURIComponent(displayCurrency)}`, {
+          skipCache: true,
+          retries: 1,
+        }).catch(() => null),
+      ),
+    ).then((responses) => {
+      if (cancelled) {
+        return;
+      }
+
+      const fxRates = responses.reduce((result, response) => ({
+        ...result,
+        ...(response?.rates || {}),
+      }), {});
+
+      markSettingsHydrated();
+      dispatch(updateFormats({
+        fxRates,
+        fxUpdatedAt: new Date().toISOString(),
+        fxProvider: responses.find((response) => response?.provider)?.provider || "",
+        fxCacheTtlMinutes: responses.find((response) => response?.cacheTtlMinutes)?.cacheTtlMinutes || null,
+        fxUnavailable: responses.flatMap((response, index) =>
+          response ? [] : [`${sources[index]}:${displayCurrency}`],
+        ),
+      }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseCurrency, displayCurrency, dispatch]);
 
   return children;
 };

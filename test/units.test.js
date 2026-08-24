@@ -4,6 +4,7 @@ import test from "node:test";
 import { aggregateQuantities, convertQuantity } from "../src/shared/utils/units.js";
 import { formatDecimal, roundDecimal } from "../src/shared/utils/number.js";
 import { setCurrentLanguage, translateText } from "../src/localization/i18n.js";
+import { convertCurrency, formatMoneyWithSettings } from "../src/modules/settings/utils/formatSettingsHelpers.js";
 
 test("frontend unit conversion rejects mixed dimensions", () => {
   assert.equal(convertQuantity(1000, "g", "kg"), 1);
@@ -41,4 +42,43 @@ test("frontend i18n does not repair valid Cyrillic business text", () => {
   assert.equal(translateText("Селес"), "Селес");
 
   setCurrentLanguage("uz");
+});
+
+test("frontend FX conversion always uses canonical source amount", () => {
+  const formats = {
+    baseCurrency: "UZS",
+    displayCurrency: "TJS",
+    currency: "TJS",
+    fxRates: {
+      "UZS:TJS": { rate: 0.001333333333, source: "live-cache" },
+      "USD:TJS": { rate: 11, source: "live-cache" },
+      "TJS:UZS": { rate: 750, source: "live-cache" },
+    },
+  };
+
+  assert.equal(Math.round(convertCurrency(15000, "UZS", "TJS", formats).amount), 20);
+  assert.equal(Math.round(convertCurrency(900000, "UZS", "TJS", formats).amount), 1200);
+  assert.equal(convertCurrency(100, "USD", "TJS", formats).amount, 1100);
+  assert.equal(convertCurrency(100, "TJS", "UZS", { ...formats, displayCurrency: "UZS", currency: "UZS" }).amount, 75000);
+
+  const canonicalAmount = 900000;
+  const tjs = convertCurrency(canonicalAmount, "UZS", "TJS", formats).amount;
+  const usd = convertCurrency(canonicalAmount, "UZS", "USD", {
+    ...formats,
+    displayCurrency: "USD",
+    currency: "USD",
+    fxRates: { "UZS:USD": { rate: 0.00008, source: "live-cache" } },
+  }).amount;
+
+  assert.equal(Math.round(tjs), 1200);
+  assert.equal(usd, 72);
+});
+
+test("frontend FX unavailable never swaps only the currency label", () => {
+  assert.equal(formatMoneyWithSettings(900000, {
+    baseCurrency: "UZS",
+    displayCurrency: "TJS",
+    currency: "TJS",
+    fxRates: {},
+  }), "Kurs mavjud emas");
 });

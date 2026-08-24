@@ -63,6 +63,8 @@ export const initializeAccountWorkspace = (accountId, account = {}) => {
     ...DEFAULT_SETTINGS,
     formats: {
       ...DEFAULT_SETTINGS.formats,
+      baseCurrency: account.currency || DEFAULT_SETTINGS.formats.baseCurrency,
+      displayCurrency: account.currency || DEFAULT_SETTINGS.formats.displayCurrency,
       currency: account.currency || DEFAULT_SETTINGS.formats.currency,
     },
     defaults: {

@@ -49,13 +49,13 @@ export const formatTimeWithSettings = (value, formats = {}) => {
 
 export const formatMoneyWithSettings = (value, formats = {}) => {
   const fromCurrency = normalizeCurrency(formats.fromCurrency || formats.originalCurrency || formats.baseCurrency || "UZS");
-  const currency = normalizeCurrency(formats.currency || "UZS");
+  const currency = normalizeCurrency(formats.displayCurrency || formats.currency || "UZS");
   const conversion = convertCurrency(value, fromCurrency, currency, formats);
   if (!conversion.available) {
     return "Kurs mavjud emas";
   }
-  const amount = roundDecimal(conversion.amount, 2);
-  const precision = Math.max(Number(formats.numberPrecision ?? 2), 2);
+  const precision = getCurrencyPrecision(currency, formats);
+  const amount = roundDecimal(conversion.amount, precision);
   const locale = formats.moneyFormat === "comma-code" ? "en-US" : getLocale(formats.language);
   const formatted = new Intl.NumberFormat(locale, {
     minimumFractionDigits: precision,
@@ -69,6 +69,14 @@ export const formatMoneyWithSettings = (value, formats = {}) => {
   return `${formatted} ${currency}`;
 };
 
+const getCurrencyPrecision = (currency, formats = {}) => {
+  if (formats.numberPrecision !== undefined) {
+    return Math.max(Number(formats.numberPrecision) || 0, currency === "UZS" ? 0 : 2);
+  }
+
+  return currency === "UZS" ? 0 : 2;
+};
+
 const extractRateValue = (value) => {
   if (value && typeof value === "object") {
     return Number(value.rate ?? value.value ?? value.exchangeRate);
@@ -79,12 +87,12 @@ const extractRateValue = (value) => {
 
 export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
   const from = normalizeCurrency(fromCurrency || formats.baseCurrency || "UZS");
-  const to = normalizeCurrency(toCurrency || formats.currency || "UZS");
+  const to = normalizeCurrency(toCurrency || formats.displayCurrency || formats.currency || "UZS");
   if (from === to) {
     return { available: true, rate: 1, source: "same-currency", fallback: false };
   }
 
-  const rates = formats.exchangeRates || formats.fxRates || {};
+  const rates = formats.fxRates || {};
   const direct =
     rates[`${from}:${to}`] ??
     rates[`${from}_${to}`] ??
@@ -100,10 +108,10 @@ export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
     return {
       available: true,
       rate: directRate,
-      source: direct?.source || formats.exchangeRatesSource || "settings",
+      source: direct?.source || formats.fxProvider || "backend-fx",
       fallback: Boolean(direct?.fallback),
       fetchedAt: direct?.fetchedAt || null,
-      effectiveAt: direct?.effectiveAt || formats.exchangeRatesUpdatedAt || formats.fxUpdatedAt || null,
+      effectiveAt: direct?.effectiveAt || formats.fxUpdatedAt || null,
     };
   }
   const inverseRate = extractRateValue(inverse);
@@ -111,10 +119,10 @@ export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
     return {
       available: true,
       rate: 1 / inverseRate,
-      source: inverse?.source || "settings-inverse",
+      source: inverse?.source || "backend-fx-inverse",
       fallback: true,
       fetchedAt: inverse?.fetchedAt || null,
-      effectiveAt: inverse?.effectiveAt || formats.exchangeRatesUpdatedAt || formats.fxUpdatedAt || null,
+      effectiveAt: inverse?.effectiveAt || formats.fxUpdatedAt || null,
     };
   }
 
@@ -133,7 +141,7 @@ export const convertCurrency = (value, fromCurrency, toCurrency, formats = {}) =
     amount: amount * rate.rate,
     fromCurrency,
     toCurrency,
-    effectiveAt: rate.effectiveAt || formats.exchangeRatesUpdatedAt || formats.fxUpdatedAt || null,
+    effectiveAt: rate.effectiveAt || formats.fxUpdatedAt || null,
   };
 };
 

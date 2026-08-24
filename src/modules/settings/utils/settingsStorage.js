@@ -17,6 +17,7 @@ import { normalizeLanguage } from "../../../localization/languages";
 import { apiRequest } from "../../../services/api/apiClient";
 import { getStoredSession } from "../../auth/utils/authStorage";
 import { PLATFORM_ACCOUNT_ID, SUPER_ADMIN_ROLE } from "../../../constants/auth";
+import { normalizeCurrency } from "../../../shared/utils/currency";
 
 const STORAGE_KEY = "universal_erp_platform_settings";
 const OLD_STORAGE_KEYS = [
@@ -26,6 +27,7 @@ const OLD_STORAGE_KEYS = [
 ];
 
 let skipNextSettingsPersistence = false;
+let runtimeSettings = null;
 
 const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -74,11 +76,23 @@ const normalizeAppearance = (stored = {}) => {
   };
 };
 
-const normalizeFormats = (stored = {}) => ({
-  ...stored,
-  language: normalizeLanguage(stored.language || stored.locale || getStoredLanguage()),
-  numberPrecision: Math.max(Number(stored.numberPrecision ?? DEFAULT_SETTINGS.formats.numberPrecision), 2),
-});
+const normalizeFormats = (stored = {}) => {
+  const baseCurrency = normalizeCurrency(stored.baseCurrency || stored.accountingCurrency || stored.currency || "UZS");
+  const displayCurrency = normalizeCurrency(stored.displayCurrency || stored.currency || baseCurrency);
+  const { exchangeRates: _exchangeRates, ...formatSettings } = stored;
+
+  return {
+    ...formatSettings,
+    baseCurrency,
+    displayCurrency,
+    currency: displayCurrency,
+    fxRates: isPlainObject(stored.fxRates) ? stored.fxRates : {},
+    fxUpdatedAt: stored.fxUpdatedAt || null,
+    fxProvider: stored.fxProvider || "",
+    language: normalizeLanguage(stored.language || stored.locale || getStoredLanguage()),
+    numberPrecision: Math.max(Number(stored.numberPrecision ?? DEFAULT_SETTINGS.formats.numberPrecision), 2),
+  };
+};
 
 const normalizeTables = (tables = {}) =>
   Object.entries(tables || {}).reduce((result, [tableId, value]) => {
@@ -155,22 +169,42 @@ const readJson = (key) => {
   return JSON.parse(stored);
 };
 
+const stripRuntimeFxState = (settings) => {
+  const {
+    exchangeRates: _exchangeRates,
+    fxRates: _fxRates,
+    fxUpdatedAt: _fxUpdatedAt,
+    fxProvider: _fxProvider,
+    fxCacheTtlMinutes: _fxCacheTtlMinutes,
+    fxUnavailable: _fxUnavailable,
+    ...formats
+  } = settings.formats || {};
+
+  return {
+    ...settings,
+    formats,
+  };
+};
+
 const normalizeServerSettings = (response = {}) => {
   const company = response.company || {};
   const platform = isPlainObject(company.platform) ? company.platform : {};
   const settings = normalizeSettings(response.settings || platform);
-  const currency = company.currency || settings.formats.currency || settings.defaults.currency;
+  const baseCurrency = normalizeCurrency(company.currency || settings.formats.baseCurrency || settings.defaults.currency);
+  const displayCurrency = normalizeCurrency(settings.formats.displayCurrency || settings.formats.currency || baseCurrency);
   const inventoryPolicy = company.inventoryPolicy || settings.warehouse.inventoryPolicy;
 
   return normalizeSettings({
     ...settings,
     formats: {
       ...settings.formats,
-      currency,
+      baseCurrency,
+      displayCurrency,
+      currency: displayCurrency,
     },
     defaults: {
       ...settings.defaults,
-      currency,
+      currency: baseCurrency,
     },
     warehouse: {
       ...settings.warehouse,
@@ -181,6 +215,10 @@ const normalizeServerSettings = (response = {}) => {
 
 export const getPlatformSettings = () => {
   try {
+    if (runtimeSettings) {
+      return normalizeSettings(runtimeSettings);
+    }
+
     const session = getStoredSession();
 
     if (!session?.accessToken || session.accountId === PLATFORM_ACCOUNT_ID || session.user?.role === SUPER_ADMIN_ROLE) {
@@ -249,6 +287,10 @@ export const markSettingsHydrated = () => {
   skipNextSettingsPersistence = true;
 };
 
+export const setRuntimePlatformSettings = (settings) => {
+  runtimeSettings = normalizeSettings(settings);
+};
+
 export const consumeSettingsHydration = () => {
   const shouldSkip = skipNextSettingsPersistence;
   skipNextSettingsPersistence = false;
@@ -264,11 +306,12 @@ export const savePlatformSettings = (settings) => {
     }
 
     const normalizedSettings = normalizeSettings(settings);
+    const settingsToPersist = stripRuntimeFxState(normalizedSettings);
 
     return apiRequest("/settings", {
       method: "PATCH",
       body: {
-        settings: normalizedSettings,
+        settings: settingsToPersist,
       },
     }).then((response) => {
       const serverSettings = normalizeServerSettings(response);
@@ -306,7 +349,7 @@ export const clearPlatformSettings = () => {
 };
 
 export const serializePlatformSettings = (settings) =>
-  JSON.stringify(normalizeSettings(settings), null, 2);
+  JSON.stringify(stripRuntimeFxState(normalizeSettings(settings)), null, 2);
 
 export const parsePlatformSettingsImport = (text) => {
   const parsed = JSON.parse(text);

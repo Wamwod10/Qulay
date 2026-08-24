@@ -9,6 +9,7 @@ import {
 import {
   consumeSettingsHydration,
   savePlatformSettings,
+  setRuntimePlatformSettings,
 } from "../modules/settings/utils/settingsStorage";
 import { getCurrentAccountId } from "../modules/auth/utils/tenantStorage";
 
@@ -45,6 +46,8 @@ store.subscribe(() => {
   ) {
     previousSettings =
       currentSettings;
+
+    setRuntimePlatformSettings(currentSettings);
 
     if (consumeSettingsHydration() || !getCurrentAccountId()) {
       return;

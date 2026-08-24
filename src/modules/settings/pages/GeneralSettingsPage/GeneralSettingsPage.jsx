@@ -110,8 +110,6 @@ const PAYMENT_OPTIONS = [
   { value: "DEBT", label: "Qarz" },
 ];
 
-const FX_CURRENCIES = SUPPORTED_CURRENCIES.map((currency) => currency.value);
-
 const safeValue = (value, options) =>
   options.some((option) => option.value === value) ? value : "";
 
@@ -163,6 +161,39 @@ const GeneralSettingsPage = () => {
     () => getStoredShifts().filter((item) => item.active !== false),
     [],
   );
+  const fxInfo = useMemo(() => {
+    const baseCurrency = settings.formats.baseCurrency || "UZS";
+    const displayCurrency = settings.formats.displayCurrency || settings.formats.currency || baseCurrency;
+    const rates = settings.formats.fxRates || {};
+
+    if (baseCurrency === displayCurrency) {
+      return "Base va display valyuta bir xil.";
+    }
+
+    const displayToBase = rates[`${displayCurrency}:${baseCurrency}`];
+    const baseToDisplay = rates[`${baseCurrency}:${displayCurrency}`];
+    const displayToBaseRate = Number(displayToBase?.rate);
+    const baseToDisplayRate = Number(baseToDisplay?.rate);
+    const rate = Number.isFinite(displayToBaseRate) && displayToBaseRate > 0
+      ? displayToBaseRate
+      : Number.isFinite(baseToDisplayRate) && baseToDisplayRate > 0
+        ? 1 / baseToDisplayRate
+        : null;
+
+    if (!rate) {
+      return "Kurs mavjud emas.";
+    }
+
+    const updatedAt = displayToBase?.effectiveAt || baseToDisplay?.effectiveAt || settings.formats.fxUpdatedAt;
+    const formattedRate = new Intl.NumberFormat("uz-UZ", {
+      maximumFractionDigits: 6,
+    }).format(rate);
+    const updatedText = updatedAt
+      ? ` Yangilandi: ${new Date(updatedAt).toLocaleString("uz-UZ")}`
+      : "";
+
+    return `1 ${displayCurrency} = ${formattedRate} ${baseCurrency}.${updatedText}`;
+  }, [settings.formats]);
 
   const selectedTable =
     TABLE_REGISTRY.find((table) => table.id === selectedTableId) ||
@@ -193,29 +224,6 @@ const GeneralSettingsPage = () => {
 
   const update = (section, changes) => {
     dispatch(updateSection({ section, changes }));
-  };
-
-  const updateExchangeRate = (toCurrency, value) => {
-    const fromCurrency = settings.formats.baseCurrency || "UZS";
-    const key = `${fromCurrency}:${toCurrency}`;
-    const nextRates = { ...(settings.formats.exchangeRates || {}) };
-    const numericValue = Number(value);
-
-    if (!value || !Number.isFinite(numericValue) || numericValue <= 0) {
-      delete nextRates[key];
-    } else {
-      nextRates[key] = {
-        rate: numericValue,
-        source: "manual-settings",
-        fallback: true,
-        effectiveAt: new Date().toISOString(),
-      };
-    }
-
-    dispatch(updateFormats({
-      exchangeRates: nextRates,
-      exchangeRatesUpdatedAt: new Date().toISOString(),
-    }));
   };
 
   const matchesSearch = (text) => {
@@ -538,34 +546,23 @@ const GeneralSettingsPage = () => {
             <SettingRow title="Pul formati" description="1 250 000 UZS yoki 1,250,000 UZS ko'rinishi.">
               <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 UZS" }, { value: "comma-code", label: "1,250,000 UZS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Valyuta" description="Standart valyuta kodi.">
-              <Select value={settings.formats.currency} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ currency: event.target.value }))} />
-            </SettingRow>
             <SettingRow title="Asosiy hisob valyutasi" description="Old tranzaksiyalar shu original/base qiymatdan ko'rsatiladi. Display valyuta o'zgarsa bu sonlar qayta yozilmaydi.">
               <Select value={settings.formats.baseCurrency || "UZS"} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ baseCurrency: event.target.value }))} />
             </SettingRow>
-            {FX_CURRENCIES.filter((currency) => currency !== (settings.formats.baseCurrency || "UZS")).map((currency) => {
-              const baseCurrency = settings.formats.baseCurrency || "UZS";
-              const savedRate = settings.formats.exchangeRates?.[`${baseCurrency}:${currency}`];
-              const rateValue = typeof savedRate === "object" ? savedRate?.rate ?? "" : savedRate ?? "";
-
-              return (
-                <SettingRow
-                  key={currency}
-                  title={`${baseCurrency} -> ${currency} kursi`}
-                  description="Manual exchange rate. Kurs bo'lmasa noto'g'ri label o'rniga 'Kurs mavjud emas' ko'rsatiladi."
-                >
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={rateValue}
-                    placeholder={`1 ${baseCurrency} = ? ${currency}`}
-                    onChange={(event) => updateExchangeRate(currency, event.target.value)}
-                  />
-                </SettingRow>
-              );
-            })}
+            <SettingRow title="Ko'rsatiladigan valyuta" description="UI summalari backend FX service orqali real kurs bilan ko'rsatiladi.">
+              <Select
+                value={settings.formats.displayCurrency || settings.formats.currency || "UZS"}
+                options={SUPPORTED_CURRENCIES}
+                onChange={(event) => dispatch(updateFormats({ displayCurrency: event.target.value, currency: event.target.value }))}
+              />
+            </SettingRow>
+            <SettingRow title="Kurslar" description="Kurslar avtomatik yangilanadi. Manual exchange rate kiritilmaydi.">
+              <span className="settings-page__readonly-note">
+                {settings.formats.fxCacheTtlMinutes
+                  ? `${fxInfo} Cache: ${settings.formats.fxCacheTtlMinutes} minut.`
+                  : fxInfo}
+              </span>
+            </SettingRow>
             <SettingRow title="Son aniqligi" description="Pul va umumiy sonlar uchun kasr xonalari.">
               <Select value={String(settings.formats.numberPrecision)} options={[2, 3, 4, 6].map((value) => ({ value: String(value), label: `${value}` }))} onChange={(event) => dispatch(updateFormats({ numberPrecision: Number(event.target.value) }))} />
             </SettingRow>

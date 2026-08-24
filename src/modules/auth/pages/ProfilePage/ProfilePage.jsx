@@ -128,7 +128,7 @@ const ProfilePage = () => {
           changes: { receiptHeader: result.account.businessName },
         }),
       );
-      dispatch(updateSection({ section: "formats", changes: { currency: result.account.currency } }));
+      dispatch(updateSection({ section: "formats", changes: { baseCurrency: result.account.currency } }));
       setMessage("Kompaniya profili yangilandi.");
     } catch (saveError) {
       setError(saveError.message || "Kompaniya saqlanmadi.");

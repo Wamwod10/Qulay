@@ -8,7 +8,10 @@ export const SUPPORTED_CURRENCIES = [
   { value: "KGS", label: "KGS - som" },
 ];
 
-export const normalizeCurrency = (value) =>
-  SUPPORTED_CURRENCIES.some((currency) => currency.value === value)
-    ? value
+export const normalizeCurrency = (value) => {
+  const normalized = String(value || "UZS").trim().toUpperCase();
+
+  return SUPPORTED_CURRENCIES.some((currency) => currency.value === normalized)
+    ? normalized
     : "UZS";
+};
