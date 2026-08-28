@@ -46,6 +46,7 @@ const normalizeProduct = (product) => ({
     product.category && String(product.category).includes("shimchalar")
       ? "Qo'shimchalar"
       : product.category || "",
+  categoryId: product.categoryId || null,
   brand: product.brand || "",
   unit: product.unit || "",
   parentProductId: product.parentProductId || null,

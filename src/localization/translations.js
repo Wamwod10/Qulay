@@ -573,6 +573,7 @@ export const tajikPhraseMap = {
   "Boshlanish": "Оғоз",
   "Barcha agentlar": "Ҳама агентҳо",
   "Barcha kategoriyalar": "Ҳама категорияҳо",
+  "Kategoriyasiz": "Бе категория",
   "Barcha mijozlar": "Ҳама мизоҷон",
   "Barcha omborlar": "Ҳама анборҳо",
   "Barcha to'lovlar": "Ҳама пардохтҳо",

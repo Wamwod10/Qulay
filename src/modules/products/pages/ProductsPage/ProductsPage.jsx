@@ -44,6 +44,10 @@ import {
 
 import { getStockStatus } from "../../utils/productHelpers";
 import {
+  matchesProductCategory,
+  UNCATEGORIZED_CATEGORY_FILTER,
+} from "../../utils/productCategoryFilters";
+import {
   useTableSettings,
   useTerminology } from
 "../../../settings/selectors/settingsSelectors";
@@ -139,6 +143,9 @@ const ProductsPage = () => {
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase();
+    const selectedCategoryName = categories.find(
+      (category) => category.id === categoryFilter,
+    )?.name;
 
     return products.filter((product) => {
       const productName = product.name?.toLocaleLowerCase() || "";
@@ -152,7 +159,11 @@ const ProductsPage = () => {
       productBarcode.includes(normalizedSearch);
 
       const matchesType = !typeFilter || product.type === typeFilter;
-      const matchesCategory = !categoryFilter || product.categoryId === categoryFilter || product.category === categoryFilter;
+      const matchesCategory = matchesProductCategory(
+        product,
+        categoryFilter,
+        selectedCategoryName,
+      );
       const matchesStock = !stockFilter || getStockStatus(product) === stockFilter;
 
       const matchesStatus = statusFilter ?
@@ -167,7 +178,7 @@ const ProductsPage = () => {
         matchesStock);
 
     });
-  }, [products, search, typeFilter, categoryFilter, statusFilter, stockFilter]);
+  }, [products, search, typeFilter, categoryFilter, categories, statusFilter, stockFilter]);
 
   const usesRemotePagination = Boolean(remoteMeta) && !stockFilter;
   const totalPages = usesRemotePagination
@@ -460,7 +471,20 @@ const ProductsPage = () => {
               <Select
                 value={categoryFilter}
                 placeholder={translateText("Barcha kategoriyalar")}
-                options={categories.map((category) => ({ value: category.id, label: category.name }))}
+                options={[
+                  {
+                    value: "",
+                    label: translateText("Barcha kategoriyalar"),
+                  },
+                  ...categories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                  {
+                    value: UNCATEGORIZED_CATEGORY_FILTER,
+                    label: translateText("Kategoriyasiz"),
+                  },
+                ]}
                 onChange={(event) => setCategoryFilter(event.target.value)} />
               
             </div>

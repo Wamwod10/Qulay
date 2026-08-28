@@ -5,6 +5,11 @@ import { aggregateQuantities, convertQuantity } from "../src/shared/utils/units.
 import { formatDecimal, roundDecimal } from "../src/shared/utils/number.js";
 import { setCurrentLanguage, translateText } from "../src/localization/i18n.js";
 import { convertCurrency, formatMoneyWithSettings } from "../src/modules/settings/utils/formatSettingsHelpers.js";
+import {
+  isUncategorizedProduct,
+  matchesProductCategory,
+  UNCATEGORIZED_CATEGORY_FILTER,
+} from "../src/modules/products/utils/productCategoryFilters.js";
 
 test("frontend unit conversion rejects mixed dimensions", () => {
   assert.equal(convertQuantity(1000, "g", "kg"), 1);
@@ -81,4 +86,45 @@ test("frontend FX unavailable never swaps only the currency label", () => {
     currency: "TJS",
     fxRates: {},
   }), "Kurs mavjud emas");
+});
+
+test("product category filter matches linked and legacy categories", () => {
+  assert.equal(
+    matchesProductCategory(
+      { categoryId: "category-1", category: "Ichimliklar" },
+      "category-1",
+      "Ichimliklar",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesProductCategory(
+      { categoryId: null, category: "Ichimliklar" },
+      "category-1",
+      "Ichimliklar",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesProductCategory(
+      { categoryId: "category-2", category: "Xomashyo" },
+      "category-1",
+      "Ichimliklar",
+    ),
+    false,
+  );
+});
+
+test("uncategorized product filter only matches products without category data", () => {
+  assert.equal(isUncategorizedProduct({ categoryId: null, category: "" }), true);
+  assert.equal(isUncategorizedProduct({}), true);
+  assert.equal(isUncategorizedProduct({ categoryId: "category-1", category: "" }), false);
+  assert.equal(isUncategorizedProduct({ categoryId: null, category: "Ichimliklar" }), false);
+  assert.equal(
+    matchesProductCategory(
+      { categoryId: null, category: null },
+      UNCATEGORIZED_CATEGORY_FILTER,
+    ),
+    true,
+  );
 });
