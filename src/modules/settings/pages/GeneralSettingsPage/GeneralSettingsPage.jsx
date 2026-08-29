@@ -543,17 +543,17 @@ const GeneralSettingsPage = () => {
             <SettingRow title="Vaqt formati" description="24 soatlik yoki 12 soatlik ko'rinish.">
               <Select value={settings.formats.timeFormat} options={[{ value: "24h", label: "24h" }, { value: "12h", label: "12h" }]} onChange={(event) => dispatch(updateFormats({ timeFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Pul formati" description="1 250 000 UZS yoki 1,250,000 UZS ko'rinishi.">
-              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 UZS" }, { value: "comma-code", label: "1,250,000 UZS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
+            <SettingRow title="Pul formati" description="Valyutaga mos tushunarli pul ko'rinishi.">
+              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm / 1 250 somon" }, { value: "comma-code", label: "1,250,000 USD" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Asosiy hisob valyutasi" description="Old tranzaksiyalar shu original/base qiymatdan ko'rsatiladi. Display valyuta o'zgarsa bu sonlar qayta yozilmaydi.">
-              <Select value={settings.formats.baseCurrency || "UZS"} options={SUPPORTED_CURRENCIES} onChange={(event) => dispatch(updateFormats({ baseCurrency: event.target.value }))} />
-            </SettingRow>
-            <SettingRow title="Ko'rsatiladigan valyuta" description="UI summalari backend FX service orqali real kurs bilan ko'rsatiladi.">
+            <SettingRow title="Platforma valyutasi" description="Valyuta almashtirilganda mavjud pul summalari backendda joriy kurs bo'yicha bir marta xavfsiz konvertatsiya qilinadi. Keyingi yangi summalar shu valyutada kiritiladi.">
               <Select
-                value={settings.formats.displayCurrency || settings.formats.currency || "UZS"}
+                value={settings.formats.baseCurrency || "UZS"}
                 options={SUPPORTED_CURRENCIES}
-                onChange={(event) => dispatch(updateFormats({ displayCurrency: event.target.value, currency: event.target.value }))}
+                onChange={(event) => {
+                  const currency = event.target.value;
+                  dispatch(updateFormats({ baseCurrency: currency, displayCurrency: currency, currency }));
+                }}
               />
             </SettingRow>
             <SettingRow title="Kurslar" description="Kurslar avtomatik yangilanadi. Manual exchange rate kiritilmaydi.">

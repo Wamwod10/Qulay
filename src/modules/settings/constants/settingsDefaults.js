@@ -98,7 +98,7 @@ export const DEFAULT_SETTINGS = {
     agentId: "",
     customerId: "",
     paymentMethod: "CASH",
-    cashboxId: "cashbox-main",
+    cashboxId: "",
     currency: "UZS",
     vatRate: 0,
     pageSize: 10,
@@ -173,7 +173,7 @@ export const DEFAULT_SETTINGS = {
   },
 
   finance: {
-    defaultCashboxId: "cashbox-main",
+    defaultCashboxId: "",
     defaultPaymentMethod: "CASH",
     debtWarningThreshold: 1000000,
     expenseConfirmation: true,

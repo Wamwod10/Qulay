@@ -257,6 +257,8 @@ const BomForm = ({ initialValues, onSubmit, onCancel, submitError = "" }) => {
             value={productId}
             placeholder={productLoading ? translateText("Yuklanmoqda...") : translateText("Mahsulotni tanlang")}
             options={productOptions}
+            required
+            autoSelectFirst
             loading={productLoading}
             emptyMessage={productLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
             error={errors.product || productLoadError}

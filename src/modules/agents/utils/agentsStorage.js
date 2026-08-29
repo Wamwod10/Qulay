@@ -1,4 +1,4 @@
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 
 const STORAGE_KEY = "agents";
@@ -154,6 +154,9 @@ export const createAgent = async (values, options = {}) => {
     primeApiCache("/agents", { agents: next, data: next });
     return normalizeAgent(remoteAgent);
   }
+  if (!isLocalBusinessFallbackEnabled()) {
+    throw new Error("Agent backendda saqlanmadi.");
+  }
   const agents = getStoredAgents();
   const now = new Date().toISOString();
 
@@ -178,6 +181,9 @@ export const updateAgent = async (updatedAgent) => {
     const agents = getStoredAgents();
     saveAgents(agents.map((agent) => (agent.id === remoteAgent.id ? remoteAgent : agent)));
     return normalizeAgent(remoteAgent);
+  }
+  if (!isLocalBusinessFallbackEnabled()) {
+    throw new Error("Agent backendda yangilanmadi.");
   }
   const agents = getStoredAgents();
   let savedAgent = null;

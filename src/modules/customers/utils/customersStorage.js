@@ -1,4 +1,4 @@
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, primeApiCache, unwrapList } from "../../../services/api/apiClient";
 const STORAGE_KEY = "customers";
 const FOLLOW_UPS_KEY = "customer_followups";
@@ -111,6 +111,9 @@ export const createCustomer = async (customer, options = {}) => {
     primeApiCache("/customers", { customers: next, data: next });
     return normalizeCustomer(remoteCustomer);
   }
+  if (!isLocalBusinessFallbackEnabled()) {
+    throw new Error("Mijoz backendda saqlanmadi.");
+  }
   const customers = getStoredCustomers();
   const now = new Date().toISOString();
   const newCustomer = normalizeCustomer({
@@ -131,6 +134,9 @@ export const updateCustomer = async updatedCustomer => {
     const customers = getStoredCustomers();
     saveCustomers(customers.map(customer => customer.id === remoteCustomer.id ? remoteCustomer : customer));
     return normalizeCustomer(remoteCustomer);
+  }
+  if (!isLocalBusinessFallbackEnabled()) {
+    throw new Error("Mijoz backendda yangilanmadi.");
   }
   const customers = getStoredCustomers();
   let savedCustomer = null;

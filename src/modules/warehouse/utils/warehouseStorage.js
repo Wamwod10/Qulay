@@ -45,6 +45,18 @@ export const getStoredWarehouseStock = () => {
     }
 };
 
+export const fetchStoredWarehouseStock = async () => {
+    const result = await apiRequest("/inventory/stock", { skipCache: true });
+    const stock = unwrapList(result, ["stock"]);
+
+    if (!Array.isArray(stock)) {
+        throw new Error("Ombor qoldiqlari backenddan olinmadi.");
+    }
+
+    tenantSet(STORAGE_KEY, stock);
+    return stock;
+};
+
 export const getStoredBatches = () => {
     const remoteBatches = unwrapList(getCachedApiResponse("/inventory/batches"), ["batches"]);
     if (Array.isArray(remoteBatches)) {

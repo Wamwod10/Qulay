@@ -15,6 +15,7 @@ const CreatableSelect = ({
   error,
   disabled = false,
   required = false,
+  autoSelectFirst = false,
   onCreate,
   createLabel = "Qo'shish",
   getOptionSearchText,
@@ -48,6 +49,19 @@ const CreatableSelect = ({
       document.removeEventListener("mousedown", close);
     };
   }, []);
+
+  useEffect(() => {
+    if (!autoSelectFirst || disabled || value || !options.length) return;
+
+    const firstOption = options.find((option) =>
+      option && option.disabled !== true && option.value !== "" && option.value !== null && option.value !== undefined
+    );
+
+    if (firstOption) {
+      setCreatedOption(firstOption);
+      onChange?.({ target: { value: firstOption.value }, autoSelected: true });
+    }
+  }, [autoSelectFirst, disabled, onChange, options, value]);
 
   const select = (option) => {
     setCreatedOption(option);

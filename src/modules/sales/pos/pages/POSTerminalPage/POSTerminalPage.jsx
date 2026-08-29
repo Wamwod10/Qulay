@@ -28,9 +28,9 @@ import {
   getStoredCustomers,
 } from "../../../../customers/utils/customersStorage";
 
-import { getStoredProducts } from "../../../../products/utils/productsStorage";
-import { getStoredWarehouseStock } from "../../../../warehouse/utils/warehouseStorage";
-import { getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
+import { getStoredProducts, getStoredProductsPage } from "../../../../products/utils/productsStorage";
+import { fetchStoredWarehouseStock, getStoredWarehouseStock } from "../../../../warehouse/utils/warehouseStorage";
+import { fetchStoredWarehouses, getStoredWarehouses } from "../../../../warehouse/utils/warehouseManagementStorage";
 import { getDefaultWarehouseId } from "../../../../warehouse/utils/warehouseDefaults";
 
 import {
@@ -109,7 +109,7 @@ const POSTerminalPage = () => {
   const [stock, setStock] = useState(() => getStoredWarehouseStock());
   const [sales, setSales] = useState(() => getStoredSales());
 
-  const [warehouses] = useState(() =>
+  const [warehouses, setWarehouses] = useState(() =>
     getStoredWarehouses().filter(
       (warehouse) => warehouse.status !== "INACTIVE",
     ),
@@ -164,6 +164,40 @@ const POSTerminalPage = () => {
   }, []);
 
   useEffect(() => {
+    let alive = true;
+
+    const loadPosReferences = async () => {
+      const [productsResult, warehousesResult, stockResult] = await Promise.allSettled([
+        getStoredProductsPage({ page: 1, limit: 500, status: "ACTIVE", skipCache: true }),
+        fetchStoredWarehouses(),
+        fetchStoredWarehouseStock(),
+      ]);
+
+      if (!alive) return;
+
+      if (productsResult.status === "fulfilled") {
+        setProducts(productsResult.value.products || []);
+      }
+
+      if (warehousesResult.status === "fulfilled") {
+        const activeWarehouses = warehousesResult.value.filter((warehouse) => warehouse.status !== "INACTIVE" && warehouse.status !== "ARCHIVED");
+        setWarehouses(activeWarehouses);
+        setWarehouseId((current) => current || getDefaultWarehouseId(activeWarehouses, ["pos.defaultWarehouseId"]) || activeWarehouses[0]?.id || "");
+      }
+
+      if (stockResult.status === "fulfilled") {
+        setStock(stockResult.value);
+      }
+    };
+
+    loadPosReferences().catch(() => undefined);
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (receiptSale && posSettings.autoPrintReceipt) {
       window.print();
     }
@@ -192,13 +226,42 @@ const POSTerminalPage = () => {
       setSales(getStoredSales());
     };
 
+    const refreshProducts = () => {
+      Promise.allSettled([
+        getStoredProductsPage({ page: 1, limit: 500, status: "ACTIVE", skipCache: true }),
+        fetchStoredWarehouseStock(),
+      ]).then(([productsResult, stockResult]) => {
+        if (productsResult.status === "fulfilled") {
+          setProducts(productsResult.value.products || []);
+        } else {
+          setProducts(getStoredProducts());
+        }
+        if (stockResult.status === "fulfilled") {
+          setStock(stockResult.value);
+        }
+      });
+    };
+
+    const refreshWarehouse = () => {
+      Promise.allSettled([fetchStoredWarehouseStock(), fetchStoredWarehouses()])
+        .then(([stockResult, warehousesResult]) => {
+          if (stockResult.status === "fulfilled") setStock(stockResult.value);
+          if (warehousesResult.status === "fulfilled") {
+            setWarehouses(warehousesResult.value.filter((warehouse) => warehouse.status !== "INACTIVE" && warehouse.status !== "ARCHIVED"));
+          }
+        })
+        .catch(() => refresh());
+    };
+
+    window.addEventListener("products:changed", refreshProducts);
     window.addEventListener("sales:changed", refresh);
-    window.addEventListener("warehouse:changed", refresh);
+    window.addEventListener("warehouse:changed", refreshWarehouse);
     window.addEventListener("storage", refresh);
 
     return () => {
+      window.removeEventListener("products:changed", refreshProducts);
       window.removeEventListener("sales:changed", refresh);
-      window.removeEventListener("warehouse:changed", refresh);
+      window.removeEventListener("warehouse:changed", refreshWarehouse);
       window.removeEventListener("storage", refresh);
     };
   }, []);
@@ -248,7 +311,7 @@ const POSTerminalPage = () => {
   const categories = useMemo(() => {
     const list = products
       .filter(
-        (product) => product.status === "ACTIVE" && product.salePrice !== null,
+        (product) => product.status === "ACTIVE" && product.type !== "SERVICE",
       )
       .map((product) => product.category)
       .filter(Boolean);
@@ -264,9 +327,8 @@ const POSTerminalPage = () => {
 
     return products
       .filter(
-        (product) => product.status === "ACTIVE" && product.salePrice !== null,
+        (product) => product.status === "ACTIVE" && product.type !== "SERVICE",
       )
-      .filter((product) => stockByProduct.has(product.id))
       .filter((product) => !category || product.category === category)
       .filter((product) => {
         if (!searchText) {
@@ -302,6 +364,11 @@ const POSTerminalPage = () => {
 
     const stockItem = stockByProduct.get(product.id);
     const available = Number(stockItem?.available || 0);
+
+    if (product.salePrice === null || product.salePrice === undefined || Number(product.salePrice) < 0) {
+      setError(`${product.name} uchun sotuv narxi belgilanmagan.`);
+      return;
+    }
 
     if (available <= 0) {
       setError(`${product.name} ${translateText("omborda mavjud emas.")}`);
@@ -844,13 +911,13 @@ const POSTerminalPage = () => {
                   type="button"
                   className={[
                     "pos-terminal__product-card",
-                    available <= 0
+                    available <= 0 || product.salePrice === null || product.salePrice === undefined
                       ? "pos-terminal__product-card--disabled"
                       : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  disabled={available <= 0}
+                  disabled={available <= 0 || product.salePrice === null || product.salePrice === undefined}
                   onClick={() => addToCart(product)}
                 >
                   <span className="pos-terminal__product-image">
@@ -870,13 +937,18 @@ const POSTerminalPage = () => {
                     </small>
 
                     <b>
-                      {moneyText(product.salePrice)} /{" "}
-                      {translateText(product.unit)}
+                      {product.salePrice === null || product.salePrice === undefined
+                        ? translateText("Sotuv narxi belgilanmagan")
+                        : `${moneyText(product.salePrice)} / ${translateText(product.unit)}`}
                     </b>
                   </span>
 
                   <span className="pos-terminal__product-stock">
-                    {available <= 0 && notifications.outOfStockWarning ? (
+                    {product.salePrice === null || product.salePrice === undefined ? (
+                      <Badge variant="warning">
+                        {translateText("Narx belgilanmagan")}
+                      </Badge>
+                    ) : available <= 0 && notifications.outOfStockWarning ? (
                       <Badge variant="danger">
                         <LiveIcon
                           icon={Ban}
@@ -913,7 +985,7 @@ const POSTerminalPage = () => {
 
                 <span>
                   {translateText(
-                    "Faol, narxi bor va tanlangan omborda mavjud mahsulotlar chiqadi.",
+                    "Faol mahsulotlar shu yerda ko‘rinadi. Savdo uchun narx va ombor qoldig‘i kerak.",
                   )}
                 </span>
               </Card>

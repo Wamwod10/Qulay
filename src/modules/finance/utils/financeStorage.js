@@ -1,4 +1,4 @@
-import { tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 const TRANSACTIONS_KEY = "finance_transactions";
@@ -17,24 +17,7 @@ export const EXPENSE_CATEGORIES = [
   "Boshqa",
 ];
 
-export const DEFAULT_CASHBOXES = [
-  {
-    id: "cashbox-main",
-    name: "Asosiy kassa",
-    type: "CASH",
-    currency: "UZS",
-    openingBalance: 0,
-    active: true,
-  },
-  {
-    id: "cashbox-bank-card",
-    name: "Bank/karta hisob",
-    type: "BANK",
-    currency: "UZS",
-    openingBalance: 0,
-    active: true,
-  },
-];
+export const DEFAULT_CASHBOXES = [];
 
 const canUseStorage = () => typeof window !== "undefined" && window.localStorage;
 
@@ -65,13 +48,14 @@ export const normalizeDate = (value) => {
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
 };
 
-export const getDefaultCashboxId = (paymentMethod = "CASH") => {
-  if (["CARD", "BANK", "QR"].includes(paymentMethod)) {
-    return "cashbox-bank-card";
-  }
-
-  return "cashbox-main";
+export const getDefaultCashboxId = () => {
+  const remoteCashboxes = unwrapList(getCachedApiResponse("/finance/cashboxes"), ["cashboxes"]);
+  const firstActive = Array.isArray(remoteCashboxes)
+    ? remoteCashboxes.find((cashbox) => cashbox.status === "ACTIVE" || cashbox.active !== false)
+    : null;
+  return firstActive?.id || "";
 };
+
 
 const readJson = (key, fallback) => {
   if (!canUseStorage()) {
@@ -113,7 +97,7 @@ export const normalizeCashbox = (cashbox = {}) => ({
   id: String(cashbox.id || createFinanceId("cashbox")),
   name: String(cashbox.name || "Kassa").trim(),
   type: cashbox.type || "CASH",
-  currency: cashbox.currency || "UZS",
+  currency: cashbox.currency || "",
   openingBalance: roundMoney(cashbox.openingBalance),
   active: cashbox.active !== false,
 });
@@ -124,17 +108,9 @@ export const getStoredCashboxes = () => {
     writeJson(CASHBOXES_KEY, remoteCashboxes, { silent: true });
     return remoteCashboxes.map(normalizeCashbox);
   }
-  const stored = readJson(CASHBOXES_KEY, DEFAULT_CASHBOXES);
-  const cashboxes = Array.isArray(stored) ? stored : DEFAULT_CASHBOXES;
-  const normalized = cashboxes.map(normalizeCashbox);
-
-  if (!normalized.some((cashbox) => cashbox.id === "cashbox-main")) {
-    normalized.unshift(DEFAULT_CASHBOXES[0]);
-  }
-
-  writeJson(CASHBOXES_KEY, normalized, { silent: true });
-
-  return normalized;
+  const stored = readJson(CASHBOXES_KEY, []);
+  const cashboxes = Array.isArray(stored) ? stored : [];
+  return cashboxes.map(normalizeCashbox).filter((cashbox) => cashbox.id);
 };
 
 export const saveCashboxes = (cashboxes) => {
@@ -168,7 +144,7 @@ export const normalizeFinanceTransaction = (transaction = {}) => {
     cashboxId:
       transaction.cashboxId === null
         ? null
-        : transaction.cashboxId || getDefaultCashboxId(method),
+        : transaction.cashboxId || getDefaultCashboxId(method) || null,
     date: normalizeDate(transaction.date || transaction.createdAt),
     note: transaction.note || "",
     status: transaction.status || "POSTED",
@@ -211,15 +187,13 @@ export const addFinanceTransaction = async (transaction) => {
     saveFinanceTransactions([remoteTransaction, ...transactions.filter((item) => item.id !== remoteTransaction.id)]);
     return normalizeFinanceTransaction(remoteTransaction);
   }
-  const normalized = normalizeFinanceTransaction(transaction);
-
-  if (normalized.amount <= 0) {
-    throw new Error("Summa 0 dan katta bo'lishi kerak.");
+  if (!isLocalBusinessFallbackEnabled()) {
+    throw new Error("Moliya operatsiyasi backendda saqlanmadi.");
   }
-
+  const normalized = normalizeFinanceTransaction(transaction);
+  if (normalized.amount <= 0) throw new Error("Summa 0 dan katta bo'lishi kerak.");
   const transactions = getStoredFinanceTransactions();
   saveFinanceTransactions([normalized, ...transactions]);
-
   return normalized;
 };
 

@@ -1,5 +1,5 @@
 import { getLocale } from "../../../localization/i18n";
-import { normalizeCurrency } from "../../../shared/utils/currency";
+import { getCurrencyDisplayLabel, normalizeCurrency } from "../../../shared/utils/currency";
 import { roundDecimal } from "../../../shared/utils/number";
 
 export const formatDateWithSettings = (value, formats = {}) => {
@@ -58,15 +58,17 @@ export const formatMoneyWithSettings = (value, formats = {}) => {
   const amount = roundDecimal(conversion.amount, precision);
   const locale = formats.moneyFormat === "comma-code" ? "en-US" : getLocale(formats.language);
   const formatted = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: precision,
+    minimumFractionDigits: 0,
     maximumFractionDigits: precision,
   }).format(amount);
 
-  if (formats.moneyFormat === "comma-code") {
+  const displayLabel = getCurrencyDisplayLabel(currency);
+
+  if (formats.moneyFormat === "comma-code" && !["TJS", "UZS", "KGS"].includes(currency)) {
     return `${formatted} ${currency}`;
   }
 
-  return `${formatted} ${currency}`;
+  return `${formatted} ${displayLabel}`;
 };
 
 const getCurrencyPrecision = (currency, formats = {}) => {
@@ -93,36 +95,61 @@ export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
   }
 
   const rates = formats.fxRates || {};
-  const direct =
-    rates[`${from}:${to}`] ??
-    rates[`${from}_${to}`] ??
-    rates?.[from]?.[to]?.rate ??
-    rates?.[from]?.[to];
-  const inverse =
-    rates[`${to}:${from}`] ??
-    rates[`${to}_${from}`] ??
-    rates?.[to]?.[from]?.rate ??
-    rates?.[to]?.[from];
-  const directRate = extractRateValue(direct);
-  if (Number.isFinite(directRate) && directRate > 0) {
+  const readPair = (source, target) => {
+    const direct =
+      rates[`${source}:${target}`] ??
+      rates[`${source}_${target}`] ??
+      rates?.[source]?.[target]?.rate ??
+      rates?.[source]?.[target];
+    const directRate = extractRateValue(direct);
+    if (Number.isFinite(directRate) && directRate > 0) {
+      return {
+        available: true,
+        rate: directRate,
+        source: direct?.source || formats.fxProvider || "backend-fx",
+        fallback: Boolean(direct?.fallback),
+        fetchedAt: direct?.fetchedAt || null,
+        effectiveAt: direct?.effectiveAt || formats.fxUpdatedAt || null,
+      };
+    }
+
+    const inverse =
+      rates[`${target}:${source}`] ??
+      rates[`${target}_${source}`] ??
+      rates?.[target]?.[source]?.rate ??
+      rates?.[target]?.[source];
+    const inverseRate = extractRateValue(inverse);
+    if (Number.isFinite(inverseRate) && inverseRate > 0) {
+      return {
+        available: true,
+        rate: 1 / inverseRate,
+        source: inverse?.source || "backend-fx-inverse",
+        fallback: true,
+        fetchedAt: inverse?.fetchedAt || null,
+        effectiveAt: inverse?.effectiveAt || formats.fxUpdatedAt || null,
+      };
+    }
+
+    return null;
+  };
+
+  const direct = readPair(from, to);
+  if (direct) return direct;
+
+  // SettingsRuntime loads one canonical base-currency table. Derive any
+  // cross-rate from that table instead of making one HTTP request per pair.
+  const base = normalizeCurrency(formats.baseCurrency || "UZS");
+  const baseToFrom = from === base ? { available: true, rate: 1, fallback: false } : readPair(base, from);
+  const baseToTo = to === base ? { available: true, rate: 1, fallback: false } : readPair(base, to);
+
+  if (baseToFrom?.available && baseToTo?.available && baseToFrom.rate > 0) {
     return {
       available: true,
-      rate: directRate,
-      source: direct?.source || formats.fxProvider || "backend-fx",
-      fallback: Boolean(direct?.fallback),
-      fetchedAt: direct?.fetchedAt || null,
-      effectiveAt: direct?.effectiveAt || formats.fxUpdatedAt || null,
-    };
-  }
-  const inverseRate = extractRateValue(inverse);
-  if (Number.isFinite(inverseRate) && inverseRate > 0) {
-    return {
-      available: true,
-      rate: 1 / inverseRate,
-      source: inverse?.source || "backend-fx-inverse",
-      fallback: true,
-      fetchedAt: inverse?.fetchedAt || null,
-      effectiveAt: inverse?.effectiveAt || formats.fxUpdatedAt || null,
+      rate: baseToTo.rate / baseToFrom.rate,
+      source: "backend-fx-cross",
+      fallback: Boolean(baseToFrom.fallback || baseToTo.fallback),
+      fetchedAt: baseToTo.fetchedAt || baseToFrom.fetchedAt || null,
+      effectiveAt: baseToTo.effectiveAt || baseToFrom.effectiveAt || formats.fxUpdatedAt || null,
     };
   }
 

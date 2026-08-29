@@ -493,6 +493,7 @@ const ProductForm = ({
             value={form.type}
             options={PRODUCT_TYPES}
             required
+            autoSelectFirst
             error={errors.type}
             onChange={(event) => handleChange("type", event.target.value)}
           />
@@ -537,6 +538,7 @@ const ProductForm = ({
             label={translateText("O'lchov birligi")}
             value={form.unit}
             required
+            autoSelectFirst
             error={errors.unit}
             options={Object.values(UNIT_DEFINITIONS).map((unit) => ({
               value: unit.label,
@@ -564,6 +566,8 @@ const ProductForm = ({
               value={form.warehouseId}
               placeholder={translateText("Ombor tanlang")}
               options={warehouseOptions}
+              required
+              autoSelectFirst
               error={errors.warehouseId}
               onChange={(event) =>
                 handleChange("warehouseId", event.target.value)

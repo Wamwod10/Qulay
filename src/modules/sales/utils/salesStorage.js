@@ -6,7 +6,7 @@ import {
 } from "../../warehouse/utils/warehouseStorage";
 import { getStoredWarehouses } from "../../warehouse/utils/warehouseManagementStorage";
 
-import { tenantGet, tenantRemove, tenantSet } from "../../auth/utils/tenantStorage";
+import { isLocalBusinessFallbackEnabled, tenantGet, tenantRemove, tenantSet } from "../../auth/utils/tenantStorage";
 import { apiRequest, getCachedApiResponse, unwrapList } from "../../../services/api/apiClient";
 
 import { calculateSaleTotals, roundMoney } from "./salesCalculations";
@@ -46,7 +46,7 @@ const normalizeItem = (item = {}) => {
     sku: item.sku || "",
     barcode: item.barcode || "",
     quantity,
-    unit: item.unit || "dona",
+    unit: item.unit || "",
     price,
     cost: roundMoney(item.cost),
     subtotal: roundMoney(quantity * price),
@@ -59,7 +59,7 @@ const normalizeReturn = (item = {}) => ({
   productName: item.productName || "",
   sku: item.sku || "",
   quantity: roundMoney(item.quantity),
-  unit: item.unit || "dona",
+  unit: item.unit || "",
   refundAmount: roundMoney(item.refundAmount),
   reason: item.reason || "",
   createdAt: item.createdAt || nowIso(),
@@ -281,6 +281,7 @@ export const createSale = async (values) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Savdo backendda saqlanmadi.");
   const sales = getStoredSales();
   const now = nowIso();
   const sale = normalizeSale({
@@ -311,6 +312,7 @@ export const updateSale = async (updatedSale) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Savdo backendda yangilanmadi.");
   const sales = getStoredSales();
   let result = null;
 
@@ -345,6 +347,7 @@ export const holdSale = async (values) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Savdo qoralamasi backendda saqlanmadi.");
   const sales = getStoredSales();
   const now = nowIso();
   const draft = normalizeSale({
@@ -385,6 +388,7 @@ export const completeSale = async (values) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Savdo backendda yakunlanmadi.");
   validateSaleInput(values);
 
   const products = getStoredProducts();
@@ -508,6 +512,7 @@ export const cancelSale = async ({ saleId, reason = "" }) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Savdoni bekor qilish backendda bajarilmadi.");
   const sales = getStoredSales();
   const sale = sales.find((item) => item.id === saleId);
 
@@ -610,6 +615,7 @@ export const returnSaleItems = async ({ saleId, items = [], reason = "" }) => {
     return normalizeSale(remoteSale);
   }
 
+  if (!isLocalBusinessFallbackEnabled()) throw new Error("Qaytarish backendda saqlanmadi.");
   const sales = getStoredSales();
   const sale = sales.find((item) => item.id === saleId);
 

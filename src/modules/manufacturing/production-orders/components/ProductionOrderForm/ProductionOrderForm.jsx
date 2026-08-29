@@ -311,6 +311,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             value={bomId}
             placeholder={bomLoading ? "Retseptlar yuklanmoqda" : "Retsept tanlang"}
             options={bomOptions}
+            required
+            autoSelectFirst
             error={errors.bom || bomLoadError}
             onChange={(event) => {
               const nextBomId = event.target.value;
@@ -342,6 +344,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             value={materialWarehouseId}
             placeholder={warehouseLoading ? "Yuklanmoqda..." : "Ombor tanlang"}
             options={warehouseOptions}
+            required
+            autoSelectFirst
             loading={warehouseLoading}
             emptyMessage={warehouseLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
             error={errors.materialWarehouse || warehouseLoadError}
@@ -355,6 +359,8 @@ const ProductionOrderForm = ({ initialValues = null, onSubmit, onCancel, submitE
             value={outputWarehouseId}
             placeholder={warehouseLoading ? "Yuklanmoqda..." : "Ombor tanlang"}
             options={warehouseOptions}
+            required
+            autoSelectFirst
             loading={warehouseLoading}
             emptyMessage={warehouseLoadError ? REFERENCE_LOAD_ERROR : "Variantlar yo'q"}
             error={errors.outputWarehouse || warehouseLoadError}

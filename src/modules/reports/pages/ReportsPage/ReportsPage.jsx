@@ -119,7 +119,7 @@ const localizeOptions = (options = []) =>
 
 const moneyText = (value, formatter = formatFinanceMoney) => formatter(value);
 
-const localizedUnit = (unit) => translateText(unit || "dona");
+const localizedUnit = (unit) => translateText(unit || "—");
 
 const localizedProductionStatus = (status) =>
   translateText(getProductionStatusLabel(status));

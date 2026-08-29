@@ -91,8 +91,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
   const [supplierList, setSupplierList] = useState(() =>
     getStoredSuppliers().filter((supplier) => supplier.status === "ACTIVE"),
   );
-  const [referenceLoading, setReferenceLoading] = useState(false);
-  const [referenceError, setReferenceError] = useState("");
+  const [supplierLoading, setSupplierLoading] = useState(false);
+  const [warehouseLoading, setWarehouseLoading] = useState(false);
+  const [productLoading, setProductLoading] = useState(false);
+  const [referenceErrors, setReferenceErrors] = useState({});
 
   const suppliers = supplierList;
 
@@ -102,8 +104,14 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           id: item.id || `item-${Date.now()}-${Math.random()}`,
           productId: item.productId,
           quantity: item.purchaseQuantity ?? item.quantity,
-          purchasePrice: item.purchasePrice ?? item.total ?? item.subtotal,
+          purchasePrice:
+            item.unitPrice ??
+            item.purchasePrice ??
+            (Number((item.purchaseQuantity ?? item.quantity) || 0) > 0
+              ? Number(item.subtotal ?? item.total ?? 0) / Number(item.purchaseQuantity ?? item.quantity)
+              : 0),
           unit: item.purchaseUnit || item.unit || "",
+          receivedQuantity: Number(item.receivedQuantity || 0),
         }))
       : [createEmptyItem()],
   );
@@ -129,37 +137,62 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
   useEffect(() => {
     let alive = true;
-    setReferenceLoading(true);
-    setReferenceError("");
 
-    Promise.all([
-      fetchStoredSuppliers(),
-      fetchStoredWarehouses(),
-      getStoredProductsPage({ limit: 500, status: "ACTIVE", type: "", skipCache: true }),
-    ])
-      .then(([remoteSuppliers, remoteWarehouses, remoteProducts]) => {
+    const loadSuppliers = async () => {
+      setSupplierLoading(true);
+      try {
+        const remoteSuppliers = await fetchStoredSuppliers();
         if (!alive) return;
-
-        const activeSuppliers = remoteSuppliers.filter((supplier) => supplier.status === "ACTIVE");
-        const activeWarehouses = remoteWarehouses.filter((warehouse) => warehouse.status === "ACTIVE");
-        const activeProducts = (remoteProducts.products || []).filter((product) => product.status === "ACTIVE" && product.type !== "SERVICE");
-
-        setSupplierList(activeSuppliers);
-        setWarehouseList(activeWarehouses);
-        setProductList(activeProducts);
-
-        if (!initialValues?.warehouseId) {
-          setWarehouseId((current) => current || getDefaultWarehouseId(activeWarehouses) || "");
-        }
-      })
-      .catch((error) => {
+        setSupplierList(remoteSuppliers.filter((supplier) => supplier.status === "ACTIVE"));
+        setReferenceErrors((current) => ({ ...current, suppliers: "" }));
+      } catch (error) {
         if (alive) {
-          setReferenceError(error?.message || "Ma'lumotlarni yuklab bo'lmadi.");
+          setReferenceErrors((current) => ({ ...current, suppliers: error?.message || "Yetkazib beruvchilarni yuklab bo'lmadi." }));
         }
-      })
-      .finally(() => {
-        if (alive) setReferenceLoading(false);
-      });
+      } finally {
+        if (alive) setSupplierLoading(false);
+      }
+    };
+
+    const loadWarehouses = async () => {
+      setWarehouseLoading(true);
+      try {
+        const remoteWarehouses = await fetchStoredWarehouses();
+        if (!alive) return;
+        const activeWarehouses = remoteWarehouses.filter((warehouse) => warehouse.status === "ACTIVE");
+        setWarehouseList(activeWarehouses);
+        if (!initialValues?.warehouseId) {
+          setWarehouseId((current) => current || getDefaultWarehouseId(activeWarehouses) || activeWarehouses[0]?.id || "");
+        }
+        setReferenceErrors((current) => ({ ...current, warehouses: "" }));
+      } catch (error) {
+        if (alive) {
+          setReferenceErrors((current) => ({ ...current, warehouses: error?.message || "Omborlarni yuklab bo'lmadi." }));
+        }
+      } finally {
+        if (alive) setWarehouseLoading(false);
+      }
+    };
+
+    const loadProducts = async () => {
+      setProductLoading(true);
+      try {
+        const remoteProducts = await getStoredProductsPage({ limit: 500, status: "ACTIVE", type: "", skipCache: true });
+        if (!alive) return;
+        setProductList((remoteProducts.products || []).filter((product) => product.status === "ACTIVE" && product.type !== "SERVICE"));
+        setReferenceErrors((current) => ({ ...current, products: "" }));
+      } catch (error) {
+        if (alive) {
+          setReferenceErrors((current) => ({ ...current, products: error?.message || "Mahsulotlarni yuklab bo'lmadi." }));
+        }
+      } finally {
+        if (alive) setProductLoading(false);
+      }
+    };
+
+    loadSuppliers();
+    loadWarehouses();
+    loadProducts();
 
     return () => {
       alive = false;
@@ -170,7 +203,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
     () =>
       items.reduce(
         (total, item) =>
-          total + Number(item.purchasePrice || 0),
+          total + Number(item.quantity || 0) * Number(item.purchasePrice || 0),
         0,
       ),
     [items],
@@ -317,7 +350,8 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
 
       const quantity = Number(item.quantity);
 
-      const purchasePrice = Number(item.purchasePrice);
+      const unitPrice = Number(item.purchasePrice);
+      const lineTotal = quantity * unitPrice;
       const purchaseUnit = item.unit || product.unit;
       let canonicalQuantity = 0;
       let canonicalUnitCost = 0;
@@ -328,7 +362,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           quantity,
           purchaseUnit,
           productUnit: product.unit,
-          lineTotal: purchasePrice,
+          lineTotal,
         });
       } catch {
         canonicalQuantity = 0;
@@ -346,11 +380,13 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
         receivedQuantity: initialValues
           ? Number(item.receivedQuantity || 0)
           : 0,
-        purchasePrice,
+        purchasePrice: unitPrice,
+        unitPrice,
+        lineTotal,
         cost: canonicalUnitCost,
         salePrice: product.salePrice,
-        total: purchasePrice,
-        subtotal: purchasePrice,
+        total: lineTotal,
+        subtotal: lineTotal,
         canonicalQuantity,
       };
     });
@@ -412,10 +448,10 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           <CreatableSelect
             label={translateText("Yetkazib beruvchi")}
             value={supplierId}
-            placeholder={referenceLoading ? translateText("Yuklanmoqda...") : translateText("Tanlang")}
+            placeholder={supplierLoading ? translateText("Yuklanmoqda...") : translateText("Tanlang")}
             options={supplierOptions}
             error={errors.supplier}
-            disabled={referenceLoading}
+            disabled={supplierLoading}
             getOptionSearchText={(option) => option.searchText}
             onChange={(event) => setSupplierId(event.target.value)}
             onCreate={async (name) => {
@@ -444,10 +480,12 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
           <Select
             label={translateText("Qabul qiluvchi ombor")}
             value={warehouseId}
-            placeholder={referenceLoading ? translateText("Yuklanmoqda...") : translateText("Ombor tanlang")}
+            placeholder={warehouseLoading ? translateText("Omborlar yuklanmoqda...") : translateText("Ombor tanlang")}
             options={warehouseOptions}
-            error={errors.warehouse}
-            disabled={referenceLoading}
+            required
+            autoSelectFirst
+            error={errors.warehouse || referenceErrors.warehouses}
+            disabled={warehouseLoading}
             onChange={(event) => setWarehouseId(event.target.value)}
           />
 
@@ -463,7 +501,11 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
             onChange={(event) => setExpectedDate(event.target.value)}
           />
         </div>
-        {referenceError && <div className="purchase-form__error">{referenceError}</div>}
+        {(referenceErrors.suppliers || referenceErrors.products) && (
+          <div className="purchase-form__error">
+            {[referenceErrors.suppliers, referenceErrors.products].filter(Boolean).join(" ")}
+          </div>
+        )}
       </Card>
 
       <Card padding="lg" className="purchase-form__section">
@@ -493,14 +535,14 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
               (productItem) => productItem.id === item.productId,
             );
 
-            const rowTotal = Number(item.purchasePrice || 0);
+            const rowTotal = Number(item.quantity || 0) * Number(item.purchasePrice || 0);
             const purchaseUnit = item.unit || product?.unit || "";
             const canonicalUnitCost = product
               ? getCanonicalUnitCost({
                   quantity: item.quantity,
                   purchaseUnit,
                   productUnit: product.unit,
-                  lineTotal: item.purchasePrice,
+                  lineTotal: rowTotal,
                 })
               : 0;
 
@@ -531,8 +573,9 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
                     <Select
                       label={translateText("Mahsulot")}
                       value={item.productId}
-                      placeholder={translateText("Mahsulot tanlang")}
+                      placeholder={productLoading ? translateText("Mahsulotlar yuklanmoqda...") : translateText("Mahsulot tanlang")}
                       options={productOptions}
+                      disabled={productLoading}
                       onChange={(event) =>
                         handleProductSelect(item.id, event.target.value)
                       }
@@ -573,7 +616,7 @@ const PurchaseForm = ({ initialValues, onSubmit, onCancel, onDraftChange, submit
                 />
 
                 <Input
-                  label={translateText("Xarid narxi")}
+                  label={translateText(`Birlik narxi${purchaseUnit ? ` (${purchaseUnit})` : ""}`)}
                   type="number"
                   min="0"
                   step="any"

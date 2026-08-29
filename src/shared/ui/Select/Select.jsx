@@ -15,6 +15,7 @@ const Select = ({
   error,
   disabled = false,
   required = false,
+  autoSelectFirst = false,
   className = "",
 }) => {
   const generatedId = useId();
@@ -31,6 +32,18 @@ const Select = ({
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!autoSelectFirst || disabled || loading || value || !options.length) return;
+
+    const firstOption = options.find((option) =>
+      option && option.disabled !== true && option.value !== "" && option.value !== null && option.value !== undefined
+    );
+
+    if (firstOption) {
+      onChange?.({ target: { value: firstOption.value }, autoSelected: true });
+    }
+  }, [autoSelectFirst, disabled, loading, onChange, options, value]);
 
   const handleSelect = (option) => {
     if (disabled) return;

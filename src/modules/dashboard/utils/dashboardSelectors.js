@@ -571,7 +571,7 @@ export const getDashboardRecentActivity = (period = "today") => {
       amount: toSafeNumber(order.producedQuantity || order.plannedQuantity),
       date: getPrimaryDate(order, ["completedAt", "updatedAt", "createdAt"]),
       path: `/manufacturing/orders/${order.id}`,
-      unit: order.unit || "dona",
+      unit: order.unit || "",
     }));
   const movements = getWarehouseMovements()
     .filter((movement) => isWithinRange(movement.createdAt, range))
@@ -583,7 +583,7 @@ export const getDashboardRecentActivity = (period = "today") => {
       amount: toSafeNumber(movement.quantity),
       date: movement.createdAt,
       path: "/warehouse",
-      unit: movement.unit || "dona",
+      unit: movement.unit || "",
     }));
 
   const map = new Map();

@@ -177,53 +177,49 @@ const SettingsRuntime = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
     const currencies = SUPPORTED_CURRENCIES.map((currency) => currency.value);
-    const sources = currencies.filter((currency) => currency !== displayCurrency);
+    const symbols = currencies.filter((currency) => currency !== baseCurrency);
 
-    if (sources.length === 0) {
+    if (symbols.length === 0) {
       markSettingsHydrated();
       dispatch(updateFormats({
         fxRates: {},
         fxUpdatedAt: new Date().toISOString(),
         fxProvider: "same-currency",
+        fxUnavailable: [],
       }));
       return () => {
         cancelled = true;
       };
     }
 
-    Promise.all(
-      sources.map((source) =>
-        apiRequest(`/fx/rates?base=${encodeURIComponent(source)}&symbols=${encodeURIComponent(displayCurrency)}`, {
-          skipCache: true,
-          retries: 1,
-        }).catch(() => null),
-      ),
-    ).then((responses) => {
-      if (cancelled) {
-        return;
-      }
-
-      const fxRates = responses.reduce((result, response) => ({
-        ...result,
-        ...(response?.rates || {}),
-      }), {});
-
-      markSettingsHydrated();
-      dispatch(updateFormats({
-        fxRates,
-        fxUpdatedAt: new Date().toISOString(),
-        fxProvider: responses.find((response) => response?.provider)?.provider || "",
-        fxCacheTtlMinutes: responses.find((response) => response?.cacheTtlMinutes)?.cacheTtlMinutes || null,
-        fxUnavailable: responses.flatMap((response, index) =>
-          response ? [] : [`${sources[index]}:${displayCurrency}`],
-        ),
-      }));
-    });
+    apiRequest(`/fx/rates?base=${encodeURIComponent(baseCurrency)}&symbols=${encodeURIComponent(symbols.join(","))}`, {
+      skipCache: true,
+      retries: 1,
+    })
+      .then((response) => {
+        if (cancelled) return;
+        markSettingsHydrated();
+        dispatch(updateFormats({
+          fxRates: response?.rates || {},
+          fxUpdatedAt: new Date().toISOString(),
+          fxProvider: response?.provider || "",
+          fxCacheTtlMinutes: response?.cacheTtlMinutes || null,
+          fxUnavailable: (response?.unavailable || []).map((currency) => `${baseCurrency}:${currency}`),
+        }));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Keep the last successful runtime rates instead of replacing them with
+        // an empty object during a temporary provider/network outage.
+        dispatch(updateFormats({
+          fxUnavailable: [`${baseCurrency}:${displayCurrency}`],
+        }));
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [baseCurrency, displayCurrency, dispatch]);
+  }, [baseCurrency, dispatch]);
 
   return children;
 };

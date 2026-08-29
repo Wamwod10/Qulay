@@ -491,7 +491,7 @@ const ManufacturingPanel = ({ manufacturing, periodLabel, onClick, onOrder }) =>
               <strong>{order.number || order.id}</strong>
               <small>
                 {order.productName || translateText("Mahsulot")} · {formatNumber(order.plannedQuantity)}{" "}
-                {translateText(order.unit || "dona")}
+                {translateText(order.unit || "")}
               </small>
               {order.currentStageName && <small>{order.currentStageName}</small>}
             </span>

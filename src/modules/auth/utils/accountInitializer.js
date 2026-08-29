@@ -1,5 +1,4 @@
 import { DEFAULT_SETTINGS } from "../../settings/constants/settingsDefaults";
-import { DEFAULT_CASHBOXES } from "../../finance/utils/financeStorage";
 import { DEFAULT_SHIFT_ID } from "../../employees/utils/hrStorage";
 import { tenantSetForAccount } from "./tenantStorage";
 
@@ -57,7 +56,7 @@ export const initializeAccountWorkspace = (accountId, account = {}) => {
   });
 
   tenantSetForAccount(accountId, "warehouses", [DEFAULT_WAREHOUSE]);
-  tenantSetForAccount(accountId, "finance_cashboxes", DEFAULT_CASHBOXES);
+  tenantSetForAccount(accountId, "finance_cashboxes", []);
   tenantSetForAccount(accountId, "hr_shifts", DEFAULT_SHIFTS);
   tenantSetForAccount(accountId, "settings", {
     ...DEFAULT_SETTINGS,

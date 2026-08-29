@@ -126,7 +126,7 @@ const makeOption = (item, fallback) => ({
 const initialForm = () => ({
   amount: "",
   paymentMethod: "CASH",
-  cashboxId: "cashbox-main",
+  cashboxId: "",
   date: todayIso(),
   note: "",
   customerId: "",
@@ -136,8 +136,8 @@ const initialForm = () => ({
   purchaseId: "",
   category: "Transport",
   responsiblePerson: "",
-  fromCashboxId: "cashbox-main",
-  toCashboxId: "cashbox-bank-card",
+  fromCashboxId: "",
+  toCashboxId: "",
   type: "IN",
 });
 
@@ -302,11 +302,17 @@ const createFinanceAgent = async (name) => {
       cashboxId:
         financeSettings.defaultCashboxId ||
         defaults.cashboxId ||
-        "cashbox-main",
+        reference.cashboxes[0]?.id ||
+        "",
       fromCashboxId:
         financeSettings.defaultCashboxId ||
         defaults.cashboxId ||
-        "cashbox-main",
+        reference.cashboxes[0]?.id ||
+        "",
+      toCashboxId:
+        reference.cashboxes.find((cashbox) => cashbox.id !== (financeSettings.defaultCashboxId || defaults.cashboxId || reference.cashboxes[0]?.id))?.id ||
+        reference.cashboxes[0]?.id ||
+        "",
       ...seed,
     });
     setError("");

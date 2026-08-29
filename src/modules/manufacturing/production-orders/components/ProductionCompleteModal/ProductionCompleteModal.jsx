@@ -69,6 +69,7 @@ const createPackagingRow = (order, row = {}) => ({
   packSize: row.packSize ? String(row.packSize) : "",
   packUnit: row.packUnit || getParentUnit(order),
   quantity: row.quantity ? String(row.quantity) : "",
+  selectedProductCost: Number(row.selectedProductCost ?? row.productCost ?? row.cost ?? 0),
   materials: Array.isArray(row.materials || row.packagingMaterials) ? (row.materials || row.packagingMaterials) : [],
 });
 
@@ -218,6 +219,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
         parentProductId: details.parentProductId || source.parentProductId || null,
         packSize: details.packSize ?? source.packSize ?? null,
         packUnit: details.packUnit || source.packUnit || null,
+        cost: Number(details.cost ?? source.cost ?? stockItem?.cost ?? 0),
         isVariant,
         available: stockItem ? stockItem.available : null,
         inOutputWarehouse: Boolean(stockItem),
@@ -246,11 +248,12 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
   const packagingProductOptions = useMemo(() => packagingProducts.map((product) => {
     const availableText = `Mavjud: ${formatProductionQuantity(product.available || 0)} ${product.unit}`;
+    const costText = `Tannarx: ${formatManufacturingMoney(product.cost || 0)}`;
 
     return {
       value: product.id,
       label: product.name,
-      description: [product.sku || "SKU yo'q", availableText].join(" · "),
+      description: [product.sku || "SKU yo'q", availableText, costText].join(" · "),
       searchText: [product.name, product.sku, product.barcode, product.unit, product.id].filter(Boolean).join(" | "),
     };
   }), [packagingProducts]);
@@ -284,6 +287,10 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       return total;
     }
   }, 0));
+  const selectedPackagedProductsCost = roundQuantity(packagingRows.reduce(
+    (total, row) => total + Number(row.quantity || 0) * Number(row.selectedProductCost || 0),
+    0,
+  ));
   const remainingBulk = roundQuantity(produced - packagingTotal);
   const overPackAmount = roundQuantity(Math.max(packagingTotal - produced, 0));
   const rawMaterialCost = actualMaterials.reduce((total, material) => total + Number(material.actualQuantity || 0) * Number(material.cost || 0), 0);
@@ -320,6 +327,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       productNameEdited: true,
       packSize: Number(product.packSize || 0) > 0 ? String(product.packSize) : packagingRows[index]?.packSize || "",
       packUnit: product.packUnit || packagingRows[index]?.packUnit || parentUnit,
+      selectedProductCost: Number(product.cost || 0),
     });
   };
 
@@ -328,6 +336,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
       productId: "",
       productName: name,
       productNameEdited: true,
+      selectedProductCost: 0,
     });
     setShowPackagingValidation(false);
     return null;
@@ -469,13 +478,13 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
                   min="0"
                   step="any"
                   value={row.packSize || ""}
-                  onChange={(event) => updatePackaging(index, { packSize: event.target.value, productId: "" }, { regenerateName: true })}
+                  onChange={(event) => updatePackaging(index, { packSize: event.target.value, productId: "", selectedProductCost: 0 }, { regenerateName: true })}
                 />
                 <Select
                   label="Birlik"
                   value={row.packUnit || parentUnit}
                   options={packUnitOptions}
-                  onChange={(event) => updatePackaging(index, { packUnit: event.target.value, productId: "" }, { regenerateName: true })}
+                  onChange={(event) => updatePackaging(index, { packUnit: event.target.value, productId: "", selectedProductCost: 0 }, { regenerateName: true })}
                 />
               </div>
               <Input
@@ -490,6 +499,7 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
               <div className="production-complete__package-total">
                 <span>Qadoqlandi</span>
                 <strong>{formatProductionQuantity(getSafeRowPackagedQuantity(row))} {parentUnit}</strong>
+                <small>Joriy tannarx: {formatManufacturingMoney(row.selectedProductCost || 0)} / dona</small>
               </div>
               <Button type="button" variant="ghost" aria-label="Qadoqni o'chirish" title="Qadoqni o'chirish" className="production-complete__package-delete" onClick={() => removePackaging(index)}>
                 <Trash2 size={16} />
@@ -548,7 +558,8 @@ const ProductionCompleteModal = ({ open, order, onClose, onSubmit }) => {
 
             <div className="production-complete__cost">
               <div><span>Xomashyo tannarxi</span><strong>{formatManufacturingMoney(rawMaterialCost)}</strong></div>
-              <div><span>Qadoqlash xarajati</span><strong>{formatManufacturingMoney(0)}</strong></div>
+              <div><span>Tanlangan qadoq SKU joriy tannarxi</span><strong>{formatManufacturingMoney(selectedPackagedProductsCost)}</strong></div>
+              <div><span>Qadoqlash materiali xarajati</span><strong>Yakunlashda batch tannarxidan hisoblanadi</strong></div>
               <div><span>Qo'shimcha xarajatlar</span><strong>{formatManufacturingMoney(overheadCost)}</strong></div>
               <div><span>Taxminiy jami tannarx</span><strong>{formatManufacturingMoney(actualProductionCost)}</strong></div>
               <div><span>Ishlab chiqarish hajmi</span><strong>{formatProductionQuantity(accepted)} {parentUnit}</strong></div>
