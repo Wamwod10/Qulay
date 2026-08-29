@@ -1,6 +1,6 @@
 export const SUPPORTED_CURRENCIES = [
   { value: "UZS", label: "UZS - so'm" },
-  { value: "TJS", label: "TJS - somon" },
+  { value: "TJS", label: "TJS - Сомон" },
   { value: "USD", label: "USD - dollar" },
   { value: "EUR", label: "EUR - euro" },
   { value: "RUB", label: "RUB - rubl" },
@@ -10,7 +10,7 @@ export const SUPPORTED_CURRENCIES = [
 
 export const CURRENCY_DISPLAY_LABELS = {
   UZS: "so'm",
-  TJS: "somon",
+  TJS: "Сомон",
   USD: "$",
   EUR: "€",
   RUB: "₽",

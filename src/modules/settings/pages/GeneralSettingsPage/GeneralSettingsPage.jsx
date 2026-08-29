@@ -544,7 +544,7 @@ const GeneralSettingsPage = () => {
               <Select value={settings.formats.timeFormat} options={[{ value: "24h", label: "24h" }, { value: "12h", label: "12h" }]} onChange={(event) => dispatch(updateFormats({ timeFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Pul formati" description="Valyutaga mos tushunarli pul ko'rinishi.">
-              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm / 1 250 somon" }, { value: "comma-code", label: "1,250,000 USD" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
+              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm / 1 250 Сомон" }, { value: "comma-code", label: "1,250,000 USD" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Platforma valyutasi" description="Valyuta almashtirilganda mavjud pul summalari backendda joriy kurs bo'yicha bir marta xavfsiz konvertatsiya qilinadi. Keyingi yangi summalar shu valyutada kiritiladi.">
               <Select
