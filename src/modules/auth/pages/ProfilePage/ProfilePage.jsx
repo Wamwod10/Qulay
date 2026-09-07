@@ -63,7 +63,7 @@ const ProfilePage = () => {
     email: account?.email || "",
     address: account?.address || "",
     country: account?.country || "",
-    currency: account?.currency || "UZS",
+    currency: account?.currency || "TJS",
     taxId: account?.taxId || "",
     logo: account?.logo || "",
   });

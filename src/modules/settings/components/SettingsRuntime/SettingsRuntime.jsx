@@ -102,7 +102,7 @@ const SettingsRuntime = ({ children }) => {
   const dispatch = useDispatch();
   const appearance = useAppearanceSettings();
   const formats = useFormatSettings();
-  const baseCurrency = normalizeCurrency(formats.baseCurrency || "UZS");
+  const baseCurrency = normalizeCurrency(formats.baseCurrency || "TJS");
   const displayCurrency = normalizeCurrency(formats.displayCurrency || formats.currency || baseCurrency);
 
   useEffect(() => {

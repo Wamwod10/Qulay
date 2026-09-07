@@ -700,7 +700,7 @@ const CashboxesView = ({ cashboxBalances, openModal }) => (
       {cashboxBalances.map((row) => (
         <Card key={row.cashboxId} variant="soft" padding="md" className="finance-workspace__cashbox">
           <strong>{row.cashbox?.name || row.cashboxId}</strong>
-          <span>{row.cashbox?.type || "CASH"} / {row.cashbox?.currency || "UZS"}</span>
+          <span>{row.cashbox?.type || "CASH"} / {row.cashbox?.currency || "TJS"}</span>
           <b>{formatFinanceMoney(row.balance)}</b>
           <small>Kirim {formatFinanceMoney(row.inAmount)} / chiqim {formatFinanceMoney(row.outAmount)}</small>
         </Card>

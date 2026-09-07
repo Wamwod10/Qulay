@@ -77,7 +77,7 @@ const normalizeAppearance = (stored = {}) => {
 };
 
 const normalizeFormats = (stored = {}) => {
-  const baseCurrency = normalizeCurrency(stored.baseCurrency || stored.accountingCurrency || stored.currency || "UZS");
+  const baseCurrency = normalizeCurrency(stored.baseCurrency || stored.accountingCurrency || stored.currency || "TJS");
   const displayCurrency = normalizeCurrency(stored.displayCurrency || stored.currency || baseCurrency);
   const { exchangeRates: _exchangeRates, ...formatSettings } = stored;
 

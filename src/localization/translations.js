@@ -876,9 +876,6 @@ export const tajikPhraseMap = {
   "ta mahsulot": "маҳсулот",
   "ta material": "мавод",
   "ta operatsiya": "амалиёт",
-  "so'm": "сум",
-  "so‘m": "сум",
-  "so‘m /": "сум /",
   "Min:": "Мин:",
   "Birlik:": "Воҳид:",
   "%)": "%)",
@@ -1248,6 +1245,4 @@ export const tajikWordReplacements = [
   ["ta signal", "сигнал"],
   ["ta yozuv", "сабт"],
   ["dona", "дона"],
-  ["so'm", "сум"],
-  ["so‘m", "сум"],
 ];

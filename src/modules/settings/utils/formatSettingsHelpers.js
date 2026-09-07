@@ -1,6 +1,6 @@
-import { getLocale } from "../../../localization/i18n";
-import { getCurrencyDisplayLabel, normalizeCurrency } from "../../../shared/utils/currency";
-import { roundDecimal } from "../../../shared/utils/number";
+import { getLocale } from "../../../localization/i18n.js";
+import { getCurrencyDisplayLabel, normalizeCurrency } from "../../../shared/utils/currency.js";
+import { roundDecimal } from "../../../shared/utils/number.js";
 
 export const formatDateWithSettings = (value, formats = {}) => {
   if (!value) {
@@ -48,35 +48,35 @@ export const formatTimeWithSettings = (value, formats = {}) => {
 };
 
 export const formatMoneyWithSettings = (value, formats = {}) => {
-  const fromCurrency = normalizeCurrency(formats.fromCurrency || formats.originalCurrency || formats.baseCurrency || "UZS");
-  const currency = normalizeCurrency(formats.displayCurrency || formats.currency || "UZS");
+  const fromCurrency = normalizeCurrency(formats.fromCurrency || formats.originalCurrency || formats.baseCurrency || "TJS");
+  const currency = normalizeCurrency(formats.displayCurrency || formats.currency || "TJS");
   const conversion = convertCurrency(value, fromCurrency, currency, formats);
   if (!conversion.available) {
     return "Kurs mavjud emas";
   }
-  const precision = getCurrencyPrecision(currency, formats);
+  const precision = getCurrencyPrecision(formats);
   const amount = roundDecimal(conversion.amount, precision);
   const locale = formats.moneyFormat === "comma-code" ? "en-US" : getLocale(formats.language);
   const formatted = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: precision,
     maximumFractionDigits: precision,
   }).format(amount);
 
   const displayLabel = getCurrencyDisplayLabel(currency);
 
-  if (formats.moneyFormat === "comma-code" && !["TJS", "UZS", "KGS"].includes(currency)) {
-    return `${formatted} ${currency}`;
+  if (formats.moneyFormat === "comma-code") {
+    return `${formatted} TJS`;
   }
 
   return `${formatted} ${displayLabel}`;
 };
 
-const getCurrencyPrecision = (currency, formats = {}) => {
+const getCurrencyPrecision = (formats = {}) => {
   if (formats.numberPrecision !== undefined) {
-    return Math.max(Number(formats.numberPrecision) || 0, currency === "UZS" ? 0 : 2);
+    return Math.max(Number(formats.numberPrecision) || 0, 2);
   }
 
-  return currency === "UZS" ? 0 : 2;
+  return 2;
 };
 
 const extractRateValue = (value) => {
@@ -88,8 +88,8 @@ const extractRateValue = (value) => {
 };
 
 export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
-  const from = normalizeCurrency(fromCurrency || formats.baseCurrency || "UZS");
-  const to = normalizeCurrency(toCurrency || formats.displayCurrency || formats.currency || "UZS");
+  const from = normalizeCurrency(fromCurrency || formats.baseCurrency || "TJS");
+  const to = normalizeCurrency(toCurrency || formats.displayCurrency || formats.currency || "TJS");
   if (from === to) {
     return { available: true, rate: 1, source: "same-currency", fallback: false };
   }
@@ -138,7 +138,7 @@ export const getExchangeRate = (fromCurrency, toCurrency, formats = {}) => {
 
   // SettingsRuntime loads one canonical base-currency table. Derive any
   // cross-rate from that table instead of making one HTTP request per pair.
-  const base = normalizeCurrency(formats.baseCurrency || "UZS");
+  const base = normalizeCurrency(formats.baseCurrency || "TJS");
   const baseToFrom = from === base ? { available: true, rate: 1, fallback: false } : readPair(base, from);
   const baseToTo = to === base ? { available: true, rate: 1, fallback: false } : readPair(base, to);
 

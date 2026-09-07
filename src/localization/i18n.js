@@ -88,7 +88,6 @@ const TAJIK_SAFE_TEXT_MAP = {
   "Sotuv narxi": "Нархи фурӯш",
   "Mavjud": "Мавҷуд",
   "Topilmadi": "Ёфт нашуд",
-  "so'm": "сомонӣ",
   "Live": "Зинда",
   "Finance IN": "Молияи воридотӣ",
   "IN - OUT": "Воридот - хароҷот",
@@ -289,7 +288,6 @@ export const translateText = (value, options = {}) => {
   translated = translated
     .replace(/(\d+)\s+ta\b/g, "$1 адад")
     .replace(/(\d+)\s+та\b/g, "$1 адад")
-    .replace(/\bso['‘]m\b/gi, "сум")
     .replace(/\bLow stock\b/g, "Қолдиқ кам")
     .replace(/\bNo data\b/g, "Маълумот нест")
     .replace(/\bNothing found\b/g, "Ҳеҷ чиз ёфт нашуд")

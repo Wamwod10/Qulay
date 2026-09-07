@@ -83,7 +83,6 @@ export const customerAgentTajikOverrides = {
   "Savdo raqami": "Рақами фурӯш",
   "Segment": "Сегмент",
   "Segment:": "Сегмент:",
-  "so'm": "сум",
   "Summa": "Маблағ",
   "ta": "адад",
   "ta natija": "натиҷа",

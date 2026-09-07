@@ -15,14 +15,14 @@ export const formatPurchaseMoney = (
     const formats = getPlatformSettings().formats;
     return formatMoneyWithSettings(Number(value) || 0, {
         ...formats,
-        fromCurrency: fromCurrency || formats.baseCurrency || "UZS",
+        fromCurrency: fromCurrency || formats.baseCurrency || "TJS",
     });
 };
 
 export const getPurchaseMoneyValue = (value, fromCurrency = null) => {
     const formats = getPlatformSettings().formats;
-    const sourceCurrency = fromCurrency || formats.baseCurrency || "UZS";
-    const targetCurrency = formats.displayCurrency || formats.currency || "UZS";
+    const sourceCurrency = fromCurrency || formats.baseCurrency || "TJS";
+    const targetCurrency = formats.displayCurrency || formats.currency || "TJS";
     const conversion = convertCurrency(Number(value) || 0, sourceCurrency, targetCurrency, formats);
 
     return conversion.available ? conversion.amount : null;

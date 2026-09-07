@@ -30,7 +30,7 @@ const INITIAL_VALUES = {
   confirmPassword: "",
   businessType: "",
   country: "O'zbekiston",
-  currency: "UZS",
+  currency: "TJS",
 };
 
 const validate = (values) => {

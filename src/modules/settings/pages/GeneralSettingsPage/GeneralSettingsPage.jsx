@@ -162,7 +162,7 @@ const GeneralSettingsPage = () => {
     [],
   );
   const fxInfo = useMemo(() => {
-    const baseCurrency = settings.formats.baseCurrency || "UZS";
+    const baseCurrency = settings.formats.baseCurrency || "TJS";
     const displayCurrency = settings.formats.displayCurrency || settings.formats.currency || baseCurrency;
     const rates = settings.formats.fxRates || {};
 
@@ -544,11 +544,11 @@ const GeneralSettingsPage = () => {
               <Select value={settings.formats.timeFormat} options={[{ value: "24h", label: "24h" }, { value: "12h", label: "12h" }]} onChange={(event) => dispatch(updateFormats({ timeFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Pul formati" description="Valyutaga mos tushunarli pul ko'rinishi.">
-              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 000 so'm / 1 250 Сомон" }, { value: "comma-code", label: "1,250,000 USD" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
+              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 somoni" }, { value: "comma-code", label: "1,250 TJS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Platforma valyutasi" description="Valyuta almashtirilganda mavjud pul summalari backendda joriy kurs bo'yicha bir marta xavfsiz konvertatsiya qilinadi. Keyingi yangi summalar shu valyutada kiritiladi.">
+            <SettingRow title="Platforma valyutasi" description="Platformadagi barcha pul summalari Tojikiston somonisida yuritiladi.">
               <Select
-                value={settings.formats.baseCurrency || "UZS"}
+                value={settings.formats.baseCurrency || "TJS"}
                 options={SUPPORTED_CURRENCIES}
                 onChange={(event) => {
                   const currency = event.target.value;
@@ -775,7 +775,7 @@ const Preview = () => (
       <span>Narx</span>
       <strong>Shokoladli pechenye</strong>
       <span>125 dona</span>
-      <span>18 000 UZS</span>
+      <span>18 000 TJS</span>
     </div>
   </div>
 );
