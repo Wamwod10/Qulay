@@ -61,7 +61,7 @@ test("frontend legacy currency settings fall back to TJS", () => {
     baseCurrency: "UZS",
     displayCurrency: "UZS",
     currency: "UZS",
-  }), "20,50 somoni");
+  }), "20,50 somon");
 });
 
 test("product category filter matches linked and legacy categories", () => {

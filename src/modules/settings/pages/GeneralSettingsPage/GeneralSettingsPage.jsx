@@ -544,9 +544,9 @@ const GeneralSettingsPage = () => {
               <Select value={settings.formats.timeFormat} options={[{ value: "24h", label: "24h" }, { value: "12h", label: "12h" }]} onChange={(event) => dispatch(updateFormats({ timeFormat: event.target.value }))} />
             </SettingRow>
             <SettingRow title="Pul formati" description="Valyutaga mos tushunarli pul ko'rinishi.">
-              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 somoni" }, { value: "comma-code", label: "1,250 TJS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
+              <Select value={settings.formats.moneyFormat} options={[{ value: "space-symbol", label: "1 250 somon" }, { value: "comma-code", label: "1,250 TJS" }]} onChange={(event) => dispatch(updateFormats({ moneyFormat: event.target.value }))} />
             </SettingRow>
-            <SettingRow title="Platforma valyutasi" description="Platformadagi barcha pul summalari Tojikiston somonisida yuritiladi.">
+            <SettingRow title="Platforma valyutasi" description="Platformadagi barcha pul summalari Tojikiston somonida yuritiladi.">
               <Select
                 value={settings.formats.baseCurrency || "TJS"}
                 options={SUPPORTED_CURRENCIES}

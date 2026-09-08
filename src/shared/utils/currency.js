@@ -1,9 +1,9 @@
 export const SUPPORTED_CURRENCIES = [
-  { value: "TJS", label: "TJS - somoni" },
+  { value: "TJS", label: "TJS - somon" },
 ];
 
 export const CURRENCY_DISPLAY_LABELS = {
-  TJS: "somoni",
+  TJS: "somon",
 };
 
 export const normalizeCurrency = (value) => {
